@@ -26,6 +26,8 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.junit.AfterClass;
 import org.junit.Test;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class ITServlet3Container extends ITServlet25Container {
   static ExecutorService executor = Executors.newCachedThreadPool();
@@ -35,7 +37,31 @@ public abstract class ITServlet3Container extends ITServlet25Container {
     executor.shutdownNow();
   }
 
-  static class AsyncServlet extends HttpServlet {
+  @Test
+  public void forward() throws Exception {
+    get("/forward");
+
+    takeSpan();
+  }
+
+@Test
+  public void forwardAsync() throws Exception {
+    get("/forwardAsync");
+
+    takeSpan();
+  }
+
+@Override
+  public void init(ServletContextHandler handler) {
+    super.init(handler);
+    // add servlet 3.0+
+    handler.addServlet(new ServletHolder(new AsyncServlet()), "/async");
+    handler.addServlet(new ServletHolder(new ForwardServlet()), "/forward");
+    handler.addServlet(new ServletHolder(new AsyncForwardServlet()), "/forwardAsync");
+    handler.addServlet(new ServletHolder(new ExceptionAsyncServlet()), "/exceptionAsync");
+  }
+
+static class AsyncServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
       if (Tracing.currentTracer().currentSpan() == null) {
@@ -44,20 +70,6 @@ public abstract class ITServlet3Container extends ITServlet25Container {
       AsyncContext ctx = req.startAsync();
       ctx.start(ctx::complete);
     }
-  }
-
-  @Test
-  public void forward() throws Exception {
-    get("/forward");
-
-    takeSpan();
-  }
-
-  @Test
-  public void forwardAsync() throws Exception {
-    get("/forwardAsync");
-
-    takeSpan();
   }
 
   static class ForwardServlet extends HttpServlet {
@@ -77,7 +89,9 @@ public abstract class ITServlet3Container extends ITServlet25Container {
   }
 
   static class ExceptionAsyncServlet extends HttpServlet {
-    @Override
+    private final Logger logger = LogManager.getLogger(ExceptionAsyncServlet.class);
+
+	@Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
       AsyncContext ctx = req.startAsync();
       ctx.setTimeout(1);
@@ -86,21 +100,12 @@ public abstract class ITServlet3Container extends ITServlet25Container {
           try {
             Thread.sleep(10L);
           } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            logger.error(e.getMessage(), e);
+			Thread.currentThread().interrupt();
           } finally {
             ctx.complete();
           }
         });
     }
-  }
-
-  @Override
-  public void init(ServletContextHandler handler) {
-    super.init(handler);
-    // add servlet 3.0+
-    handler.addServlet(new ServletHolder(new AsyncServlet()), "/async");
-    handler.addServlet(new ServletHolder(new ForwardServlet()), "/forward");
-    handler.addServlet(new ServletHolder(new AsyncForwardServlet()), "/forwardAsync");
-    handler.addServlet(new ServletHolder(new ExceptionAsyncServlet()), "/exceptionAsync");
   }
 }

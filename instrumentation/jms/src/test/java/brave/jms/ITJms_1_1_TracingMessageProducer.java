@@ -40,10 +40,13 @@ import zipkin2.Span;
 import static brave.jms.JmsTracing.SETTER;
 import static brave.propagation.B3SingleFormat.writeB3SingleFormat;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** When adding tests here, also add to {@linkplain brave.jms.ITTracingJMSProducer} */
 public class ITJms_1_1_TracingMessageProducer extends JmsTest {
-  @Rule public TestName testName = new TestName();
+  private static final Logger logger = LoggerFactory.getLogger(ITJms_1_1_TracingMessageProducer.class);
+@Rule public TestName testName = new TestName();
   @Rule public JmsTestRule jms = newJmsTestRule(testName);
 
   Session tracedSession;
@@ -85,13 +88,9 @@ public class ITJms_1_1_TracingMessageProducer extends JmsTest {
     topicSubscriber = jms.topicSession.createSubscriber(jms.topic);
 
     message = jms.newMessage("foo");
-    for (Map.Entry<String, String> existingProperty : existingProperties.entrySet()) {
-      SETTER.put(message, existingProperty.getKey(), existingProperty.getValue());
-    }
+    existingProperties.entrySet().forEach(existingProperty -> SETTER.put(message, existingProperty.getKey(), existingProperty.getValue()));
     bytesMessage = jms.newBytesMessage("foo");
-    for (Map.Entry<String, String> existingProperty : existingProperties.entrySet()) {
-      SETTER.put(bytesMessage, existingProperty.getKey(), existingProperty.getValue());
-    }
+    existingProperties.entrySet().forEach(existingProperty -> SETTER.put(bytesMessage, existingProperty.getKey(), existingProperty.getValue()));
   }
 
   @After public void tearDownTraced() throws JMSException {
@@ -125,7 +124,7 @@ public class ITJms_1_1_TracingMessageProducer extends JmsTest {
 
     assertThat(propertiesToMap(received))
       .containsAllEntriesOf(existingProperties)
-      .containsEntry("b3", producerSpan.traceId() + "-" + producerSpan.id() + "-1");
+      .containsEntry("b3", new StringBuilder().append(producerSpan.traceId()).append("-").append(producerSpan.id()).append("-1").toString());
   }
 
   @Test public void should_not_serialize_parent_span_id() throws Exception {
@@ -137,12 +136,13 @@ public class ITJms_1_1_TracingMessageProducer extends JmsTest {
     }
 
     Message received = messageConsumer.receive();
-    Span producerSpan = takeSpan(), parentSpan = takeSpan();
+    Span producerSpan = takeSpan();
+	Span parentSpan = takeSpan();
     assertThat(producerSpan.parentId()).isEqualTo(parentSpan.id());
 
     assertThat(propertiesToMap(received))
       .containsAllEntriesOf(existingProperties)
-      .containsEntry("b3", producerSpan.traceId() + "-" + producerSpan.id() + "-1");
+      .containsEntry("b3", new StringBuilder().append(producerSpan.traceId()).append("-").append(producerSpan.id()).append("-1").toString());
   }
 
   @Test public void should_prefer_current_to_stale_b3_header() throws Exception {
@@ -158,12 +158,13 @@ public class ITJms_1_1_TracingMessageProducer extends JmsTest {
     }
 
     Message received = messageConsumer.receive();
-    Span producerSpan = takeSpan(), parentSpan = takeSpan();
+    Span producerSpan = takeSpan();
+	Span parentSpan = takeSpan();
     assertThat(producerSpan.parentId()).isEqualTo(parentSpan.id());
 
     assertThat(propertiesToMap(received))
       .containsAllEntriesOf(existingProperties)
-      .containsEntry("b3", producerSpan.traceId() + "-" + producerSpan.id() + "-1");
+      .containsEntry("b3", new StringBuilder().append(producerSpan.traceId()).append("-").append(producerSpan.id()).append("-1").toString());
   }
 
   @Test public void should_record_properties() throws Exception {
@@ -208,6 +209,7 @@ public class ITJms_1_1_TracingMessageProducer extends JmsTest {
     try {
       send.run();
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
     }
 
     assertThat(takeSpan().tags()).containsKey("error");

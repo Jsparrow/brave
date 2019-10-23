@@ -33,24 +33,41 @@ import static brave.http.HttpSampler.toHttpRequestSampler;
 public class HttpTracing implements Closeable {
   // AtomicReference<Object> instead of AtomicReference<HttpTracing> to ensure unloadable
   static final AtomicReference<Object> CURRENT = new AtomicReference<>();
+final Tracing tracing;
+final HttpClientParser clientParser;
+final String serverName;
+final HttpServerParser serverParser;
+final SamplerFunction<HttpRequest> clientSampler;
+final SamplerFunction<HttpRequest> serverSampler;
 
-  public static HttpTracing create(Tracing tracing) {
+HttpTracing(Builder builder) {
+    this.tracing = builder.tracing;
+    this.clientParser = builder.clientParser;
+    this.serverName = builder.serverName;
+    this.serverParser = builder.serverParser;
+    this.clientSampler = builder.clientSampler;
+    this.serverSampler = builder.serverSampler;
+    // assign current IFF there's no instance already current
+    CURRENT.compareAndSet(null, this);
+  }
+
+public static HttpTracing create(Tracing tracing) {
     return newBuilder(tracing).build();
   }
 
-  public static Builder newBuilder(Tracing tracing) {
+public static Builder newBuilder(Tracing tracing) {
     return new Builder(tracing);
   }
 
-  public Tracing tracing() {
+public Tracing tracing() {
     return tracing;
   }
 
-  public HttpClientParser clientParser() {
+public HttpClientParser clientParser() {
     return clientParser;
   }
 
-  /**
+/**
    * Used by http clients to indicate the name of the destination service.
    *
    * Defaults to "", which will not show in the zipkin UI or end up in the dependency graph.
@@ -73,7 +90,7 @@ public class HttpTracing implements Closeable {
     return serverName;
   }
 
-  /**
+/**
    * Scopes this component for a client of the indicated server.
    *
    * @see #serverName()
@@ -82,16 +99,16 @@ public class HttpTracing implements Closeable {
     return toBuilder().serverName(serverName).build();
   }
 
-  public HttpServerParser serverParser() {
+public HttpServerParser serverParser() {
     return serverParser;
   }
 
-  /** @deprecated Since 5.8, use {@link #clientRequestSampler()} */
+/** @deprecated Since 5.8, use {@link #clientRequestSampler()} */
   @Deprecated public HttpSampler clientSampler() {
     return fromHttpRequestSampler(clientSampler);
   }
 
-  /**
+/**
    * Returns an overriding sampling decision for a new trace. Defaults to ignore the request and use
    * the {@link SamplerFunctions#deferDecision() trace ID instead}.
    *
@@ -106,12 +123,12 @@ public class HttpTracing implements Closeable {
     return clientSampler;
   }
 
-  /** @deprecated Since 5.8, use {@link #serverRequestSampler()} */
+/** @deprecated Since 5.8, use {@link #serverRequestSampler()} */
   @Deprecated public HttpSampler serverSampler() {
     return fromHttpRequestSampler(serverSampler);
   }
 
-  /**
+/**
    * Returns an overriding sampling decision for a new trace. Defaults to ignore the request and use
    * the {@link SamplerFunctions#deferDecision() trace ID instead}.
    *
@@ -126,25 +143,23 @@ public class HttpTracing implements Closeable {
     return serverSampler;
   }
 
-  public Builder toBuilder() {
+public Builder toBuilder() {
     return new Builder(this);
   }
 
-  final Tracing tracing;
-  final HttpClientParser clientParser;
-  final String serverName;
-  final HttpServerParser serverParser;
-  final SamplerFunction<HttpRequest> clientSampler, serverSampler;
+/**
+   * Returns the most recently created tracing component iff it hasn't been closed. null otherwise.
+   *
+   * <p>This object should not be cached.
+   */
+  @Nullable public static HttpTracing current() {
+    return (HttpTracing) CURRENT.get();
+  }
 
-  HttpTracing(Builder builder) {
-    this.tracing = builder.tracing;
-    this.clientParser = builder.clientParser;
-    this.serverName = builder.serverName;
-    this.serverParser = builder.serverParser;
-    this.clientSampler = builder.clientSampler;
-    this.serverSampler = builder.serverSampler;
-    // assign current IFF there's no instance already current
-    CURRENT.compareAndSet(null, this);
+/** @since 5.9 */
+  @Override public void close() {
+    // only set null if we are the outer-most instance
+    CURRENT.compareAndSet(this, null);
   }
 
   public static final class Builder {
@@ -152,10 +167,13 @@ public class HttpTracing implements Closeable {
     HttpClientParser clientParser;
     String serverName;
     HttpServerParser serverParser;
-    SamplerFunction<HttpRequest> clientSampler, serverSampler;
+    SamplerFunction<HttpRequest> clientSampler;
+	SamplerFunction<HttpRequest> serverSampler;
 
     Builder(Tracing tracing) {
-      if (tracing == null) throw new NullPointerException("tracing == null");
+      if (tracing == null) {
+		throw new NullPointerException("tracing == null");
+	}
       final ErrorParser errorParser = tracing.errorParser();
       this.tracing = tracing;
       this.serverName = "";
@@ -185,7 +203,9 @@ public class HttpTracing implements Closeable {
 
     /** @see HttpTracing#tracing() */
     public Builder tracing(Tracing tracing) {
-      if (tracing == null) throw new NullPointerException("tracing == null");
+      if (tracing == null) {
+		throw new NullPointerException("tracing == null");
+	}
       this.tracing = tracing;
       return this;
     }
@@ -197,13 +217,17 @@ public class HttpTracing implements Closeable {
      * @see HttpTracing#clientParser()
      */
     public Builder clientParser(HttpClientParser clientParser) {
-      if (clientParser == null) throw new NullPointerException("clientParser == null");
+      if (clientParser == null) {
+		throw new NullPointerException("clientParser == null");
+	}
       this.clientParser = clientParser;
       return this;
     }
 
     Builder serverName(String serverName) {
-      if (serverName == null) throw new NullPointerException("serverName == null");
+      if (serverName == null) {
+		throw new NullPointerException("serverName == null");
+	}
       this.serverName = serverName;
       return this;
     }
@@ -215,14 +239,18 @@ public class HttpTracing implements Closeable {
      * @see HttpTracing#serverParser()
      */
     public Builder serverParser(HttpServerParser serverParser) {
-      if (serverParser == null) throw new NullPointerException("serverParser == null");
+      if (serverParser == null) {
+		throw new NullPointerException("serverParser == null");
+	}
       this.serverParser = serverParser;
       return this;
     }
 
     /** @deprecated Since 5.8, use {@link #clientSampler(SamplerFunction)} */
     public Builder clientSampler(HttpSampler clientSampler) {
-      if (clientSampler == null) throw new NullPointerException("clientSampler == null");
+      if (clientSampler == null) {
+		throw new NullPointerException("clientSampler == null");
+	}
       return clientSampler((SamplerFunction<HttpRequest>) clientSampler);
     }
 
@@ -232,7 +260,9 @@ public class HttpTracing implements Closeable {
      * @since 5.8
      */
     public Builder clientSampler(SamplerFunction<HttpRequest> clientSampler) {
-      if (clientSampler == null) throw new NullPointerException("clientSampler == null");
+      if (clientSampler == null) {
+		throw new NullPointerException("clientSampler == null");
+	}
       this.clientSampler = toHttpRequestSampler(clientSampler);
       return this;
     }
@@ -248,7 +278,9 @@ public class HttpTracing implements Closeable {
      * @since 5.8
      */
     public Builder serverSampler(SamplerFunction<HttpRequest> serverSampler) {
-      if (serverSampler == null) throw new NullPointerException("serverSampler == null");
+      if (serverSampler == null) {
+		throw new NullPointerException("serverSampler == null");
+	}
       this.serverSampler = toHttpRequestSampler(serverSampler);
       return this;
     }
@@ -256,20 +288,5 @@ public class HttpTracing implements Closeable {
     public HttpTracing build() {
       return new HttpTracing(this);
     }
-  }
-
-  /**
-   * Returns the most recently created tracing component iff it hasn't been closed. null otherwise.
-   *
-   * <p>This object should not be cached.
-   */
-  @Nullable public static HttpTracing current() {
-    return (HttpTracing) CURRENT.get();
-  }
-
-  /** @since 5.9 */
-  @Override public void close() {
-    // only set null if we are the outer-most instance
-    CURRENT.compareAndSet(this, null);
   }
 }

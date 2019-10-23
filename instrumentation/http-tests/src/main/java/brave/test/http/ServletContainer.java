@@ -56,14 +56,16 @@ public abstract class ServletContainer {
   }
 
   public final String url(String path) {
-    return "http://localhost:" + port + path;
+    return new StringBuilder().append("http://localhost:").append(port).append(path).toString();
   }
 
   /** Implement by registering a servlet for the test resource and anything needed for tracing */
   public abstract void init(ServletContextHandler handler);
 
   public void stop() {
-    if (server == null) return;
+    if (server == null) {
+		return;
+	}
     try {
       server.stop();
       server.join();

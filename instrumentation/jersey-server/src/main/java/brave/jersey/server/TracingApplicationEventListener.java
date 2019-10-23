@@ -32,31 +32,38 @@ import static brave.jersey.server.SpanCustomizingApplicationEventListener.route;
 
 @Provider
 public final class TracingApplicationEventListener implements ApplicationEventListener {
-  public static ApplicationEventListener create(HttpTracing httpTracing) {
-    return new TracingApplicationEventListener(httpTracing, new EventParser());
-  }
-
   final Tracer tracer;
-  final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
-  final EventParser parser;
+	final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
+	final EventParser parser;
 
-  @Inject TracingApplicationEventListener(HttpTracing httpTracing, EventParser parser) {
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpServerHandler.create(httpTracing);
-    this.parser = parser;
-  }
+	@Inject TracingApplicationEventListener(HttpTracing httpTracing, EventParser parser) {
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpServerHandler.create(httpTracing);
+	    this.parser = parser;
+	  }
 
-  @Override public void onEvent(ApplicationEvent event) {
-    // only onRequest is used
-  }
+	public static ApplicationEventListener create(HttpTracing httpTracing) {
+	    return new TracingApplicationEventListener(httpTracing, new EventParser());
+	  }
 
-  @Override public RequestEventListener onRequest(RequestEvent event) {
-    if (event.getType() != RequestEvent.Type.START) return null;
-    Span span = handler.handleReceive(new HttpServerRequest(event.getContainerRequest()));
-    return new TracingRequestEventListener(span, tracer.withSpanInScope(span));
-  }
+	@Override public void onEvent(ApplicationEvent event) {
+	    // only onRequest is used
+	  }
 
-  class TracingRequestEventListener implements RequestEventListener {
+	@Override public RequestEventListener onRequest(RequestEvent event) {
+	    if (event.getType() != RequestEvent.Type.START) {
+			return null;
+		}
+	    Span span = handler.handleReceive(new HttpServerRequest(event.getContainerRequest()));
+	    return new TracingRequestEventListener(span, tracer.withSpanInScope(span));
+	  }
+
+	static boolean async(RequestEvent event) {
+	    return event.getUriInfo().getMatchedResourceMethod().isManagedAsyncDeclared()
+	      || event.getUriInfo().getMatchedResourceMethod().isSuspendDeclared();
+	  }
+
+class TracingRequestEventListener implements RequestEventListener {
     final Span span;
     // Invalidated when an asynchronous method is in use
     volatile Tracer.SpanInScope spanInScope;
@@ -89,14 +96,18 @@ public final class TracingApplicationEventListener implements ApplicationEventLi
           // Normal async methods sometimes stay on a thread until RESOURCE_METHOD_FINISHED, but
           // this is not reliable. So, we eagerly close the scope from request filters, and re-apply
           // it later when the resource method starts.
-          if (!async || (maybeSpanInScope = spanInScope) == null) break;
+          if (!async || (maybeSpanInScope = spanInScope) == null) {
+			break;
+		}
           maybeSpanInScope.close();
           spanInScope = null;
           break;
         case RESOURCE_METHOD_START:
           // If we are async, we have to re-scope the span as the resource method invocation is
           // is likely on a different thread than the request filtering.
-          if (!async || spanInScope != null) break;
+          if (!async || spanInScope != null) {
+			break;
+		}
           spanInScope = tracer.withSpanInScope(span);
           break;
         case FINISHED:
@@ -114,11 +125,6 @@ public final class TracingApplicationEventListener implements ApplicationEventLi
         default:
       }
     }
-  }
-
-  static boolean async(RequestEvent event) {
-    return event.getUriInfo().getMatchedResourceMethod().isManagedAsyncDeclared()
-      || event.getUriInfo().getMatchedResourceMethod().isSuspendDeclared();
   }
 
   static final class HttpServerRequest extends brave.http.HttpServerRequest {
@@ -175,7 +181,9 @@ public final class TracingApplicationEventListener implements ApplicationEventLi
 
     @Override public int statusCode() {
       ContainerResponse response = delegate.getContainerResponse();
-      if (response == null) return 0;
+      if (response == null) {
+		return 0;
+	}
       return response.getStatus();
     }
   }

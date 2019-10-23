@@ -45,113 +45,119 @@ import brave.sampler.SamplerFunction;
  * @since 4.3
  */
 public final class HttpServerHandler<Req, Resp> extends HttpHandler {
-  /** @since 5.7 */
-  public static HttpServerHandler<HttpServerRequest, HttpServerResponse> create(
-    HttpTracing httpTracing) {
-    if (httpTracing == null) throw new NullPointerException("httpTracing == null");
-    return new HttpServerHandler<>(httpTracing, null);
-  }
-
-  /**
-   * @since 4.3
-   * @deprecated Since 5.7, use {@link #create(HttpTracing)} as it is more portable.
-   */
-  @Deprecated
-  public static <Req, Resp> HttpServerHandler<Req, Resp> create(HttpTracing httpTracing,
-    HttpServerAdapter<Req, Resp> adapter) {
-    if (httpTracing == null) throw new NullPointerException("httpTracing == null");
-    if (adapter == null) throw new NullPointerException("adapter == null");
-    return new HttpServerHandler<>(httpTracing, adapter);
-  }
-
   final Tracer tracer;
-  final SamplerFunction<HttpRequest> sampler;
-  @Nullable final HttpServerAdapter<Req, Resp> adapter; // null when using default types
-  final Extractor<HttpServerRequest> defaultExtractor;
+	final SamplerFunction<HttpRequest> sampler;
+	@Nullable final HttpServerAdapter<Req, Resp> adapter; // null when using default types
+	final Extractor<HttpServerRequest> defaultExtractor;
 
-  HttpServerHandler(HttpTracing httpTracing, HttpServerAdapter<Req, Resp> adapter) {
-    super(
-      httpTracing.tracing().currentTraceContext(),
-      httpTracing.serverParser()
-    );
-    this.adapter = adapter;
-    this.tracer = httpTracing.tracing().tracer();
-    this.sampler = httpTracing.serverRequestSampler();
-    // The following allows us to add the method: handleReceive(HttpServerRequest request) without
-    // duplicating logic from the superclass or deprecated handleReceive methods.
-    this.defaultExtractor = httpTracing.tracing().propagation().extractor(HttpServerRequest.GETTER);
-  }
+	HttpServerHandler(HttpTracing httpTracing, HttpServerAdapter<Req, Resp> adapter) {
+	    super(
+	      httpTracing.tracing().currentTraceContext(),
+	      httpTracing.serverParser()
+	    );
+	    this.adapter = adapter;
+	    this.tracer = httpTracing.tracing().tracer();
+	    this.sampler = httpTracing.serverRequestSampler();
+	    // The following allows us to add the method: handleReceive(HttpServerRequest request) without
+	    // duplicating logic from the superclass or deprecated handleReceive methods.
+	    this.defaultExtractor = httpTracing.tracing().propagation().extractor(HttpServerRequest.GETTER);
+	  }
 
-  /**
-   * Conditionally joins a span, or starts a new trace, depending on if a trace context was
-   * extracted from the request. Tags are added before the span is started.
-   *
-   * <p>This is typically called before the request is processed by the actual library.
-   *
-   * @since 5.7
-   */
-  public Span handleReceive(HttpServerRequest request) {
-    Span span = nextSpan(defaultExtractor.extract(request), request);
-    return handleStart(new HttpServerRequest.ToHttpAdapter(request), request.unwrap(), span);
-  }
+	/** @since 5.7 */
+	  public static HttpServerHandler<HttpServerRequest, HttpServerResponse> create(
+	    HttpTracing httpTracing) {
+	    if (httpTracing == null) {
+			throw new NullPointerException("httpTracing == null");
+		}
+	    return new HttpServerHandler<>(httpTracing, null);
+	  }
 
-  /**
-   * @since 4.3
-   * @deprecated Since 5.7, use {@link #handleReceive(HttpServerRequest)}
-   */
-  @Deprecated public Span handleReceive(Extractor<Req> extractor, Req request) {
-    return handleReceive(extractor, request, request);
-  }
+	/**
+	   * @since 4.3
+	   * @deprecated Since 5.7, use {@link #create(HttpTracing)} as it is more portable.
+	   */
+	  @Deprecated
+	  public static <Req, Resp> HttpServerHandler<Req, Resp> create(HttpTracing httpTracing,
+	    HttpServerAdapter<Req, Resp> adapter) {
+	    if (httpTracing == null) {
+			throw new NullPointerException("httpTracing == null");
+		}
+	    if (adapter == null) {
+			throw new NullPointerException("adapter == null");
+		}
+	    return new HttpServerHandler<>(httpTracing, adapter);
+	  }
 
-  /**
-   * @since 4.3
-   * @deprecated Since 5.7, use {@link #handleReceive(HttpServerRequest)}
-   */
-  @Deprecated public <C> Span handleReceive(Extractor<C> extractor, C carrier, Req request) {
-    HttpServerRequest serverRequest;
-    if (request instanceof HttpServerRequest) {
-      serverRequest = (HttpServerRequest) request;
-    } else {
-      serverRequest = new HttpServerRequest.FromHttpAdapter<>(adapter, request);
-    }
-    Span span = nextSpan(extractor.extract(carrier), serverRequest);
-    return handleStart(adapter, request, span);
-  }
+	/**
+	   * Conditionally joins a span, or starts a new trace, depending on if a trace context was
+	   * extracted from the request. Tags are added before the span is started.
+	   *
+	   * <p>This is typically called before the request is processed by the actual library.
+	   *
+	   * @since 5.7
+	   */
+	  public Span handleReceive(HttpServerRequest request) {
+	    Span span = nextSpan(defaultExtractor.extract(request), request);
+	    return handleStart(new HttpServerRequest.ToHttpAdapter(request), request.unwrap(), span);
+	  }
 
-  @Override <Req1> void parseRequest(HttpAdapter<Req1, ?> adapter, Req1 request, Span span) {
-    span.kind(Span.Kind.SERVER);
-    ((HttpServerAdapter<Req1, ?>) adapter).parseClientIpAndPort(request, span);
-    parser.request(adapter, request, span.customizer());
-  }
+	/**
+	   * @since 4.3
+	   * @deprecated Since 5.7, use {@link #handleReceive(HttpServerRequest)}
+	   */
+	  @Deprecated public Span handleReceive(Extractor<Req> extractor, Req request) {
+	    return handleReceive(extractor, request, request);
+	  }
 
-  /** Creates a potentially noop span representing this request */
-  Span nextSpan(TraceContextOrSamplingFlags extracted, HttpServerRequest request) {
-    Boolean sampled = extracted.sampled();
-    // only recreate the context if the http sampler made a decision
-    if (sampled == null && (sampled = sampler.trySample(request)) != null) {
-      extracted = extracted.sampled(sampled.booleanValue());
-    }
-    return extracted.context() != null
-      ? tracer.joinSpan(extracted.context())
-      : tracer.nextSpan(extracted);
-  }
+	/**
+	   * @since 4.3
+	   * @deprecated Since 5.7, use {@link #handleReceive(HttpServerRequest)}
+	   */
+	  @Deprecated public <C> Span handleReceive(Extractor<C> extractor, C carrier, Req request) {
+	    HttpServerRequest serverRequest;
+	    if (request instanceof HttpServerRequest) {
+	      serverRequest = (HttpServerRequest) request;
+	    } else {
+	      serverRequest = new HttpServerRequest.FromHttpAdapter<>(adapter, request);
+	    }
+	    Span span = nextSpan(extractor.extract(carrier), serverRequest);
+	    return handleStart(adapter, request, span);
+	  }
 
-  /**
-   * Finishes the server span after assigning it tags according to the response or error.
-   *
-   * <p>This is typically called once the response headers are sent, and after the span is {@link
-   * brave.Tracer.SpanInScope#close() no longer in scope}.
-   *
-   * @see HttpServerParser#response(HttpAdapter, Object, Throwable, SpanCustomizer)
-   * @since 4.3
-   */
-  public void handleSend(@Nullable Resp response, @Nullable Throwable error, Span span) {
-    if (response instanceof HttpServerResponse) {
-      HttpServerResponse.Adapter adapter =
-        new HttpServerResponse.Adapter((HttpServerResponse) response);
-      handleFinish(adapter, adapter.unwrapped, error, span);
-    } else {
-      handleFinish(adapter, response, error, span);
-    }
-  }
+	@Override <Req1> void parseRequest(HttpAdapter<Req1, ?> adapter, Req1 request, Span span) {
+	    span.kind(Span.Kind.SERVER);
+	    ((HttpServerAdapter<Req1, ?>) adapter).parseClientIpAndPort(request, span);
+	    parser.request(adapter, request, span.customizer());
+	  }
+
+	/** Creates a potentially noop span representing this request */
+	  Span nextSpan(TraceContextOrSamplingFlags extracted, HttpServerRequest request) {
+	    Boolean sampled = extracted.sampled();
+	    // only recreate the context if the http sampler made a decision
+	    if (sampled == null && (sampled = sampler.trySample(request)) != null) {
+	      extracted = extracted.sampled(sampled.booleanValue());
+	    }
+	    return extracted.context() != null
+	      ? tracer.joinSpan(extracted.context())
+	      : tracer.nextSpan(extracted);
+	  }
+
+	/**
+	   * Finishes the server span after assigning it tags according to the response or error.
+	   *
+	   * <p>This is typically called once the response headers are sent, and after the span is {@link
+	   * brave.Tracer.SpanInScope#close() no longer in scope}.
+	   *
+	   * @see HttpServerParser#response(HttpAdapter, Object, Throwable, SpanCustomizer)
+	   * @since 4.3
+	   */
+	  public void handleSend(@Nullable Resp response, @Nullable Throwable error, Span span) {
+	    if (response instanceof HttpServerResponse) {
+	      HttpServerResponse.Adapter adapter =
+	        new HttpServerResponse.Adapter((HttpServerResponse) response);
+	      handleFinish(adapter, adapter.unwrapped, error, span);
+	    } else {
+	      handleFinish(adapter, response, error, span);
+	    }
+	  }
 }

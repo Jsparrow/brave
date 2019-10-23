@@ -47,9 +47,13 @@ public abstract class HttpServerAdapter<Req, Resp> extends HttpAdapter<Req, Resp
    */
   public boolean parseClientIpFromXForwardedFor(Req req, Span span) {
     String forwardedFor = requestHeader(req, "X-Forwarded-For");
-    if (forwardedFor == null) return false;
+    if (forwardedFor == null) {
+		return false;
+	}
     int indexOfComma = forwardedFor.indexOf(',');
-    if (indexOfComma != -1) forwardedFor = forwardedFor.substring(0, indexOfComma);
+    if (indexOfComma != -1) {
+		forwardedFor = forwardedFor.substring(0, indexOfComma);
+	}
     return span.remoteIpAndPort(forwardedFor, 0);
   }
 }

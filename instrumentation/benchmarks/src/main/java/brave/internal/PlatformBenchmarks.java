@@ -134,7 +134,7 @@ public class PlatformBenchmarks {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + PlatformBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(PlatformBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

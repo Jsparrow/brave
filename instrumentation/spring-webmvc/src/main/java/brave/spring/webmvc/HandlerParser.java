@@ -41,7 +41,10 @@ public class HandlerParser {
   /** Method name that processed the request. ex listOfBooks */
   public static final String CONTROLLER_METHOD = "mvc.controller.method";
 
-  /**
+  public HandlerParser() { // intentionally public for @Autowired to work without explicit binding
+  }
+
+/**
    * Invoked prior to request invocation during {@link HandlerInterceptor#preHandle(HttpServletRequest,
    * HttpServletResponse, Object)}.
    *
@@ -56,8 +59,5 @@ public class HandlerParser {
     } else {
       customizer.tag(CONTROLLER_CLASS, handler.getClass().getSimpleName());
     }
-  }
-
-  public HandlerParser() { // intentionally public for @Autowired to work without explicit binding
   }
 }

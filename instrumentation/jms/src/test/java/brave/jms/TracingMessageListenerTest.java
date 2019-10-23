@@ -34,11 +34,14 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static zipkin2.Span.Kind.CONSUMER;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // ported from TracingRabbitListenerAdviceTest
 public class TracingMessageListenerTest {
 
-  static String TRACE_ID = "463ac35c9f6413ad";
+  private static final Logger logger = LoggerFactory.getLogger(TracingMessageListenerTest.class);
+static String TRACE_ID = "463ac35c9f6413ad";
   static String PARENT_ID = "463ac35c9f6413ab";
   static String SPAN_ID = "48485a3953bb6124";
   static String SAMPLED = "1";
@@ -141,7 +144,7 @@ public class TracingMessageListenerTest {
       new TracingMessageListener(delegate, jmsTracing, false);
 
     ActiveMQTextMessage message = new ActiveMQTextMessage();
-    SETTER.put(message, "b3", TRACE_ID + "-" + SPAN_ID + "-" + SAMPLED);
+    SETTER.put(message, "b3", new StringBuilder().append(TRACE_ID).append("-").append(SPAN_ID).append("-").append(SAMPLED).toString());
     message.setDestination(createDestination("foo", QUEUE_TYPE));
     onMessageConsumed(message);
 
@@ -216,7 +219,7 @@ public class TracingMessageListenerTest {
 
   @Test public void continues_parent_trace_single_header() throws Exception {
     ActiveMQTextMessage message = new ActiveMQTextMessage();
-    SETTER.put(message, "b3", TRACE_ID + "-" + SPAN_ID + "-" + SAMPLED);
+    SETTER.put(message, "b3", new StringBuilder().append(TRACE_ID).append("-").append(SPAN_ID).append("-").append(SAMPLED).toString());
 
     onMessageConsumed(message);
 
@@ -234,7 +237,7 @@ public class TracingMessageListenerTest {
       new TracingMessageListener(delegate, jmsTracing, false);
 
     ActiveMQTextMessage message = new ActiveMQTextMessage();
-    SETTER.put(message, "b3", TRACE_ID + "-" + SPAN_ID + "-" + SAMPLED);
+    SETTER.put(message, "b3", new StringBuilder().append(TRACE_ID).append("-").append(SPAN_ID).append("-").append(SAMPLED).toString());
 
     onMessageConsumed(message);
 
@@ -301,6 +304,7 @@ public class TracingMessageListenerTest {
       tracingMessageListener.onMessage(message);
       fail("should have thrown exception");
     } catch (RuntimeException ex) {
+		logger.error(ex.getMessage(), ex);
     }
   }
 }

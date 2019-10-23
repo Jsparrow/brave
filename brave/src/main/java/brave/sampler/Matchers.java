@@ -37,7 +37,59 @@ public final class Matchers {
     return (Matcher<P>) Constants.NEVER_MATCH;
   }
 
-  enum Constants implements Matcher<Object> {
+  /** @since 5.8 */
+  public static <P> Matcher<P> and(Iterable<? extends Matcher<P>> matchers) {
+    return and(toArray(matchers));
+  }
+
+/** @since 5.8 */
+  public static <P> Matcher<P> and(Matcher<P>... matchers) {
+    return composite(matchers, true);
+  }
+
+/** @since 5.8 */
+  public static <P> Matcher<P> or(Iterable<? extends Matcher<P>> matchers) {
+    return or(toArray(matchers));
+  }
+
+/** @since 5.8 */
+  public static <P> Matcher<P> or(Matcher<P>... matchers) {
+    return composite(matchers, false);
+  }
+
+static <P> Matcher[] toArray(Iterable<? extends Matcher<P>> matchers) {
+    if (matchers == null) {
+		throw new NullPointerException("matchers == null");
+	}
+    if (matchers instanceof Collection) {
+      return (Matcher[]) ((Collection) matchers).toArray(new Matcher[0]);
+    }
+    List<Matcher<P>> result = new ArrayList<>();
+    for (Matcher<P> matcher : matchers) {
+		result.add(matcher);
+	}
+    return result.toArray(new Matcher[0]);
+  }
+
+static <P> Matcher<P> composite(Matcher<P>[] matchers, boolean and) {
+    if (matchers == null) {
+		throw new NullPointerException("matchers == null");
+	}
+    if (matchers.length == 0) {
+		return neverMatch();
+	}
+    for (int i = 0; i < matchers.length; i++) {
+      if (matchers[i] == null) {
+		throw new NullPointerException(new StringBuilder().append("matchers[").append(i).append("] == null").toString());
+	}
+    }
+    if (matchers.length == 1) {
+		return matchers[0];
+	}
+    return and ? new And<>(matchers) : new Or<>(matchers);
+  }
+
+enum Constants implements Matcher<Object> {
     ALWAYS_MATCH {
       @Override public boolean matches(Object parameters) {
         return true;
@@ -58,47 +110,7 @@ public final class Matchers {
     }
   }
 
-  /** @since 5.8 */
-  public static <P> Matcher<P> and(Iterable<? extends Matcher<P>> matchers) {
-    return and(toArray(matchers));
-  }
-
-  /** @since 5.8 */
-  public static <P> Matcher<P> and(Matcher<P>... matchers) {
-    return composite(matchers, true);
-  }
-
-  /** @since 5.8 */
-  public static <P> Matcher<P> or(Iterable<? extends Matcher<P>> matchers) {
-    return or(toArray(matchers));
-  }
-
-  /** @since 5.8 */
-  public static <P> Matcher<P> or(Matcher<P>... matchers) {
-    return composite(matchers, false);
-  }
-
-  static <P> Matcher[] toArray(Iterable<? extends Matcher<P>> matchers) {
-    if (matchers == null) throw new NullPointerException("matchers == null");
-    if (matchers instanceof Collection) {
-      return (Matcher[]) ((Collection) matchers).toArray(new Matcher[0]);
-    }
-    List<Matcher<P>> result = new ArrayList<>();
-    for (Matcher<P> matcher : matchers) result.add(matcher);
-    return result.toArray(new Matcher[0]);
-  }
-
-  static <P> Matcher<P> composite(Matcher<P>[] matchers, boolean and) {
-    if (matchers == null) throw new NullPointerException("matchers == null");
-    if (matchers.length == 0) return neverMatch();
-    for (int i = 0; i < matchers.length; i++) {
-      if (matchers[i] == null) throw new NullPointerException("matchers[" + i + "] == null");
-    }
-    if (matchers.length == 1) return matchers[0];
-    return and ? new And<>(matchers) : new Or<>(matchers);
-  }
-
-  static class And<P> implements Matcher<P> {
+static class And<P> implements Matcher<P> {
     final Matcher<P>[] matchers; // Array ensures no iterators are created at runtime
 
     And(Matcher<P>[] matchers) {
@@ -107,13 +119,15 @@ public final class Matchers {
 
     @Override public boolean matches(P parameters) {
       for (Matcher<P> matcher : matchers) {
-        if (!matcher.matches(parameters)) return false;
+        if (!matcher.matches(parameters)) {
+			return false;
+		}
       }
       return true;
     }
 
     @Override public String toString() {
-      return "And(" + Arrays.toString(matchers) + ")";
+      return new StringBuilder().append("And(").append(Arrays.toString(matchers)).append(")").toString();
     }
   }
 
@@ -126,13 +140,15 @@ public final class Matchers {
 
     @Override public boolean matches(P parameters) {
       for (Matcher<P> matcher : matchers) {
-        if (matcher.matches(parameters)) return true;
+        if (matcher.matches(parameters)) {
+			return true;
+		}
       }
       return false;
     }
 
     @Override public String toString() {
-      return "Or(" + Arrays.toString(matchers) + ")";
+      return new StringBuilder().append("Or(").append(Arrays.toString(matchers)).append(")").toString();
     }
   }
 }

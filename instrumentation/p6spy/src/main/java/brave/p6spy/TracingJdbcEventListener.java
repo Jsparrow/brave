@@ -24,10 +24,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 final class TracingJdbcEventListener extends SimpleJdbcEventListener {
 
-  private final static Pattern URL_SERVICE_NAME_FINDER =
+  private static final Logger logger = LogManager.getLogger(TracingJdbcEventListener.class);
+
+private static final Pattern URL_SERVICE_NAME_FINDER =
     Pattern.compile("zipkinServiceName=(\\w*)");
 
   @Nullable final String remoteServiceName;
@@ -50,11 +54,15 @@ final class TracingJdbcEventListener extends SimpleJdbcEventListener {
    */
   @Override public void onBeforeAnyExecute(StatementInformation info) {
     String sql = includeParameterValues ? info.getSqlWithValues() : info.getSql();
-    if (!isLoggable(sql)) return;
+    if (!isLoggable(sql)) {
+		return;
+	}
 
     // Gets the next span (and places it in scope) so code between here and postProcess can read it
     Span span = ThreadLocalSpan.CURRENT_TRACER.next();
-    if (span == null || span.isNoop()) return;
+    if (span == null || span.isNoop()) {
+		return;
+	}
 
     span.kind(Span.Kind.CLIENT).name(sql.substring(0, sql.indexOf(' ')));
     span.tag("sql.query", sql);
@@ -64,7 +72,9 @@ final class TracingJdbcEventListener extends SimpleJdbcEventListener {
 
   @Override public void onAfterAnyExecute(StatementInformation info, long elapsed, SQLException e) {
     Span span = ThreadLocalSpan.CURRENT_TRACER.remove();
-    if (span == null || span.isNoop()) return;
+    if (span == null || span.isNoop()) {
+		return;
+	}
 
     if (e != null) {
       span.tag("error", Integer.toString(e.getErrorCode()));
@@ -117,6 +127,7 @@ final class TracingJdbcEventListener extends SimpleJdbcEventListener {
       }
       span.remoteIpAndPort(url.getHost(), url.getPort());
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // remote address is optional
     }
   }

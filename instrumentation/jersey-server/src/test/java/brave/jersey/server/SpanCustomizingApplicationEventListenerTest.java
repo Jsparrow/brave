@@ -26,6 +26,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SpanCustomizingApplicationEventListenerTest {
@@ -48,7 +49,7 @@ public class SpanCustomizingApplicationEventListenerTest {
     ExtendedUriInfo uriInfo = mock(ExtendedUriInfo.class);
     when(request.getUriInfo()).thenReturn(uriInfo);
     when(uriInfo.getBaseUri()).thenReturn(URI.create("/"));
-    when(uriInfo.getMatchedTemplates()).thenReturn(Arrays.asList(
+    when(uriInfo.getMatchedTemplates()).thenReturn(Collections.singletonList(
       new PathTemplate("/eggs")
     ));
 

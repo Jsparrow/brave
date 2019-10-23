@@ -74,7 +74,9 @@ final class TracingHttpServerHandler extends ChannelDuplexHandler {
 
     // Guard re-scoping the same span
     SpanInScope spanInScope = ctx.channel().attr(NettyHttpTracing.SPAN_IN_SCOPE_ATTRIBUTE).get();
-    if (spanInScope == null) spanInScope = tracer.withSpanInScope(span);
+    if (spanInScope == null) {
+		spanInScope = tracer.withSpanInScope(span);
+	}
     Throwable t = null;
     try {
       ctx.write(msg, prm);
@@ -101,7 +103,9 @@ final class TracingHttpServerHandler extends ChannelDuplexHandler {
     }
 
     @Override public boolean parseClientIpAndPort(Span span) {
-      if (remoteAddress.getAddress() == null) return false;
+      if (remoteAddress.getAddress() == null) {
+		return false;
+	}
       return span.remoteIpAndPort(Platform.get().getHostString(remoteAddress),
         remoteAddress.getPort());
     }
@@ -116,9 +120,11 @@ final class TracingHttpServerHandler extends ChannelDuplexHandler {
 
     @Override public String url() {
       String host = header("Host");
-      if (host == null) return null;
+      if (host == null) {
+		return null;
+	}
       // TODO: we don't know if this is really http or https!
-      return "http://" + host + request.uri();
+      return new StringBuilder().append("http://").append(host).append(request.uri()).toString();
     }
 
     @Override public String header(String name) {

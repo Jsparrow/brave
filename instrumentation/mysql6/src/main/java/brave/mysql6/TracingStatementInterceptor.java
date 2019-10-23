@@ -25,6 +25,8 @@ import com.mysql.cj.jdbc.PreparedStatement;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.Properties;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * A MySQL statement interceptor that will report to Zipkin how long each statement takes.
@@ -37,7 +39,10 @@ import java.util.Properties;
 @Deprecated
 public class TracingStatementInterceptor implements StatementInterceptor {
 
-  /**
+  private static final Logger logger = LogManager.getLogger(TracingStatementInterceptor.class);
+private MysqlConnection connection;
+
+/**
    * Uses {@link ThreadLocalSpan} as there's no attribute namespace shared between callbacks, but
    * all callbacks happen on the same thread.
    *
@@ -48,7 +53,9 @@ public class TracingStatementInterceptor implements StatementInterceptor {
   public <T extends Resultset> T preProcess(String sql, Statement interceptedStatement) {
     // Gets the next span (and places it in scope) so code between here and postProcess can read it
     Span span = ThreadLocalSpan.CURRENT_TRACER.next();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     // When running a prepared statement, sql will be null and we must fetch the sql from the statement itself
     if (interceptedStatement instanceof PreparedStatement) {
@@ -62,14 +69,14 @@ public class TracingStatementInterceptor implements StatementInterceptor {
     return null;
   }
 
-  private MysqlConnection connection;
-
-  @Override
+@Override
   public <T extends Resultset> T postProcess(String sql, Statement interceptedStatement,
     T originalResultSet, int warningCount, boolean noIndexUsed, boolean noGoodIndexUsed,
     Exception statementException) {
     Span span = ThreadLocalSpan.CURRENT_TRACER.remove();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     if (statementException instanceof SQLException) {
       span.tag("error", Integer.toString(((SQLException) statementException).getErrorCode()));
@@ -79,7 +86,7 @@ public class TracingStatementInterceptor implements StatementInterceptor {
     return null;
   }
 
-  /**
+/**
    * MySQL exposes the host connecting to, but not the port. This attempts to get the port from the
    * JDBC URL. Ex. 5555 from {@code jdbc:mysql://localhost:5555/database}, or 3306 if absent.
    */
@@ -101,28 +108,31 @@ public class TracingStatementInterceptor implements StatementInterceptor {
         span.remoteIpAndPort(host, url.getPort() == -1 ? 3306 : url.getPort());
       }
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // remote address is optional
     }
   }
 
-  private static String getDatabaseName(MysqlConnection connection) throws SQLException {
+private static String getDatabaseName(MysqlConnection connection) throws SQLException {
     if (connection instanceof JdbcConnection) {
       return ((JdbcConnection) connection).getCatalog();
     }
     return "";
   }
 
-  private static String getHost(MysqlConnection connection) {
-    if (!(connection instanceof JdbcConnection)) return null;
+private static String getHost(MysqlConnection connection) {
+    if (!(connection instanceof JdbcConnection)) {
+		return null;
+	}
     return ((JdbcConnection) connection).getHost();
   }
 
-  @Override
+@Override
   public boolean executeTopLevelOnly() {
     return true;  // True means that we don't get notified about queries that other interceptors issue
   }
 
-  @Override
+@Override
   public StatementInterceptor init(MysqlConnection mysqlConnection, Properties properties,
     Log log) {
     TracingStatementInterceptor interceptor = new TracingStatementInterceptor();
@@ -130,7 +140,7 @@ public class TracingStatementInterceptor implements StatementInterceptor {
     return interceptor;
   }
 
-  @Override
+@Override
   public void destroy() {
     // Don't care
   }

@@ -48,31 +48,48 @@ import org.apache.http.protocol.HttpContext;
  * added last}.
  */
 public final class TracingHttpAsyncClientBuilder extends HttpAsyncClientBuilder {
-  public static HttpAsyncClientBuilder create(Tracing tracing) {
-    return new TracingHttpAsyncClientBuilder(HttpTracing.create(tracing));
-  }
-
-  public static HttpAsyncClientBuilder create(HttpTracing httpTracing) {
-    return new TracingHttpAsyncClientBuilder(httpTracing);
-  }
-
   final CurrentTraceContext currentTraceContext;
-  final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
+	final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
 
-  TracingHttpAsyncClientBuilder(HttpTracing httpTracing) { // intentionally hidden
-    if (httpTracing == null) throw new NullPointerException("httpTracing == null");
-    this.currentTraceContext = httpTracing.tracing().currentTraceContext();
-    this.handler = HttpClientHandler.create(httpTracing);
-  }
+	TracingHttpAsyncClientBuilder(HttpTracing httpTracing) { // intentionally hidden
+	    if (httpTracing == null) {
+			throw new NullPointerException("httpTracing == null");
+		}
+	    this.currentTraceContext = httpTracing.tracing().currentTraceContext();
+	    this.handler = HttpClientHandler.create(httpTracing);
+	  }
 
-  @Override public CloseableHttpAsyncClient build() {
-    super.addInterceptorFirst(new HandleSend());
-    super.addInterceptorLast(new RemoveScope());
-    super.addInterceptorLast(new HandleReceive());
-    return new TracingHttpAsyncClient(super.build());
-  }
+	public static HttpAsyncClientBuilder create(Tracing tracing) {
+	    return new TracingHttpAsyncClientBuilder(HttpTracing.create(tracing));
+	  }
 
-  final class HandleSend implements HttpRequestInterceptor {
+	public static HttpAsyncClientBuilder create(HttpTracing httpTracing) {
+	    return new TracingHttpAsyncClientBuilder(httpTracing);
+	  }
+
+	@Override public CloseableHttpAsyncClient build() {
+	    super.addInterceptorFirst(new HandleSend());
+	    super.addInterceptorLast(new RemoveScope());
+	    super.addInterceptorLast(new HandleReceive());
+	    return new TracingHttpAsyncClient(super.build());
+	  }
+
+	static void parseTargetAddress(HttpHost target, Span span) {
+	    if (span.isNoop()) {
+			return;
+		}
+	    if (target == null) {
+			return;
+		}
+	    InetAddress address = target.getAddress();
+	    boolean condition = address != null && span.remoteIpAndPort(address.getHostAddress(), target.getPort());
+		if (condition) {
+			return;
+		}
+	    span.remoteIpAndPort(target.getHostName(), target.getPort());
+	  }
+
+final class HandleSend implements HttpRequestInterceptor {
     @Override public void process(HttpRequest request, HttpContext context) {
       HttpHost host = HttpClientContext.adapt(context).getTargetHost();
       HttpClientRequest wrapped = new HttpClientRequest(host, request);
@@ -92,7 +109,9 @@ public final class TracingHttpAsyncClientBuilder extends HttpAsyncClientBuilder 
   static final class RemoveScope implements HttpRequestInterceptor {
     @Override public void process(HttpRequest request, HttpContext context) {
       Scope scope = (Scope) context.getAttribute(Scope.class.getName());
-      if (scope == null) return;
+      if (scope == null) {
+		return;
+	}
       context.removeAttribute(Scope.class.getName());
       scope.close();
     }
@@ -101,19 +120,11 @@ public final class TracingHttpAsyncClientBuilder extends HttpAsyncClientBuilder 
   final class HandleReceive implements HttpResponseInterceptor {
     @Override public void process(HttpResponse response, HttpContext context) {
       Span span = (Span) context.getAttribute(Span.class.getName());
-      if (span == null) return;
+      if (span == null) {
+		return;
+	}
       handler.handleReceive(new HttpClientResponse(response), null, span);
     }
-  }
-
-  static void parseTargetAddress(HttpHost target, Span span) {
-    if (span.isNoop()) return;
-    if (target == null) return;
-    InetAddress address = target.getAddress();
-    if (address != null) {
-      if (span.remoteIpAndPort(address.getHostAddress(), target.getPort())) return;
-    }
-    span.remoteIpAndPort(target.getHostName(), target.getPort());
   }
 
   final class TracingHttpAsyncClient extends CloseableHttpAsyncClient {
@@ -273,7 +284,9 @@ public final class TracingHttpAsyncClientBuilder extends HttpAsyncClientBuilder 
     }
 
     @Override public String url() {
-      if (target != null) return target.toURI() + request.getRequestLine().getUri();
+      if (target != null) {
+		return target.toURI() + request.getRequestLine().getUri();
+	}
       return request.getRequestLine().getUri();
     }
 

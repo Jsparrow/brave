@@ -25,16 +25,20 @@ public class HttpTracingClassLoaderTest {
     assertRunIsUnloadable(ClosesHttpTracing.class, getClass().getClassLoader());
   }
 
-  static class ClosesHttpTracing implements Runnable {
+  @Test public void unloadable_afterBasicUsage() {
+    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
+  }
+
+@Test public void unloadable_forgetClose() {
+    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
+  }
+
+static class ClosesHttpTracing implements Runnable {
     @Override public void run() {
       try (Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build();
            HttpTracing httpTracing = HttpTracing.create(tracing)) {
       }
     }
-  }
-
-  @Test public void unloadable_afterBasicUsage() {
-    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
   }
 
   static class BasicUsage implements Runnable {
@@ -44,10 +48,6 @@ public class HttpTracingClassLoaderTest {
         httpTracing.serverRequestSampler().trySample(null);
       }
     }
-  }
-
-  @Test public void unloadable_forgetClose() {
-    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
   }
 
   static class ForgetClose implements Runnable {

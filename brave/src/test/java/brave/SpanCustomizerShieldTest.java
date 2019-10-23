@@ -25,7 +25,7 @@ public class SpanCustomizerShieldTest {
     SpanCustomizerShield shield = new SpanCustomizerShield(span);
     assertThat(shield.toString())
       .isNotEmpty()
-      .isEqualTo("SpanCustomizer(RealSpan(" + span.context().traceIdString() + "/" + span.context()
-        .spanIdString() + "))");
+      .isEqualTo(new StringBuilder().append("SpanCustomizer(RealSpan(").append(span.context().traceIdString()).append("/").append(span.context()
+        .spanIdString()).append("))").toString());
   }
 }

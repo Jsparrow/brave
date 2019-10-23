@@ -35,23 +35,23 @@ import org.apache.log4j.MDC;
  * }</pre>
  */
 public final class MDCScopeDecorator extends CorrelationFieldScopeDecorator {
-  public static ScopeDecorator create() {
-    return new MDCScopeDecorator();
-  }
-
-  @Override protected String get(String key) {
-    Object result = MDC.get(key);
-    return result instanceof String ? (String) result : null;
-  }
-
-  @Override protected void put(String key, String value) {
-    MDC.put(key, value);
-  }
-
-  @Override protected void remove(String key) {
-    MDC.remove(key);
-  }
-
   MDCScopeDecorator() {
-  }
+	  }
+
+	public static ScopeDecorator create() {
+	    return new MDCScopeDecorator();
+	  }
+
+	@Override protected String get(String key) {
+	    Object result = MDC.get(key);
+	    return result instanceof String ? (String) result : null;
+	  }
+
+	@Override protected void put(String key, String value) {
+	    MDC.put(key, value);
+	  }
+
+	@Override protected void remove(String key) {
+	    MDC.remove(key);
+	  }
 }

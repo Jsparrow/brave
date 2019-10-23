@@ -29,28 +29,29 @@ import org.apache.log4j.MDC;
 public final class MDCCurrentTraceContext extends CurrentTraceContext {
   static final CurrentTraceContext.Builder SCOPE_DECORATING_BUILDER =
     ThreadLocalCurrentTraceContext.newBuilder().addScopeDecorator(MDCScopeDecorator.create());
+final CurrentTraceContext delegate;
 
-  public static MDCCurrentTraceContext create() {
-    return create(CurrentTraceContext.Default.inheritable());
-  }
-
-  public static MDCCurrentTraceContext create(CurrentTraceContext delegate) {
-    if (delegate == null) throw new NullPointerException("delegate == null");
-    return new MDCCurrentTraceContext(delegate);
-  }
-
-  final CurrentTraceContext delegate;
-
-  MDCCurrentTraceContext(CurrentTraceContext delegate) {
+MDCCurrentTraceContext(CurrentTraceContext delegate) {
     super(SCOPE_DECORATING_BUILDER);
     this.delegate = delegate;
   }
 
-  @Override public TraceContext get() {
+public static MDCCurrentTraceContext create() {
+    return create(CurrentTraceContext.Default.inheritable());
+  }
+
+public static MDCCurrentTraceContext create(CurrentTraceContext delegate) {
+    if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
+    return new MDCCurrentTraceContext(delegate);
+  }
+
+@Override public TraceContext get() {
     return delegate.get();
   }
 
-  @Override public Scope newScope(@Nullable TraceContext currentSpan) {
+@Override public Scope newScope(@Nullable TraceContext currentSpan) {
     Scope scope = delegate.newScope(currentSpan);
     return decorateScope(currentSpan, scope);
   }

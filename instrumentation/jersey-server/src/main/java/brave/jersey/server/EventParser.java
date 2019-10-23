@@ -39,7 +39,10 @@ public class EventParser {
   /** Method name that processed the request. ex listOfBooks */
   public static final String RESOURCE_METHOD = "jaxrs.resource.method";
 
-  /**
+  public EventParser() { // intentionally public for @Inject to work without explicit binding
+  }
+
+/**
    * Invoked prior to request invocation during {@link RequestEventListener#onEvent(RequestEvent)}
    * where the event type is {@link RequestEvent.Type#REQUEST_MATCHED}
    *
@@ -49,12 +52,12 @@ public class EventParser {
    */
   protected void requestMatched(RequestEvent event, SpanCustomizer customizer) {
     ResourceMethod method = event.getContainerRequest().getUriInfo().getMatchedResourceMethod();
-    if (method == null) return; // This case is extremely odd as this is called on REQUEST_MATCHED!
+    if (method == null)
+	 {
+		return; // This case is extremely odd as this is called on REQUEST_MATCHED!
+	}
     Invocable i = method.getInvocable();
     customizer.tag(RESOURCE_CLASS, i.getHandler().getHandlerClass().getSimpleName());
     customizer.tag(RESOURCE_METHOD, i.getHandlingMethod().getName());
-  }
-
-  public EventParser() { // intentionally public for @Inject to work without explicit binding
   }
 }

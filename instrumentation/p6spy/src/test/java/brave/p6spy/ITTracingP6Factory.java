@@ -55,7 +55,9 @@ public class ITTracingP6Factory {
   @After
   public void close() throws Exception {
     Tracing.current().close();
-    if (connection != null) connection.close();
+    if (connection != null) {
+		connection.close();
+	}
   }
 
   @Test

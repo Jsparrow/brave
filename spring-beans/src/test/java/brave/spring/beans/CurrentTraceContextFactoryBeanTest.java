@@ -25,47 +25,35 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class CurrentTraceContextFactoryBeanTest {
-  XmlBeans context;
-
-  @After public void close() {
-    if (context != null) context.close();
-  }
-
-  @Test public void scopeDecorators() {
-    context = new XmlBeans(""
-      + "<bean id=\"currentTraceContext\" class=\"brave.spring.beans.CurrentTraceContextFactoryBean\">\n"
-      + "  <property name=\"scopeDecorators\">\n"
-      + "    <list>\n"
-      + "      <bean class=\"brave.propagation.StrictScopeDecorator\" factory-method=\"create\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
-    );
-
-    assertThat(context.getBean("currentTraceContext", CurrentTraceContext.class))
-      .extracting("scopeDecorators")
-      .satisfies(e -> assertThat((List) e).isNotEmpty());
-  }
-
   public static final CurrentTraceContextCustomizer
-    CUSTOMIZER_ONE = mock(CurrentTraceContextCustomizer.class),
-    CUSTOMIZER_TWO = mock(CurrentTraceContextCustomizer.class);
+	    CUSTOMIZER_ONE = mock(CurrentTraceContextCustomizer.class);
+public static final CurrentTraceContextCustomizer CUSTOMIZER_TWO = mock(CurrentTraceContextCustomizer.class);
+	XmlBeans context;
 
-  @Test public void customizers() {
-    context = new XmlBeans(""
-      + "<bean id=\"currentTraceContext\" class=\"brave.spring.beans.CurrentTraceContextFactoryBean\">\n"
-      + "  <property name=\"customizers\">\n"
-      + "    <list>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_ONE\"/>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_TWO\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
-    );
+	@After public void close() {
+	    if (context != null) {
+			context.close();
+		}
+	  }
 
-    context.getBean("currentTraceContext", CurrentTraceContext.class);
+	@Test public void scopeDecorators() {
+	    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"currentTraceContext\" class=\"brave.spring.beans.CurrentTraceContextFactoryBean\">\n").append("  <property name=\"scopeDecorators\">\n").append("    <list>\n").append("      <bean class=\"brave.propagation.StrictScopeDecorator\" factory-method=\"create\"/>\n").append("    </list>\n").append("  </property>").append("</bean>")
+				.toString()
+	    );
+	
+	    assertThat(context.getBean("currentTraceContext", CurrentTraceContext.class))
+	      .extracting("scopeDecorators")
+	      .satisfies(e -> assertThat((List) e).isNotEmpty());
+	  }
 
-    verify(CUSTOMIZER_ONE).customize(any(CurrentTraceContext.Builder.class));
-    verify(CUSTOMIZER_TWO).customize(any(CurrentTraceContext.Builder.class));
-  }
+	@Test public void customizers() {
+	    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"currentTraceContext\" class=\"brave.spring.beans.CurrentTraceContextFactoryBean\">\n").append("  <property name=\"customizers\">\n").append("    <list>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_ONE\"/>\n")
+				.append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_TWO\"/>\n").append("    </list>\n").append("  </property>").append("</bean>").toString()
+	    );
+	
+	    context.getBean("currentTraceContext", CurrentTraceContext.class);
+	
+	    verify(CUSTOMIZER_ONE).customize(any(CurrentTraceContext.Builder.class));
+	    verify(CUSTOMIZER_TWO).customize(any(CurrentTraceContext.Builder.class));
+	  }
 }

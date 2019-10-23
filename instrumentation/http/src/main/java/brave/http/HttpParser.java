@@ -58,11 +58,17 @@ public class HttpParser {
   // very limited cardinality. Moreover, users who care strictly about size can override this.
   public <Req> void request(HttpAdapter<Req, ?> adapter, Req req, SpanCustomizer customizer) {
     String name = spanName(adapter, req);
-    if (name != null) customizer.name(name);
+    if (name != null) {
+		customizer.name(name);
+	}
     String method = adapter.method(req);
-    if (method != null) customizer.tag("http.method", method);
+    if (method != null) {
+		customizer.tag("http.method", method);
+	}
     String path = adapter.path(req);
-    if (path != null) customizer.tag("http.path", path);
+    if (path != null) {
+		customizer.tag("http.path", path);
+	}
   }
 
   /** Returns the span name of the request. Defaults to the http method. */
@@ -98,9 +104,13 @@ public class HttpParser {
     if (res != null) {
       statusCode = adapter.statusCodeAsInt(res);
       String nameFromRoute = spanNameFromRoute(adapter, res, statusCode);
-      if (nameFromRoute != null) customizer.name(nameFromRoute);
+      if (nameFromRoute != null) {
+		customizer.name(nameFromRoute);
+	}
       String maybeStatus = maybeStatusAsString(statusCode, 299);
-      if (maybeStatus != null) customizer.tag("http.status_code", maybeStatus);
+      if (maybeStatus != null) {
+		customizer.tag("http.status_code", maybeStatus);
+	}
     }
     error(statusCode, error, customizer);
   }
@@ -115,12 +125,24 @@ public class HttpParser {
 
   static <Resp> String spanNameFromRoute(HttpAdapter<?, Resp> adapter, Resp res, int statusCode) {
     String method = adapter.methodFromResponse(res);
-    if (method == null) return null; // don't undo a valid name elsewhere
+    if (method == null)
+	 {
+		return null; // don't undo a valid name elsewhere
+	}
     String route = adapter.route(res);
-    if (route == null) return null; // don't undo a valid name elsewhere
-    if (!"".equals(route)) return method + " " + route;
-    if (statusCode / 100 == 3) return method + " redirected";
-    if (statusCode == 404) return method + " not_found";
+    if (route == null)
+	 {
+		return null; // don't undo a valid name elsewhere
+	}
+    if (!"".equals(route)) {
+		return new StringBuilder().append(method).append(" ").append(route).toString();
+	}
+    if (statusCode / 100 == 3) {
+		return method + " redirected";
+	}
+    if (statusCode == 404) {
+		return method + " not_found";
+	}
     return null; // unexpected
   }
 
@@ -141,7 +163,9 @@ public class HttpParser {
       errorParser().error(error, customizer);
       return;
     }
-    if (httpStatus == null) return;
+    if (httpStatus == null) {
+		return;
+	}
     // Unlike success path tagging, we only want to indicate something as error if it is not in a
     // success range. 1xx-3xx are not errors. It is endpoint-specific if client codes like 404 are
     // in fact errors. That's why this is overridable.
@@ -151,7 +175,9 @@ public class HttpParser {
     // library being unable to get the http status and a bad status (0). We don't classify zero as
     // error in case instrumentation cannot read the status. This prevents tagging every response as
     // error.
-    if (httpStatusInt == 0) return;
+    if (httpStatusInt == 0) {
+		return;
+	}
 
     // 1xx, 2xx, and 3xx codes are not all valid, but the math is good enough vs drift and opinion
     // about individual codes in the range.

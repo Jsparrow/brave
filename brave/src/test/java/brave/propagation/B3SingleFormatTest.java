@@ -64,7 +64,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(3).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceId + "-" + spanId)
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -72,7 +72,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceIdHigh(9).traceId(1).spanId(3).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceIdHigh + traceId + "-" + spanId)
+      .isEqualTo(new StringBuilder().append(traceIdHigh).append(traceId).append("-").append(spanId).toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -80,7 +80,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(3).sampled(false).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceId + "-" + spanId + "-0")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-0").toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -88,7 +88,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(3).sampled(true).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceId + "-" + spanId + "-1")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-1").toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -96,7 +96,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(3).debug(true).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceId + "-" + spanId + "-d")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-d").toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -105,7 +105,7 @@ public class B3SingleFormatTest {
       TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).sampled(true).build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceId + "-" + spanId + "-1-" + parentId)
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-1-").append(parentId).toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
@@ -120,13 +120,13 @@ public class B3SingleFormatTest {
         .build();
 
     assertThat(writeB3SingleFormat(context))
-      .isEqualTo(traceIdHigh + traceId + "-" + spanId + "-1-" + parentId)
+      .isEqualTo(new StringBuilder().append(traceIdHigh).append(traceId).append("-").append(spanId).append("-1-").append(parentId).toString())
       .isEqualTo(new String(writeB3SingleFormatAsBytes(context), UTF_8));
   }
 
   @Test public void parseB3SingleFormat_largest() {
     assertThat(
-      parseB3SingleFormat(traceIdHigh + traceId + "-" + spanId + "-1-" + parentId)
+      parseB3SingleFormat(new StringBuilder().append(traceIdHigh).append(traceId).append("-").append(spanId).append("-1-").append(parentId).toString())
     ).extracting(TraceContextOrSamplingFlags::context).isEqualToComparingFieldByField(
       TraceContext.newBuilder()
         .traceIdHigh(9)
@@ -142,7 +142,7 @@ public class B3SingleFormatTest {
     TraceContext context = TraceContext.newBuilder().traceId(1).spanId(3).build();
 
     assertThat(writeB3SingleFormatWithoutParentId(context))
-      .isEqualTo(traceId + "-" + spanId)
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).toString())
       .isEqualTo(new String(writeB3SingleFormatWithoutParentIdAsBytes(context), UTF_8));
   }
 
@@ -151,7 +151,7 @@ public class B3SingleFormatTest {
       TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).sampled(false).build();
 
     assertThat(writeB3SingleFormatWithoutParentId(context))
-      .isEqualTo(traceId + "-" + spanId + "-0")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-0").toString())
       .isEqualTo(new String(writeB3SingleFormatWithoutParentIdAsBytes(context), UTF_8));
   }
 
@@ -160,7 +160,7 @@ public class B3SingleFormatTest {
       TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).sampled(true).build();
 
     assertThat(writeB3SingleFormatWithoutParentId(context))
-      .isEqualTo(traceId + "-" + spanId + "-1")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-1").toString())
       .isEqualTo(new String(writeB3SingleFormatWithoutParentIdAsBytes(context), UTF_8));
   }
 
@@ -169,13 +169,13 @@ public class B3SingleFormatTest {
       TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).debug(true).build();
 
     assertThat(writeB3SingleFormatWithoutParentId(context))
-      .isEqualTo(traceId + "-" + spanId + "-d")
+      .isEqualTo(new StringBuilder().append(traceId).append("-").append(spanId).append("-d").toString())
       .isEqualTo(new String(writeB3SingleFormatWithoutParentIdAsBytes(context), UTF_8));
   }
 
   /** for example, parsing a w3c context */
   @Test public void parseB3SingleFormat_middleOfString() {
-    String input = "b3=" + traceId + traceId + "-" + spanId + ",";
+    String input = new StringBuilder().append("b3=").append(traceId).append(traceId).append("-").append(spanId).append(",").toString();
     assertThat(parseB3SingleFormat(input, 3, input.length() - 1).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceIdHigh(1).traceId(1).spanId(3).build()
@@ -198,42 +198,42 @@ public class B3SingleFormatTest {
   }
 
   @Test public void parseB3SingleFormat_idsNotYetSampled() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId).context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).spanId(3).build()
       );
   }
 
   @Test public void parseB3SingleFormat_idsNotYetSampled128() {
-    assertThat(parseB3SingleFormat(traceId + traceId + "-" + spanId).context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append(traceId).append("-").append(spanId).toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceIdHigh(1).traceId(1).spanId(3).build()
       );
   }
 
   @Test public void parseB3SingleFormat_idsUnsampled() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-0").context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-0").toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).spanId(3).sampled(false).build()
       );
   }
 
   @Test public void parseB3SingleFormat_parent_unsampled() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-0-" + parentId).context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-0-").append(parentId).toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).sampled(false).build()
       );
   }
 
   @Test public void parseB3SingleFormat_parent_debug() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-d-" + parentId).context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-d-").append(parentId).toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).debug(true).build()
       );
   }
 
   @Test public void parseB3SingleFormat_idsWithDebug() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-d").context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-d").toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).spanId(3).debug(true).build()
       );
@@ -255,14 +255,14 @@ public class B3SingleFormatTest {
   }
 
   @Test public void parseB3SingleFormat_malformed_traceId() {
-    assertThat(parseB3SingleFormat(traceId.substring(0, 15) + "?-" + spanId))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId.substring(0, 15)).append("?-").append(spanId).toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: expected a 16 or 32 lower hex trace ID at offset 0", null);
   }
 
   @Test public void parseB3SingleFormat_malformed_id() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId.substring(0, 15) + "?"))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId.substring(0, 15)).append("?").toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: expected a 16 lower hex span ID at offset {0}", 17, null);
@@ -270,7 +270,7 @@ public class B3SingleFormatTest {
 
   @Test public void parseB3SingleFormat_malformed_sampled_parentid() {
     assertThat(
-      parseB3SingleFormat(traceId + "-" + spanId + "-1-" + parentId.substring(0, 15) + "?"))
+      parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-1-").append(parentId.substring(0, 15)).append("?").toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: expected a 16 lower hex parent ID at offset {0}", 36,
@@ -278,7 +278,7 @@ public class B3SingleFormatTest {
   }
 
   @Test public void parseB3SingleFormat_malformed_invalid_delimiter_before_parent() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-1!" + parentId))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-1!").append(parentId).toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: expected a hyphen(-) delimiter at offset {0}", 35, null);
@@ -286,14 +286,14 @@ public class B3SingleFormatTest {
 
   // odd but possible to not yet sample a child
   @Test public void parseB3SingleFormat_parentid_notYetSampled() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-" + parentId).context())
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-").append(parentId).toString()).context())
       .isEqualToComparingFieldByField(
         TraceContext.newBuilder().traceId(1).parentId(2).spanId(3).build()
       );
   }
 
   @Test public void parseB3SingleFormat_malformed_parentid_notYetSampled() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-" + parentId.substring(0, 15) + "?"))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-").append(parentId.substring(0, 15)).append("?").toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: expected a 16 lower hex parent ID at offset {0}", 34,
@@ -333,36 +333,36 @@ public class B3SingleFormatTest {
       traceId.substring(0, 15),
       traceId,
       traceId + "-",
-      traceId.substring(0, 15) + "-" + spanId,
-      traceId + "-" + spanId.substring(0, 15),
-      traceId + "-" + spanId + "-",
-      traceId + "-" + spanId + "-1-",
-      traceId + "-" + spanId + "-1-" + parentId.substring(0, 15)
+      new StringBuilder().append(traceId.substring(0, 15)).append("-").append(spanId).toString(),
+      new StringBuilder().append(traceId).append("-").append(spanId.substring(0, 15)).toString(),
+      new StringBuilder().append(traceId).append("-").append(spanId).append("-").toString(),
+      new StringBuilder().append(traceId).append("-").append(spanId).append("-1-").toString(),
+      new StringBuilder().append(traceId).append("-").append(spanId).append("-1-").append(parentId.substring(0, 15)).toString()
     );
-    for (String b3 : truncated) {
+    truncated.forEach(b3 -> {
       assertThat(parseB3SingleFormat(b3))
-        .withFailMessage("expected " + b3 + " to not parse").isNull();
+        .withFailMessage(new StringBuilder().append("expected ").append(b3).append(" to not parse").toString()).isNull();
       verify(platform).log("Invalid input: truncated", null);
       reset(platform);
-    }
+    });
   }
 
   @Test public void parseB3SingleFormat_traceIdTooLong() {
-    assertThat(parseB3SingleFormat(traceId + traceId + "a" + "-" + spanId))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append(traceId).append("a").append("-").append(spanId).toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: trace ID is too long", null);
   }
 
   @Test public void parseB3SingleFormat_spanIdTooLong() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "a"))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("a").toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: span ID is too long", null);
   }
 
   @Test public void parseB3SingleFormat_parentIdTooLong() {
-    assertThat(parseB3SingleFormat(traceId + "-" + spanId + "-" + parentId + "a"))
+    assertThat(parseB3SingleFormat(new StringBuilder().append(traceId).append("-").append(spanId).append("-").append(parentId).append("a").toString()))
       .isNull(); // instead of raising exception
 
     verify(platform).log("Invalid input: parent ID is too long", null);

@@ -22,7 +22,9 @@ import spark.Spark;
 public class ITSparkTracing extends ITHttpServer {
 
   @Override protected Response get(String path) throws Exception {
-    if (path.toLowerCase().indexOf("async") == -1) return super.get(path);
+    if (!path.toLowerCase().contains("async")) {
+		return super.get(path);
+	}
     throw new AssumptionViolatedException(
       "ignored until https://github.com/perwendel/spark/issues/208");
   }

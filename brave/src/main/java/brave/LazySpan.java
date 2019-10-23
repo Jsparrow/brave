@@ -95,17 +95,23 @@ final class LazySpan extends Span {
   }
 
   @Override public void abandon() {
-    if (delegate == null) return; // prevent resurrection
+    if (delegate == null)
+	 {
+		return; // prevent resurrection
+	}
     span().abandon();
   }
 
   @Override public void flush() {
-    if (delegate == null) return; // prevent resurrection
+    if (delegate == null)
+	 {
+		return; // prevent resurrection
+	}
     span().flush();
   }
 
   @Override public String toString() {
-    return "LazySpan(" + context + ")";
+    return new StringBuilder().append("LazySpan(").append(context).append(")").toString();
   }
 
   /**
@@ -113,7 +119,9 @@ final class LazySpan extends Span {
    * code should not act differently given an instance of lazy or {@link RealSpan}.
    */
   @Override public boolean equals(Object o) {
-    if (o == this) return true;
+    if (o == this) {
+		return true;
+	}
     return isEqualToRealOrLazySpan(context, o);
   }
 
@@ -127,7 +135,9 @@ final class LazySpan extends Span {
    */
   Span span() {
     Span result = delegate;
-    if (result != null) return result;
+    if (result != null) {
+		return result;
+	}
     return delegate = tracer.toSpan(context);
   }
 

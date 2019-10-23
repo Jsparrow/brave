@@ -31,52 +31,58 @@ import okhttp3.Response;
  * In cases like that, use {@link TracingCallFactory}.
  */
 public final class TracingInterceptor implements Interceptor {
-  public static Interceptor create(Tracing tracing) {
-    return create(HttpTracing.create(tracing));
-  }
-
-  public static Interceptor create(HttpTracing httpTracing) {
-    return new TracingInterceptor(httpTracing);
-  }
-
   final Tracer tracer;
-  final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
+	final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
 
-  TracingInterceptor(HttpTracing httpTracing) {
-    if (httpTracing == null) throw new NullPointerException("HttpTracing == null");
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpClientHandler.create(httpTracing);
-  }
+	TracingInterceptor(HttpTracing httpTracing) {
+	    if (httpTracing == null) {
+			throw new NullPointerException("HttpTracing == null");
+		}
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpClientHandler.create(httpTracing);
+	  }
 
-  @Override public Response intercept(Chain chain) throws IOException {
-    HttpClientRequest request = new HttpClientRequest(chain.request());
+	public static Interceptor create(Tracing tracing) {
+	    return create(HttpTracing.create(tracing));
+	  }
 
-    Span span = handler.handleSend(request);
-    parseRouteAddress(chain, span);
+	public static Interceptor create(HttpTracing httpTracing) {
+	    return new TracingInterceptor(httpTracing);
+	  }
 
-    HttpClientResponse response = null;
-    Throwable error = null;
-    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
-      Response result = chain.proceed(request.build());
-      response = new HttpClientResponse(result);
-      return result;
-    } catch (IOException | RuntimeException | Error e) {
-      error = e;
-      throw e;
-    } finally {
-      handler.handleReceive(response, error, span);
-    }
-  }
+	@Override public Response intercept(Chain chain) throws IOException {
+	    HttpClientRequest request = new HttpClientRequest(chain.request());
+	
+	    Span span = handler.handleSend(request);
+	    parseRouteAddress(chain, span);
+	
+	    HttpClientResponse response = null;
+	    Throwable error = null;
+	    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+	      Response result = chain.proceed(request.build());
+	      response = new HttpClientResponse(result);
+	      return result;
+	    } catch (IOException | RuntimeException | Error e) {
+	      error = e;
+	      throw e;
+	    } finally {
+	      handler.handleReceive(response, error, span);
+	    }
+	  }
 
-  static void parseRouteAddress(Chain chain, Span span) {
-    if (span.isNoop()) return;
-    Connection connection = chain.connection();
-    if (connection == null) return;
-    InetSocketAddress socketAddress = connection.route().socketAddress();
-    span.remoteIpAndPort(socketAddress.getHostString(), socketAddress.getPort());
-  }
+	static void parseRouteAddress(Chain chain, Span span) {
+	    if (span.isNoop()) {
+			return;
+		}
+	    Connection connection = chain.connection();
+	    if (connection == null) {
+			return;
+		}
+	    InetSocketAddress socketAddress = connection.route().socketAddress();
+	    span.remoteIpAndPort(socketAddress.getHostString(), socketAddress.getPort());
+	  }
 
-  static final class HttpClientRequest extends brave.http.HttpClientRequest {
+static final class HttpClientRequest extends brave.http.HttpClientRequest {
     final Request delegate;
     Request.Builder builder;
 
@@ -105,7 +111,9 @@ public final class TracingInterceptor implements Interceptor {
     }
 
     @Override public void header(String name, String value) {
-      if (builder == null) builder = delegate.newBuilder();
+      if (builder == null) {
+		builder = delegate.newBuilder();
+	}
       builder.header(name, value);
     }
 

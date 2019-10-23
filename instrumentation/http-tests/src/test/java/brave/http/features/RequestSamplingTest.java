@@ -70,7 +70,9 @@ public class RequestSamplingTest {
         .addNetworkInterceptor(new TracingInterceptor(httpTracing)).build();
 
       @Override public MockResponse dispatch(RecordedRequest request) {
-        if (request.getPath().equals("/next")) return new MockResponse().setBody("next");
+        if ("/next".equals(request.getPath())) {
+			return new MockResponse().setBody("next");
+		}
         Call next = tracedClient.newCall(new Request.Builder().url(server.url("/next")).build());
         try (ResponseBody responseBody = next.execute().body()) {
           return new MockResponse().setBody(responseBody.string());

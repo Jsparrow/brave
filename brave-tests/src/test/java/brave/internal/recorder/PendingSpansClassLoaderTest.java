@@ -29,7 +29,11 @@ public class PendingSpansClassLoaderTest {
     assertRunIsUnloadable(CreateAndRemove.class, getClass().getClassLoader());
   }
 
-  static class CreateAndRemove implements Runnable {
+  @Test public void unloadable_afterOrphan() {
+    assertRunIsUnloadable(OrphanedContext.class, getClass().getClassLoader());
+  }
+
+static class CreateAndRemove implements Runnable {
     @Override public void run() {
       PendingSpans pendingSpans =
         new PendingSpans(Platform.get().clock(), new FinishedSpanHandler() {
@@ -42,10 +46,6 @@ public class PendingSpansClassLoaderTest {
       pendingSpans.getOrCreate(context, true);
       pendingSpans.remove(context);
     }
-  }
-
-  @Test public void unloadable_afterOrphan() {
-    assertRunIsUnloadable(OrphanedContext.class, getClass().getClassLoader());
   }
 
   static class OrphanedContext implements Runnable {

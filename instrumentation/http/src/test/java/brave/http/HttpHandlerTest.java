@@ -39,7 +39,8 @@ public class HttpHandlerTest {
   @Mock HttpAdapter<Object, Object> adapter;
   @Mock brave.Span span;
   @Mock SpanCustomizer spanCustomizer;
-  Object request = new Object(), response = new Object();
+  Object request = new Object();
+Object response = new Object();
   HttpHandler handler;
 
   @Before public void init() {

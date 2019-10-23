@@ -31,117 +31,123 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public abstract class PropagationTest<K> {
 
-  protected abstract Class<? extends Supplier<Propagation<K>>> propagationSupplier();
-
-  protected abstract void inject(Map<K, String> map, @Nullable String traceId,
-    @Nullable String parentId, @Nullable String spanId, @Nullable Boolean sampled,
-    @Nullable Boolean debug);
-
-  /**
-   * There's currently no standard API to just inject sampling flags, as IDs are intended to be
-   * propagated.
-   */
-  protected abstract void inject(Map<K, String> carrier, SamplingFlags samplingFlags);
-
   protected Map<K, String> map = new LinkedHashMap<>();
-  MapEntry<K> mapEntry = new MapEntry<>();
+	MapEntry<K> mapEntry = new MapEntry<>();
+	TraceContext rootSpan = TraceContext.newBuilder()
+	    .traceId(1L)
+	    .spanId(1L)
+	    .sampled(true).build();
+	TraceContext childSpan = rootSpan.toBuilder()
+	    .parentId(rootSpan.spanId())
+	    .spanId(2).build();
+	protected final Propagation<K> propagation;
 
-  TraceContext rootSpan = TraceContext.newBuilder()
-    .traceId(1L)
-    .spanId(1L)
-    .sampled(true).build();
-  TraceContext childSpan = rootSpan.toBuilder()
-    .parentId(rootSpan.spanId())
-    .spanId(2).build();
+	protected PropagationTest() {
+	    propagation = newInstance(propagationSupplier(), getClass().getClassLoader()).get();
+	  }
 
-  protected final Propagation<K> propagation;
+	protected abstract Class<? extends Supplier<Propagation<K>>> propagationSupplier();
 
-  protected PropagationTest() {
-    propagation = newInstance(propagationSupplier(), getClass().getClassLoader()).get();
-  }
+	protected abstract void inject(Map<K, String> map, @Nullable String traceId,
+	    @Nullable String parentId, @Nullable String spanId, @Nullable Boolean sampled,
+	    @Nullable Boolean debug);
 
-  @Test public void verifyRoundTrip_rootSpan() throws Exception {
-    inject(map, "0000000000000001", null, "0000000000000001", true, null);
+	/**
+	   * There's currently no standard API to just inject sampling flags, as IDs are intended to be
+	   * propagated.
+	   */
+	  protected abstract void inject(Map<K, String> carrier, SamplingFlags samplingFlags);
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan));
-  }
+	@Test public void verifyRoundTrip_rootSpan() throws Exception {
+	    inject(map, "0000000000000001", null, "0000000000000001", true, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan));
+	  }
 
-  @Test public void verifyRoundTrip_128BitTrace() throws Exception {
-    String high64Bits = "463ac35c9f6413ad";
-    String low64Bits = "48485a3953bb6124";
-    inject(map, high64Bits + low64Bits, null, low64Bits, true, null);
+	@Test public void verifyRoundTrip_128BitTrace() throws Exception {
+	    String high64Bits = "463ac35c9f6413ad";
+	    String low64Bits = "48485a3953bb6124";
+	    inject(map, high64Bits + low64Bits, null, low64Bits, true, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan.toBuilder()
+	      .traceIdHigh(HexCodec.lowerHexToUnsignedLong(high64Bits))
+	      .traceId(HexCodec.lowerHexToUnsignedLong(low64Bits))
+	      .spanId(HexCodec.lowerHexToUnsignedLong(low64Bits)).build()));
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan.toBuilder()
-      .traceIdHigh(HexCodec.lowerHexToUnsignedLong(high64Bits))
-      .traceId(HexCodec.lowerHexToUnsignedLong(low64Bits))
-      .spanId(HexCodec.lowerHexToUnsignedLong(low64Bits)).build()));
-  }
+	@Test public void verifyRoundTrip_childSpan() throws Exception {
+	    inject(map, "0000000000000001", "0000000000000001", "0000000000000002", true, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(childSpan));
+	  }
 
-  @Test public void verifyRoundTrip_childSpan() throws Exception {
-    inject(map, "0000000000000001", "0000000000000001", "0000000000000002", true, null);
+	@Test public void verifyRoundTrip_notSampled() throws Exception {
+	    inject(map, "0000000000000001", "0000000000000001", "0000000000000002", false, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(
+	      childSpan.toBuilder().sampled(false).build()
+	    ));
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(childSpan));
-  }
+	@Test public void verifyRoundTrip_notSampled_noIds() throws Exception {
+	    inject(map, null, null, null, false, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.NOT_SAMPLED));
+	  }
 
-  @Test public void verifyRoundTrip_notSampled() throws Exception {
-    inject(map, "0000000000000001", "0000000000000001", "0000000000000002", false, null);
+	@Test public void verifyRoundTrip_sampledTrueNoOtherTraceHeaders() {
+	    inject(map, null, null, null, true, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.SAMPLED));
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(
-      childSpan.toBuilder().sampled(false).build()
-    ));
-  }
+	@Test public void verifyRoundTrip_debug() {
+	    inject(map, null, null, null, null, true);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.DEBUG));
+	  }
 
-  @Test public void verifyRoundTrip_notSampled_noIds() throws Exception {
-    inject(map, null, null, null, false, null);
+	@Test public void verifyRoundTrip_empty() throws Exception {
+	    inject(map, null, null, null, null, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.EMPTY));
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.NOT_SAMPLED));
-  }
+	/**
+	   * When the caller propagates IDs, but not a sampling decision, the current process should
+	   * decide.
+	   */
+	  @Test public void verifyRoundTrip_externallyProvidedIds() {
+	    inject(map, "0000000000000001", null, "0000000000000001", null, null);
+	
+	    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan.toBuilder().sampled(null).build()));
+	  }
 
-  @Test public void verifyRoundTrip_sampledTrueNoOtherTraceHeaders() {
-    inject(map, null, null, null, true, null);
+	void verifyRoundTrip(TraceContextOrSamplingFlags expected) {
+	    TraceContextOrSamplingFlags extracted = propagation.extractor(mapEntry).extract(map);
+	
+	    assertThat(extracted)
+	      .isEqualTo(expected);
+	
+	    Map<K, String> injected = new LinkedHashMap<>();
+	    if (expected.context() != null) {
+	      propagation.injector(mapEntry).inject(expected.context(), injected);
+	    } else {
+	      inject(injected, expected.samplingFlags());
+	    }
+	
+	    assertThat(map).isEqualTo(injected);
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.SAMPLED));
-  }
+	@Test public void unloadable_unused() {
+	    assertRunIsUnloadableWithSupplier(Unused.class, propagationSupplier());
+	  }
 
-  @Test public void verifyRoundTrip_debug() {
-    inject(map, null, null, null, null, true);
+	@Test public void unloadable_afterBasicUsage() {
+	    assertRunIsUnloadableWithSupplier(BasicUsage.class, propagationSupplier());
+	  }
 
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.DEBUG));
-  }
-
-  @Test public void verifyRoundTrip_empty() throws Exception {
-    inject(map, null, null, null, null, null);
-
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(SamplingFlags.EMPTY));
-  }
-
-  /**
-   * When the caller propagates IDs, but not a sampling decision, the current process should
-   * decide.
-   */
-  @Test public void verifyRoundTrip_externallyProvidedIds() {
-    inject(map, "0000000000000001", null, "0000000000000001", null, null);
-
-    verifyRoundTrip(TraceContextOrSamplingFlags.create(rootSpan.toBuilder().sampled(null).build()));
-  }
-
-  void verifyRoundTrip(TraceContextOrSamplingFlags expected) {
-    TraceContextOrSamplingFlags extracted = propagation.extractor(mapEntry).extract(map);
-
-    assertThat(extracted)
-      .isEqualTo(expected);
-
-    Map<K, String> injected = new LinkedHashMap<>();
-    if (expected.context() != null) {
-      propagation.injector(mapEntry).inject(expected.context(), injected);
-    } else {
-      inject(injected, expected.samplingFlags());
-    }
-
-    assertThat(map).isEqualTo(injected);
-  }
-
-  protected static class MapEntry<K> implements
+protected static class MapEntry<K> implements
     Propagation.Getter<Map<K, String>, K>,
     Propagation.Setter<Map<K, String>, K> {
     public MapEntry() {
@@ -156,17 +162,9 @@ public abstract class PropagationTest<K> {
     }
   }
 
-  @Test public void unloadable_unused() {
-    assertRunIsUnloadableWithSupplier(Unused.class, propagationSupplier());
-  }
-
   static class Unused extends ClassLoaders.ConsumerRunnable<Propagation<?>> {
     @Override public void accept(Propagation<?> propagation) {
     }
-  }
-
-  @Test public void unloadable_afterBasicUsage() {
-    assertRunIsUnloadableWithSupplier(BasicUsage.class, propagationSupplier());
   }
 
   static class BasicUsage extends ClassLoaders.ConsumerRunnable<Propagation<?>> {

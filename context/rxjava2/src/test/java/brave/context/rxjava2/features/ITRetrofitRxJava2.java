@@ -65,7 +65,93 @@ public class ITRetrofitRxJava2 extends ITHttp {
     CurrentTraceContextAssemblyTracking.disable();
   }
 
-  interface Service {
+  @Test
+  public void createAsync_completable_success() {
+    rxjava_createAsync_success(
+      (service, observer) -> {
+        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
+          service.completable().subscribe(observer);
+        }
+      });
+  }
+
+@Test
+  public void createAsync_maybe_success() {
+    rxjava_createAsync_success(
+      (service, observer) -> {
+        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
+          service.maybe().subscribe(observer);
+        }
+      });
+  }
+
+@Test
+  public void createAsync_observable_success() {
+    rxjava_createAsync_success(
+      (service, observer) -> {
+        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
+          service.observable().subscribe(observer);
+        }
+      });
+  }
+
+@Test
+  public void createAsync_single_success() {
+    rxjava_createAsync_success(
+      (service, observer) -> {
+        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
+          service.single().subscribe(observer);
+        }
+      });
+  }
+
+private void rxjava_createAsync_success(BiConsumer<Service, TestObserver<Object>> subscriber) {
+    TestObserver<Object> observer = new TestObserver<>(currentTraceContextObserver);
+
+    Service service = service(RxJava2CallAdapterFactory.createAsync());
+    subscriber.accept(service, observer);
+
+    // enqueue later
+    server.enqueue(new MockResponse());
+
+    observer.awaitTerminalEvent(1, SECONDS);
+    observer.assertComplete();
+    assertThat(currentTraceContextObserver.onComplete).isEqualTo(context1);
+  }
+
+@Test
+  public void createAsync_flowable_success() {
+    rx_createAsync_success(
+      (service, subscriber) -> {
+        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
+          service.flowable().subscribe(subscriber);
+        }
+      });
+  }
+
+private void rx_createAsync_success(BiConsumer<Service, TestSubscriber<Object>> subscriber) {
+    TestSubscriber<Object> observer = new TestSubscriber<>(currentTraceContextObserver);
+
+    Service service = service(RxJava2CallAdapterFactory.createAsync());
+    subscriber.accept(service, observer);
+
+    // enqueue later
+    server.enqueue(new MockResponse());
+
+    observer.awaitTerminalEvent(1, SECONDS);
+    observer.assertComplete();
+    assertThat(currentTraceContextObserver.onComplete).isEqualTo(context1);
+  }
+
+Service service(CallAdapter.Factory callAdapterFactory) {
+    return new Retrofit.Builder()
+      .baseUrl(server.url("/"))
+      .addCallAdapterFactory(callAdapterFactory)
+      .build()
+      .create(Service.class);
+  }
+
+interface Service {
     @GET("/")
     Completable completable();
 
@@ -82,94 +168,11 @@ public class ITRetrofitRxJava2 extends ITHttp {
     Flowable<ResponseBody> flowable();
   }
 
-  @Test
-  public void createAsync_completable_success() {
-    rxjava_createAsync_success(
-      (service, observer) -> {
-        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
-          service.completable().subscribe(observer);
-        }
-      });
-  }
-
-  @Test
-  public void createAsync_maybe_success() {
-    rxjava_createAsync_success(
-      (service, observer) -> {
-        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
-          service.maybe().subscribe(observer);
-        }
-      });
-  }
-
-  @Test
-  public void createAsync_observable_success() {
-    rxjava_createAsync_success(
-      (service, observer) -> {
-        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
-          service.observable().subscribe(observer);
-        }
-      });
-  }
-
-  @Test
-  public void createAsync_single_success() {
-    rxjava_createAsync_success(
-      (service, observer) -> {
-        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
-          service.single().subscribe(observer);
-        }
-      });
-  }
-
-  private void rxjava_createAsync_success(BiConsumer<Service, TestObserver<Object>> subscriber) {
-    TestObserver<Object> observer = new TestObserver<>(currentTraceContextObserver);
-
-    Service service = service(RxJava2CallAdapterFactory.createAsync());
-    subscriber.accept(service, observer);
-
-    // enqueue later
-    server.enqueue(new MockResponse());
-
-    observer.awaitTerminalEvent(1, SECONDS);
-    observer.assertComplete();
-    assertThat(currentTraceContextObserver.onComplete).isEqualTo(context1);
-  }
-
-  @Test
-  public void createAsync_flowable_success() {
-    rx_createAsync_success(
-      (service, subscriber) -> {
-        try (CurrentTraceContext.Scope scope = currentTraceContext.newScope(context1)) {
-          service.flowable().subscribe(subscriber);
-        }
-      });
-  }
-
-  private void rx_createAsync_success(BiConsumer<Service, TestSubscriber<Object>> subscriber) {
-    TestSubscriber<Object> observer = new TestSubscriber<>(currentTraceContextObserver);
-
-    Service service = service(RxJava2CallAdapterFactory.createAsync());
-    subscriber.accept(service, observer);
-
-    // enqueue later
-    server.enqueue(new MockResponse());
-
-    observer.awaitTerminalEvent(1, SECONDS);
-    observer.assertComplete();
-    assertThat(currentTraceContextObserver.onComplete).isEqualTo(context1);
-  }
-
-  Service service(CallAdapter.Factory callAdapterFactory) {
-    return new Retrofit.Builder()
-      .baseUrl(server.url("/"))
-      .addCallAdapterFactory(callAdapterFactory)
-      .build()
-      .create(Service.class);
-  }
-
   class CurrentTraceContextObserver implements Observer<Object>, Subscriber<Object> {
-    volatile TraceContext onSubscribe, onNext, onError, onComplete;
+    volatile TraceContext onSubscribe;
+	volatile TraceContext onNext;
+	volatile TraceContext onError;
+	volatile TraceContext onComplete;
 
     @Override
     public void onSubscribe(Disposable d) {

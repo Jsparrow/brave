@@ -66,9 +66,12 @@ import zipkin2.Span;
 
 import static brave.kafka.streams.KafkaStreamsTags.KAFKA_STREAMS_FILTERED_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ITKafkaStreamsTracing {
-  @ClassRule public static KafkaJunitRule kafka = new KafkaJunitRule(EphemeralKafkaBroker.create());
+  private static final Logger logger = LoggerFactory.getLogger(ITKafkaStreamsTracing.class);
+@ClassRule public static KafkaJunitRule kafka = new KafkaJunitRule(EphemeralKafkaBroker.create());
   @Rule public TestName testName = new TestName();
 
   String TEST_KEY = "foo";
@@ -83,7 +86,7 @@ public class ITKafkaStreamsTracing {
           .withFailMessage("Stream span remaining in queue. Check for redundant reporting")
           .isNull();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage(), e);
       }
     }
   };
@@ -101,10 +104,16 @@ public class ITKafkaStreamsTracing {
   Consumer<String, String> consumer;
 
   @After public void close() {
-    if (producer != null) producer.close();
-    if (consumer != null) consumer.close();
+    if (producer != null) {
+		producer.close();
+	}
+    if (consumer != null) {
+		consumer.close();
+	}
     Tracing tracing = Tracing.current();
-    if (tracing != null) tracing.close();
+    if (tracing != null) {
+		tracing.close();
+	}
   }
 
   @Test
@@ -175,7 +184,8 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanOutput.traceId());
@@ -198,7 +208,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
             }
           });
@@ -217,7 +227,8 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -247,7 +258,9 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filter transformer returns true so record is not dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -279,7 +292,8 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filter transformer returns false so record is dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -321,8 +335,10 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanTransform1 = takeSpan(), spanTransform2 = takeSpan(),
-      spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanTransform1 = takeSpan();
+	Span spanTransform2 = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.traceId()).isEqualTo(spanOutput.traceId());
     assertThat(spanInput.traceId()).isEqualTo(spanTransform1.traceId());
@@ -355,7 +371,8 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filterNot transformer returns true so record is dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -386,7 +403,9 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filterNot transformer returns true so record is not dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -419,7 +438,9 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filter transformer returns true so record is not dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -452,7 +473,8 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filter transformer returns false so record is dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -484,7 +506,8 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filterNot transformer returns true so record is dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -517,7 +540,9 @@ public class ITKafkaStreamsTracing {
     waitForStreamToRun(streams);
 
     // the filterNot transformer returns true so record is not dropped
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -542,7 +567,7 @@ public class ITKafkaStreamsTracing {
         try {
           Thread.sleep(100L);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
         tracing.tracer().currentSpan().annotate(now, "test");
       }))
@@ -556,7 +581,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -586,7 +613,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -607,7 +636,7 @@ public class ITKafkaStreamsTracing {
         try {
           Thread.sleep(100L);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
       }));
     Topology topology = builder.build();
@@ -619,7 +648,8 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -641,7 +671,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
             }
           });
@@ -688,7 +718,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return KeyValue.pair(key, value);
             }
@@ -714,7 +744,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -745,7 +777,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return Arrays.asList(KeyValue.pair(key, value), KeyValue.pair(key, value));
             }
@@ -807,7 +839,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return KeyValue.pair(key, value);
             }
@@ -861,7 +893,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return value;
             }
@@ -887,7 +919,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -910,7 +944,7 @@ public class ITKafkaStreamsTracing {
         try {
           Thread.sleep(100L);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
         return KeyValue.pair(key, value);
       }))
@@ -924,7 +958,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -947,7 +983,7 @@ public class ITKafkaStreamsTracing {
         try {
           Thread.sleep(100L);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
         return value;
       }))
@@ -961,7 +997,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -984,7 +1022,7 @@ public class ITKafkaStreamsTracing {
         try {
           Thread.sleep(100L);
         } catch (InterruptedException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
         return value;
       }))
@@ -998,7 +1036,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -1029,7 +1069,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return value;
             }
@@ -1084,7 +1124,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return value;
             }
@@ -1110,7 +1150,9 @@ public class ITKafkaStreamsTracing {
 
     waitForStreamToRun(streams);
 
-    Span spanInput = takeSpan(), spanProcessor = takeSpan(), spanOutput = takeSpan();
+    Span spanInput = takeSpan();
+	Span spanProcessor = takeSpan();
+	Span spanOutput = takeSpan();
 
     assertThat(spanInput.kind().name()).isEqualTo(brave.Span.Kind.CONSUMER.name());
     assertThat(spanInput.traceId()).isEqualTo(spanProcessor.traceId());
@@ -1141,7 +1183,7 @@ public class ITKafkaStreamsTracing {
               try {
                 Thread.sleep(100L);
               } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.error(e.getMessage(), e);
               }
               return value;
             }

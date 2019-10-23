@@ -35,22 +35,22 @@ import org.slf4j.MDC;
  * }</pre>
  */
 public final class MDCScopeDecorator extends CorrelationFieldScopeDecorator {
-  public static CurrentTraceContext.ScopeDecorator create() {
-    return new MDCScopeDecorator();
-  }
-
-  @Override protected String get(String key) {
-    return MDC.get(key);
-  }
-
-  @Override protected void put(String key, String value) {
-    MDC.put(key, value);
-  }
-
-  @Override protected void remove(String key) {
-    MDC.remove(key);
-  }
-
   MDCScopeDecorator() {
-  }
+	  }
+
+	public static CurrentTraceContext.ScopeDecorator create() {
+	    return new MDCScopeDecorator();
+	  }
+
+	@Override protected String get(String key) {
+	    return MDC.get(key);
+	  }
+
+	@Override protected void put(String key, String value) {
+	    MDC.put(key, value);
+	  }
+
+	@Override protected void remove(String key) {
+	    MDC.remove(key);
+	  }
 }

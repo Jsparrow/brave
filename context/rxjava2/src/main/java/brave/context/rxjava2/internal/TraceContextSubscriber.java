@@ -36,7 +36,9 @@ class TraceContextSubscriber<T> implements Subscriber<T> {
   }
 
   @Override public final void onSubscribe(Subscription s) {
-    if (!Util.validate(upstream, s)) return;
+    if (!Util.validate(upstream, s)) {
+		return;
+	}
     upstream = s;
 
     // Operators need to detect the fuseable feature of their immediate upstream. We pass "this"
@@ -69,7 +71,9 @@ class TraceContextSubscriber<T> implements Subscriber<T> {
   }
 
   @Override public void onComplete() {
-    if (done) return;
+    if (done) {
+		return;
+	}
     done = true;
 
     Scope scope = contextScoper.maybeScope(assembled);

@@ -55,7 +55,9 @@ import zipkin2.reporter.Reporter;
 @State(Scope.Thread)
 public class TracingProducerBenchmarks {
   ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
-  Producer<String, String> producer, tracingProducer, tracingB3SingleProducer;
+  Producer<String, String> producer;
+Producer<String, String> tracingProducer;
+Producer<String, String> tracingB3SingleProducer;
 
   @Setup(Level.Trial) public void init() {
     Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build();
@@ -116,7 +118,9 @@ public class TracingProducerBenchmarks {
     public Future<RecordMetadata> send(ProducerRecord<String, String> record, Callback callback) {
       TopicPartition tp = new TopicPartition(record.topic(), 0);
       RecordMetadata rm = new RecordMetadata(tp, -1L, -1L, 1L, 2L, 3, 4);
-      if (callback != null) callback.onCompletion(rm, null);
+      if (callback != null) {
+		callback.onCompletion(rm, null);
+	}
       return Futures.immediateFuture(rm);
     }
 

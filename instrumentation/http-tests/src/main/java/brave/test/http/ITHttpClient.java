@@ -38,9 +38,14 @@ import zipkin2.Span;
 import static brave.http.HttpRequestMatchers.pathStartsWith;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import java.util.Collections;
 
 public abstract class ITHttpClient<C> extends ITHttp {
-  @Rule public MockWebServer server = new MockWebServer();
+  private static final Logger logger = LogManager.getLogger(ITHttpClient.class);
+
+@Rule public MockWebServer server = new MockWebServer();
 
   protected C client;
 
@@ -70,7 +75,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
     RecordedRequest request = server.takeRequest();
     assertThat(request.getHeaders().toMultimap())
       .containsKeys("x-b3-traceId", "x-b3-spanId")
-      .containsEntry("x-b3-sampled", asList("1"));
+      .containsEntry("x-b3-sampled", Collections.singletonList("1"));
 
     takeSpan();
   }
@@ -146,7 +151,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
     assertThat(request.getHeaders().toMultimap())
       .containsKeys("x-b3-traceId", "x-b3-spanId")
       .doesNotContainKey("x-b3-parentSpanId")
-      .containsEntry("x-b3-sampled", asList("0"));
+      .containsEntry("x-b3-sampled", Collections.singletonList("0"));
   }
 
   @Test public void customSampler() throws Exception {
@@ -163,7 +168,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
 
     RecordedRequest request = server.takeRequest();
     assertThat(request.getHeaders().toMultimap())
-      .containsEntry("x-b3-sampled", asList("0"));
+      .containsEntry("x-b3-sampled", Collections.singletonList("0"));
   }
 
   @Test public void reportsClientKindToZipkin() throws Exception {
@@ -206,7 +211,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
         @Override
         public <Req> void request(HttpAdapter<Req, ?> adapter, Req req,
           SpanCustomizer customizer) {
-          customizer.name(adapter.method(req).toLowerCase() + " " + adapter.path(req));
+          customizer.name(new StringBuilder().append(adapter.method(req).toLowerCase()).append(" ").append(adapter.path(req)).toString());
           customizer.tag("http.url", adapter.url(req)); // just the path is logged by default
           customizer.tag("context.visible", String.valueOf(currentTraceContext.get() != null));
           customizer.tag("request_customizer.is_span", (customizer instanceof brave.Span) + "");
@@ -245,6 +250,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
     try {
       get(client, "/foo");
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // some clients think 400 is an error
     }
 
@@ -264,6 +270,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
     try {
       get(client, "/foo");
     } catch (RuntimeException e) {
+		logger.error(e.getMessage(), e);
       // some think 404 is an exception
     } finally {
       parent.finish();
@@ -302,6 +309,7 @@ public abstract class ITHttpClient<C> extends ITHttp {
     try {
       get(client, "/foo");
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // ok, but the span should include an error!
     }
 
@@ -326,6 +334,6 @@ public abstract class ITHttpClient<C> extends ITHttp {
   }
 
   protected String url(String pathIncludingQuery) {
-    return "http://127.0.0.1:" + server.getPort() + pathIncludingQuery;
+    return new StringBuilder().append("http://127.0.0.1:").append(server.getPort()).append(pathIncludingQuery).toString();
   }
 }

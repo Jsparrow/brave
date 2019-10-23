@@ -28,10 +28,14 @@ import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NoopAwareFinishedSpanHandlerTest {
-  TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
+  private static final Logger logger = LogManager.getLogger(NoopAwareFinishedSpanHandlerTest.class);
+TraceContext context = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
   MutableSpan span = new MutableSpan();
   AtomicBoolean noop = new AtomicBoolean(false);
 
@@ -39,17 +43,17 @@ public class NoopAwareFinishedSpanHandlerTest {
   @Mock FinishedSpanHandler two;
 
   @Test public void create_emptyIsNoop() {
-    assertThat(NoopAwareFinishedSpanHandler.create(asList(), noop))
+    assertThat(NoopAwareFinishedSpanHandler.create(Collections.emptyList(), noop))
       .isEqualTo(FinishedSpanHandler.NOOP);
   }
 
   @Test public void create_noopPassthrough() {
-    assertThat(NoopAwareFinishedSpanHandler.create(asList(FinishedSpanHandler.NOOP), noop))
+    assertThat(NoopAwareFinishedSpanHandler.create(Collections.singletonList(FinishedSpanHandler.NOOP), noop))
       .isEqualTo(FinishedSpanHandler.NOOP);
   }
 
   @Test public void create_single() {
-    FinishedSpanHandler handler = NoopAwareFinishedSpanHandler.create(asList(one), noop);
+    FinishedSpanHandler handler = NoopAwareFinishedSpanHandler.create(Collections.singletonList(one), noop);
 
     assertThat(handler)
       .isInstanceOf(NoopAwareFinishedSpanHandler.Single.class);
@@ -59,7 +63,7 @@ public class NoopAwareFinishedSpanHandlerTest {
   }
 
   @Test public void honorsNoop() {
-    FinishedSpanHandler handler = NoopAwareFinishedSpanHandler.create(asList(one), noop);
+    FinishedSpanHandler handler = NoopAwareFinishedSpanHandler.create(Collections.singletonList(one), noop);
 
     noop.set(true);
 
@@ -68,14 +72,14 @@ public class NoopAwareFinishedSpanHandlerTest {
   }
 
   @Test public void single_options() {
-    assertThat(NoopAwareFinishedSpanHandler.create(asList(one), noop))
+    assertThat(NoopAwareFinishedSpanHandler.create(Collections.singletonList(one), noop))
       .extracting(FinishedSpanHandler::alwaysSampleLocal, FinishedSpanHandler::supportsOrphans)
       .containsExactly(false, false);
 
     when(one.alwaysSampleLocal()).thenReturn(true);
     when(one.supportsOrphans()).thenReturn(true);
 
-    assertThat(NoopAwareFinishedSpanHandler.create(asList(one), noop))
+    assertThat(NoopAwareFinishedSpanHandler.create(Collections.singletonList(one), noop))
       .extracting(FinishedSpanHandler::alwaysSampleLocal, FinishedSpanHandler::supportsOrphans)
       .containsExactly(true, true);
   }
@@ -122,7 +126,7 @@ public class NoopAwareFinishedSpanHandlerTest {
   @Test public void doesntCrashOnNonFatalThrowable() {
     Throwable[] toThrow = new Throwable[1];
     FinishedSpanHandler handler =
-      NoopAwareFinishedSpanHandler.create(asList(new FinishedSpanHandler() {
+      NoopAwareFinishedSpanHandler.create(Collections.singletonList(new FinishedSpanHandler() {
         @Override public boolean handle(TraceContext context, MutableSpan span) {
           doThrowUnsafely(toThrow[0]);
           return true;
@@ -143,6 +147,7 @@ public class NoopAwareFinishedSpanHandlerTest {
       handler.handle(context, span);
       failBecauseExceptionWasNotThrown(StackOverflowError.class);
     } catch (StackOverflowError e) {
+		logger.error(e.getMessage(), e);
     }
   }
 

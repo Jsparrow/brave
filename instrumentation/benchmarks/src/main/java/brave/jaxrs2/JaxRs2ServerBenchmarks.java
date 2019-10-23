@@ -37,7 +37,34 @@ import static brave.servlet.ServletBenchmarks.addFilterMappings;
 
 public class JaxRs2ServerBenchmarks extends HttpServerBenchmarks {
 
-  @Produces("text/plain; charset=UTF-8")
+  PortExposing server;
+
+	@Override protected int initServer() {
+	    server = (PortExposing) new PortExposing()
+	      .deploy(App.class)
+	      .start(Undertow.builder().addHttpListener(8888, "127.0.0.1"));
+	    return server.getPort();
+	  }
+
+	@Override protected void init(DeploymentInfo servletBuilder) {
+	    addFilterMappings(servletBuilder);
+	  }
+
+	@TearDown(Level.Trial) @Override public void close() throws Exception {
+	    server.stop();
+	    super.close();
+	  }
+
+	// Convenience main entry-point
+	  public static void main(String[] args) throws RunnerException {
+	    Options opt = new OptionsBuilder()
+	      .include(new StringBuilder().append(".*").append(JaxRs2ServerBenchmarks.class.getSimpleName()).append(".*").toString())
+	      .build();
+	
+	    new Runner(opt).run();
+	  }
+
+@Produces("text/plain; charset=UTF-8")
   public static class Resource {
     @GET @Path("/nottraced")
     public String nottraced() {
@@ -74,36 +101,9 @@ public class JaxRs2ServerBenchmarks extends HttpServerBenchmarks {
     }
   }
 
-  PortExposing server;
-
-  @Override protected int initServer() {
-    server = (PortExposing) new PortExposing()
-      .deploy(App.class)
-      .start(Undertow.builder().addHttpListener(8888, "127.0.0.1"));
-    return server.getPort();
-  }
-
   static class PortExposing extends UndertowJaxrsServer {
     int getPort() {
       return ((InetSocketAddress) server.getListenerInfo().get(0).getAddress()).getPort();
     }
-  }
-
-  @Override protected void init(DeploymentInfo servletBuilder) {
-    addFilterMappings(servletBuilder);
-  }
-
-  @TearDown(Level.Trial) @Override public void close() throws Exception {
-    server.stop();
-    super.close();
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-      .include(".*" + JaxRs2ServerBenchmarks.class.getSimpleName() + ".*")
-      .build();
-
-    new Runner(opt).run();
   }
 }

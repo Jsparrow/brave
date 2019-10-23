@@ -45,7 +45,9 @@ public class MutableSpanTest {
       int orphans;
 
       @Override public boolean handle(TraceContext context, MutableSpan span) {
-        if (span.containsAnnotation("brave.flush")) orphans++;
+        if (span.containsAnnotation("brave.flush")) {
+			orphans++;
+		}
         return true;
       }
 
@@ -74,7 +76,8 @@ public class MutableSpanTest {
 
     // Similar to micrometer metrics tags
     class Tag {
-      final String name, value;
+      final String name;
+	final String value;
 
       Tag(String name, String value) {
         this.name = name;
@@ -82,7 +85,9 @@ public class MutableSpanTest {
       }
 
       @Override public boolean equals(Object o) {
-        if (!(o instanceof Tag)) return false;
+        if (!(o instanceof Tag)) {
+			return false;
+		}
         Tag that = (Tag) o;
         return name.equals(that.name) && value.equals(that.value);
       }
@@ -115,7 +120,9 @@ public class MutableSpanTest {
       Matcher matcher = CREDIT_CARD.matcher(value);
       if (matcher.find()) {
         String matched = matcher.group(0);
-        if (matched.equals(value)) return null;
+        if (matched.equals(value)) {
+			return null;
+		}
         return value.replace(matched, "xxxx-xxxx-xxxx-xxxx");
       }
       return value;
@@ -165,7 +172,9 @@ public class MutableSpanTest {
       Matcher matcher = CREDIT_CARD.matcher(value);
       if (matcher.find()) {
         String matched = matcher.group(0);
-        if (matched.equals(value)) return null;
+        if (matched.equals(value)) {
+			return null;
+		}
         return value.replace(matched, "xxxx-xxxx-xxxx-xxxx");
       }
       return value;

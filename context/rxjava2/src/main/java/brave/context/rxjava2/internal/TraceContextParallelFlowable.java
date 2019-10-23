@@ -39,7 +39,9 @@ final class TraceContextParallelFlowable<T> extends ParallelFlowable<T> {
    * any subscription callbacks.
    */
   @Override public void subscribe(Subscriber<? super T>[] s) {
-    if (!validate(s)) return;
+    if (!validate(s)) {
+		return;
+	}
     int n = s.length;
     @SuppressWarnings("unchecked")
     Subscriber<? super T>[] parents = new Subscriber[n];

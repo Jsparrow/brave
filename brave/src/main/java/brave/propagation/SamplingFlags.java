@@ -51,13 +51,19 @@ public class SamplingFlags {
     };
   }
 
-  final int flags; // bit field for sampled and debug
+// Internal: not meant to be used directly by end users
+  static final SamplingFlags
+    EMPTY_SAMPLED_LOCAL = new SamplingFlags(FLAG_SAMPLED_LOCAL);
+static final SamplingFlags NOT_SAMPLED_SAMPLED_LOCAL = new SamplingFlags(NOT_SAMPLED.flags | FLAG_SAMPLED_LOCAL);
+static final SamplingFlags SAMPLED_SAMPLED_LOCAL = new SamplingFlags(SAMPLED.flags | FLAG_SAMPLED_LOCAL);
+static final SamplingFlags DEBUG_SAMPLED_LOCAL = new SamplingFlags(DEBUG.flags | FLAG_SAMPLED_LOCAL);
+final int flags; // bit field for sampled and debug
 
-  SamplingFlags(int flags) {
+SamplingFlags(int flags) {
     this.flags = flags;
   }
 
-  /**
+/**
    * Sampled means send span data to Zipkin (or something else compatible with its data). It is a
    * consistent decision for an entire request (trace-scoped). For example, the value should not
    * move from true to false, even if the decision itself can be deferred.
@@ -82,7 +88,7 @@ public class SamplingFlags {
       : null;
   }
 
-  /**
+/**
    * True records this trace locally even if it is not {@link #sampled() sampled downstream}.
    * Defaults to false.
    *
@@ -97,7 +103,7 @@ public class SamplingFlags {
     return (flags & FLAG_SAMPLED_LOCAL) == FLAG_SAMPLED_LOCAL;
   }
 
-  /**
+/**
    * True implies {@link #sampled()}, and is additionally a request to override any storage or
    * collector layer sampling. Defaults to false.
    */
@@ -105,14 +111,47 @@ public class SamplingFlags {
     return debug(flags);
   }
 
-  @Override public String toString() {
-    return "SamplingFlags(sampled="
-      + sampled()
-      + ", sampledLocal="
-      + sampledLocal()
-      + ", debug="
-      + debug()
-      + ")";
+@Override public String toString() {
+    return new StringBuilder().append("SamplingFlags(sampled=").append(sampled()).append(", sampledLocal=").append(sampledLocal()).append(", debug=").append(debug())
+			.append(")").toString();
+  }
+
+static boolean debug(int flags) {
+    return (flags & FLAG_DEBUG) == FLAG_DEBUG;
+  }
+
+static int debug(boolean debug, int flags) {
+    if (debug) {
+      flags |= FLAG_DEBUG | FLAG_SAMPLED_SET | FLAG_SAMPLED;
+    } else {
+      flags &= ~FLAG_DEBUG;
+    }
+    return flags;
+  }
+
+/** This ensures constants are always used, in order to reduce allocation overhead */
+  static SamplingFlags toSamplingFlags(int flags) {
+    switch (flags) {
+      case 0:
+        return EMPTY;
+      case FLAG_SAMPLED_SET:
+        return NOT_SAMPLED;
+      case FLAG_SAMPLED_SET | FLAG_SAMPLED:
+        return SAMPLED;
+      case FLAG_SAMPLED_SET | FLAG_SAMPLED | FLAG_DEBUG:
+        return DEBUG;
+      case FLAG_SAMPLED_LOCAL:
+        return EMPTY_SAMPLED_LOCAL;
+      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET:
+        return NOT_SAMPLED_SAMPLED_LOCAL;
+      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET | FLAG_SAMPLED:
+        return SAMPLED_SAMPLED_LOCAL;
+      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET | FLAG_SAMPLED | FLAG_DEBUG:
+        return DEBUG_SAMPLED_LOCAL;
+      default:
+        assert false; // programming error, but build anyway
+        return new SamplingFlags(flags);
+    }
   }
 
   /** @deprecated prefer using constants. This will be removed in Brave v6 */
@@ -146,57 +185,14 @@ public class SamplingFlags {
 
     /** Allows you to create flags from a boolean value without allocating a builder instance */
     public static SamplingFlags build(@Nullable Boolean sampled) {
-      if (sampled != null) return sampled ? SAMPLED : NOT_SAMPLED;
+      if (sampled != null) {
+		return sampled ? SAMPLED : NOT_SAMPLED;
+	}
       return EMPTY;
     }
 
     public SamplingFlags build() {
       return toSamplingFlags(flags);
-    }
-  }
-
-  static boolean debug(int flags) {
-    return (flags & FLAG_DEBUG) == FLAG_DEBUG;
-  }
-
-  static int debug(boolean debug, int flags) {
-    if (debug) {
-      flags |= FLAG_DEBUG | FLAG_SAMPLED_SET | FLAG_SAMPLED;
-    } else {
-      flags &= ~FLAG_DEBUG;
-    }
-    return flags;
-  }
-
-  // Internal: not meant to be used directly by end users
-  static final SamplingFlags
-    EMPTY_SAMPLED_LOCAL = new SamplingFlags(FLAG_SAMPLED_LOCAL),
-    NOT_SAMPLED_SAMPLED_LOCAL = new SamplingFlags(NOT_SAMPLED.flags | FLAG_SAMPLED_LOCAL),
-    SAMPLED_SAMPLED_LOCAL = new SamplingFlags(SAMPLED.flags | FLAG_SAMPLED_LOCAL),
-    DEBUG_SAMPLED_LOCAL = new SamplingFlags(DEBUG.flags | FLAG_SAMPLED_LOCAL);
-
-  /** This ensures constants are always used, in order to reduce allocation overhead */
-  static SamplingFlags toSamplingFlags(int flags) {
-    switch (flags) {
-      case 0:
-        return EMPTY;
-      case FLAG_SAMPLED_SET:
-        return NOT_SAMPLED;
-      case FLAG_SAMPLED_SET | FLAG_SAMPLED:
-        return SAMPLED;
-      case FLAG_SAMPLED_SET | FLAG_SAMPLED | FLAG_DEBUG:
-        return DEBUG;
-      case FLAG_SAMPLED_LOCAL:
-        return EMPTY_SAMPLED_LOCAL;
-      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET:
-        return NOT_SAMPLED_SAMPLED_LOCAL;
-      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET | FLAG_SAMPLED:
-        return SAMPLED_SAMPLED_LOCAL;
-      case FLAG_SAMPLED_LOCAL | FLAG_SAMPLED_SET | FLAG_SAMPLED | FLAG_DEBUG:
-        return DEBUG_SAMPLED_LOCAL;
-      default:
-        assert false; // programming error, but build anyway
-        return new SamplingFlags(flags);
     }
   }
 }

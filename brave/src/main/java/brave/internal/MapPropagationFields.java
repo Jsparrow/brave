@@ -33,7 +33,9 @@ public class MapPropagationFields<K, V> extends PropagationFields<K, V> {
   }
 
   protected MapPropagationFields(Map<K, V> parent) {
-    if (parent == null) throw new NullPointerException("parent == null");
+    if (parent == null) {
+		throw new NullPointerException("parent == null");
+	}
     this.values = Collections.unmodifiableMap(parent);
   }
 
@@ -49,11 +51,15 @@ public class MapPropagationFields<K, V> extends PropagationFields<K, V> {
   @Override public void forEach(FieldConsumer<K, V> fieldConsumer) {
     synchronized (this) {
       Map<K, V> values = this.values;
-      if (values == null) return;
+      if (values == null) {
+		return;
+	}
 
       for (Map.Entry<K, V> entry : values.entrySet()) {
         V value = entry.getValue();
-        if (value == null) continue;
+        if (value == null) {
+			continue;
+		}
         fieldConsumer.accept(entry.getKey(), value);
       }
     }
@@ -82,10 +88,14 @@ public class MapPropagationFields<K, V> extends PropagationFields<K, V> {
   }
 
   @Override protected final void putAllIfAbsent(PropagationFields parent) {
-    if (!(parent instanceof MapPropagationFields)) return;
+    if (!(parent instanceof MapPropagationFields)) {
+		return;
+	}
     MapPropagationFields<K, V> mapParent = (MapPropagationFields<K, V>) parent;
     Map<K, V> parentValues = mapParent.values;
-    if (parentValues == null) return;
+    if (parentValues == null) {
+		return;
+	}
 
     synchronized (this) {
       if (values == null) {
@@ -95,14 +105,19 @@ public class MapPropagationFields<K, V> extends PropagationFields<K, V> {
     }
 
     for (Map.Entry<K, V> entry : parentValues.entrySet()) {
-      if (values.containsKey(entry.getKey())) continue; // previous wins vs parent
+      if (values.containsKey(entry.getKey()))
+	 {
+		continue; // previous wins vs parent
+	}
       put(entry.getKey(), entry.getValue());
     }
   }
 
   @Override public final Map<K, V> toMap() {
     Map<K, V> values = this.values;
-    if (values == null) return Collections.emptyMap();
+    if (values == null) {
+		return Collections.emptyMap();
+	}
     return values;
   }
 
@@ -112,10 +127,15 @@ public class MapPropagationFields<K, V> extends PropagationFields<K, V> {
   }
 
   @Override public boolean equals(Object o) { // for unit tests
-    if (o == this) return true;
-    if (!(o instanceof MapPropagationFields)) return false;
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof MapPropagationFields)) {
+		return false;
+	}
     MapPropagationFields<K, V> that = (MapPropagationFields) o;
-    Map<K, V> values = this.values, thatValues = that.values;
+    Map<K, V> values = this.values;
+	Map<K, V> thatValues = that.values;
     return values == null ? thatValues == null : values.equals(thatValues);
   }
 }

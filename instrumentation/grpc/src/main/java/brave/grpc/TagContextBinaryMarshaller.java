@@ -27,7 +27,8 @@ import java.util.Map;
  * https://github.com/census-instrumentation/opencensus-java/blob/master/impl_core/src/main/java/io/opencensus/implcore/tags/propagation/SerializationUtils.java
  */
 final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, String>> {
-  static final byte VERSION = 0, TAG_FIELD_ID = 0;
+  static final byte VERSION = 0;
+static final byte TAG_FIELD_ID = 0;
   static final byte[] EMPTY_BYTES = {};
 
   // grpc < 1.15 supports java 6 https://github.com/grpc/grpc-java/issues/3961
@@ -38,21 +39,28 @@ final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, S
     if (tagContext == null) {
       throw new NullPointerException("tagContext == null"); // programming error
     }
-    if (tagContext.isEmpty()) return EMPTY_BYTES;
+    if (tagContext.isEmpty()) {
+		return EMPTY_BYTES;
+	}
     byte[] result = new byte[sizeInBytes(tagContext)];
     Buffer bytes = new Buffer(result);
     bytes.writeByte(VERSION);
-    for (Map.Entry<String, String> entry : tagContext.entrySet()) {
+    tagContext.entrySet().forEach(entry -> {
       bytes.writeByte(TAG_FIELD_ID);
       bytes.writeLengthPrefixed(entry.getKey()); // TODO: should we check the result here?
       bytes.writeLengthPrefixed(entry.getValue());
-    }
+    });
     return result;
   }
 
   @Override public Map<String, String> parseBytes(byte[] buf) {
-    if (buf == null) throw new NullPointerException("buf == null"); // programming error
-    if (buf.length == 0) return Collections.emptyMap();
+    if (buf == null)
+	 {
+		throw new NullPointerException("buf == null"); // programming error
+	}
+    if (buf.length == 0) {
+		return Collections.emptyMap();
+	}
     Buffer bytes = new Buffer(buf);
     byte version = bytes.readByte();
     if (version != VERSION) {
@@ -64,9 +72,13 @@ final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, S
     while (bytes.remaining() > 3) { // tag for field ID and two lengths
       if (bytes.readByte() == TAG_FIELD_ID) {
         String key = bytes.readLengthPrefixed();
-        if (key == null) break;
+        if (key == null) {
+			break;
+		}
         String val = bytes.readLengthPrefixed();
-        if (val == null) break;
+        if (val == null) {
+			break;
+		}
         result.put(key, val);
       } else {
         Platform.get().log("Invalid input: expected TAG_FIELD_ID at offset {0}", bytes.pos, null);
@@ -83,7 +95,10 @@ final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, S
       sizeInBytes++; // TAG_FIELD_ID
       int keyLength = entry.getKey().length();
       int valLength = entry.getValue().length();
-      if (keyLength > 16383 || valLength > 16383) return sizeInBytes; // stop here
+      if (keyLength > 16383 || valLength > 16383)
+	 {
+		return sizeInBytes; // stop here
+	}
       sizeInBytes += sizeOfLengthPrefixedString(keyLength);
       sizeInBytes += sizeOfLengthPrefixedString(valLength);
     }
@@ -118,7 +133,10 @@ final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, S
     /** Works only when values are ascii */
     boolean writeLengthPrefixed(String value) {
       int length = value.length();
-      if (length > 16383) return false; // > 14bits is too big
+      if (length > 16383)
+	 {
+		return false; // > 14bits is too big
+	}
 
       if (length > 127) { // varint encode over 2 bytes
         buf[pos++] = (byte) ((length & 0x7f) | 0x80);
@@ -144,15 +162,17 @@ final class TagContextBinaryMarshaller implements BinaryMarshaller<Map<String, S
 
     private int readVarint(byte b1) {
       int b2 = buf[pos++];
-      if ((b2 & 0xf0) != 0) {
-        Platform.get().log("Greater than 14-bit varint at position {0}", pos, null);
-        return -1;
-      }
-      return (b1 & 0x7f) | b2 << 28;
+      if (!((b2 & 0xf0) != 0)) {
+		return (b1 & 0x7f) | b2 << 28;
+	}
+	Platform.get().log("Greater than 14-bit varint at position {0}", pos, null);
+	return -1;
     }
 
     String readAsciiString(int length) {
-      if (length == -1 || remaining() < length) return null;
+      if (length == -1 || remaining() < length) {
+		return null;
+	}
 
       String result = new String(buf, pos, length, US_ASCII);
       pos += length;

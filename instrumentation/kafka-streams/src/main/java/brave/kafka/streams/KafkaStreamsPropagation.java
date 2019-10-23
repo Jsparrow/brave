@@ -23,7 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 final class KafkaStreamsPropagation {
   static final Getter<Headers, String> GETTER = (carrier, key) -> {
     Header header = carrier.lastHeader(key);
-    if (header == null) return null;
+    if (header == null) {
+		return null;
+	}
     return new String(header.value(), UTF_8);
   };
 

@@ -45,14 +45,6 @@ public abstract class BaseITSpanCustomizingHandlerInterceptor extends ITServletC
       .isEqualTo("foo");
   }
 
-  @Configuration
-  @EnableWebMvc
-  static class TracingConfig extends WebMvcConfigurerAdapter {
-    @Override public void addInterceptors(InterceptorRegistry registry) {
-      registry.addInterceptor(new SpanCustomizingHandlerInterceptor());
-    }
-  }
-
   @Override public void init(ServletContextHandler handler) {
     AnnotationConfigWebApplicationContext appContext =
       new AnnotationConfigWebApplicationContext() {
@@ -76,8 +68,16 @@ public abstract class BaseITSpanCustomizingHandlerInterceptor extends ITServletC
     addDelegatingTracingFilter(handler);
   }
 
-  protected abstract void registerTestController(AnnotationConfigWebApplicationContext appContext);
+protected abstract void registerTestController(AnnotationConfigWebApplicationContext appContext);
 
-  // abstract because filter registration types were not introduced until servlet 3.0
+// abstract because filter registration types were not introduced until servlet 3.0
   protected abstract void addDelegatingTracingFilter(ServletContextHandler handler);
+
+@Configuration
+  @EnableWebMvc
+  static class TracingConfig extends WebMvcConfigurerAdapter {
+    @Override public void addInterceptors(InterceptorRegistry registry) {
+      registry.addInterceptor(new SpanCustomizingHandlerInterceptor());
+    }
+  }
 }

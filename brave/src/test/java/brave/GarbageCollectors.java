@@ -21,19 +21,19 @@ import java.lang.ref.WeakReference;
  */
 public final class GarbageCollectors {
 
-  /**
-   * Runs the garbage collector and waits until all of the provided {@link WeakReference} are
-   * cleared, indicating the referenced objects have been collected.
-   */
-  public static void blockOnGC() {
-    System.gc();
-    try {
-      Thread.sleep(200);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new AssertionError(e);
-    }
-  }
-
   private GarbageCollectors() {}
+
+	/**
+	   * Runs the garbage collector and waits until all of the provided {@link WeakReference} are
+	   * cleared, indicating the referenced objects have been collected.
+	   */
+	  public static void blockOnGC() {
+	    System.gc();
+	    try {
+	      Thread.sleep(200);
+	    } catch (InterruptedException e) {
+	      Thread.currentThread().interrupt();
+	      throw new AssertionError(e);
+	    }
+	  }
 }

@@ -46,7 +46,8 @@ import zipkin2.reporter.Reporter;
 @State(Scope.Thread)
 public class JmsMessageProducerBenchmarks {
   ActiveMQTextMessage message = new ActiveMQTextMessage();
-  MessageProducer producer, tracingProducer;
+  MessageProducer producer;
+MessageProducer tracingProducer;
 
   @Setup(Level.Trial) public void init() throws MessageNotWriteableException {
     Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build();

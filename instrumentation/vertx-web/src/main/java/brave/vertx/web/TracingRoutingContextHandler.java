@@ -72,7 +72,9 @@ final class TracingRoutingContextHandler implements Handler<RoutingContext> {
     }
 
     @Override public void handle(Void aVoid) {
-      if (!finished.compareAndSet(false, true)) return;
+      if (!finished.compareAndSet(false, true)) {
+		return;
+	}
       handler.handleSend(new HttpServerResponse(context), context.failure(), span);
     }
   }
@@ -112,7 +114,8 @@ final class TracingRoutingContextHandler implements Handler<RoutingContext> {
 
   static final class HttpServerResponse extends brave.http.HttpServerResponse {
     final io.vertx.core.http.HttpServerResponse delegate;
-    final String method, httpRoute;
+    final String method;
+	final String httpRoute;
 
     HttpServerResponse(RoutingContext context) {
       this.delegate = context.response();

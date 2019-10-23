@@ -37,7 +37,9 @@ final class GrpcClientRequest extends RpcClientRequest {
   @Nullable volatile Metadata metadata; // nullable due to lifecycle of gRPC request
 
   GrpcClientRequest(MethodDescriptor<?, ?> methodDescriptor) {
-    if (methodDescriptor == null) throw new NullPointerException("methodDescriptor == null");
+    if (methodDescriptor == null) {
+		throw new NullPointerException("methodDescriptor == null");
+	}
     this.fullMethodName = methodDescriptor.getFullMethodName();
   }
 

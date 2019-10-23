@@ -53,7 +53,7 @@ public class JaxRs2ClientBenchmarks extends HttpClientBenchmarks<Client> {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + JaxRs2ClientBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(JaxRs2ClientBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

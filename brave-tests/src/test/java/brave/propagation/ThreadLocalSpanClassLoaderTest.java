@@ -25,14 +25,26 @@ public class ThreadLocalSpanClassLoaderTest {
     assertRunIsUnloadable(CurrentTracerUnassigned.class, getClass().getClassLoader());
   }
 
-  static class CurrentTracerUnassigned implements Runnable {
+  @Test public void currentTracer_basicUsage_unloadable() {
+    assertRunIsUnloadable(ExplicitTracerBasicUsage.class, getClass().getClassLoader());
+  }
+
+@Test public void explicitTracer_basicUsage_unloadable() {
+    assertRunIsUnloadable(CurrentTracerBasicUsage.class, getClass().getClassLoader());
+  }
+
+/**
+   * TODO: While it is an instrumentation bug to not complete a thread-local span, we should be
+   * tolerant, for example considering weak references or similar.
+   */
+  @Test(expected = AssertionError.class) public void unfinishedSpan_preventsUnloading() {
+    assertRunIsUnloadable(CurrentTracerDoesntFinishSpan.class, getClass().getClassLoader());
+  }
+
+static class CurrentTracerUnassigned implements Runnable {
     @Override public void run() {
       ThreadLocalSpan.CURRENT_TRACER.next();
     }
-  }
-
-  @Test public void currentTracer_basicUsage_unloadable() {
-    assertRunIsUnloadable(ExplicitTracerBasicUsage.class, getClass().getClassLoader());
   }
 
   static class ExplicitTracerBasicUsage implements Runnable {
@@ -46,10 +58,6 @@ public class ThreadLocalSpanClassLoaderTest {
     }
   }
 
-  @Test public void explicitTracer_basicUsage_unloadable() {
-    assertRunIsUnloadable(CurrentTracerBasicUsage.class, getClass().getClassLoader());
-  }
-
   static class CurrentTracerBasicUsage implements Runnable {
     @Override public void run() {
       try (Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build()) {
@@ -59,14 +67,6 @@ public class ThreadLocalSpanClassLoaderTest {
         tlSpan.remove().finish();
       }
     }
-  }
-
-  /**
-   * TODO: While it is an instrumentation bug to not complete a thread-local span, we should be
-   * tolerant, for example considering weak references or similar.
-   */
-  @Test(expected = AssertionError.class) public void unfinishedSpan_preventsUnloading() {
-    assertRunIsUnloadable(CurrentTracerDoesntFinishSpan.class, getClass().getClassLoader());
   }
 
   static class CurrentTracerDoesntFinishSpan implements Runnable {

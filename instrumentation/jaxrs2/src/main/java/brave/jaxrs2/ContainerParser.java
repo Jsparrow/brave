@@ -37,7 +37,10 @@ public class ContainerParser {
   /** Method name that processed the request. ex listOfBooks */
   public static final String RESOURCE_METHOD = "jaxrs.resource.method";
 
-  /**
+  public ContainerParser() { // intentionally public for @Inject to work without explicit binding
+  }
+
+/**
    * Invoked prior to request invocation during {@link ContainerRequestFilter#filter(ContainerRequestContext)}
    * where the resource info was injected from context.
    *
@@ -48,8 +51,5 @@ public class ContainerParser {
   protected void resourceInfo(ResourceInfo resourceInfo, SpanCustomizer customizer) {
     customizer.tag(RESOURCE_CLASS, resourceInfo.getResourceClass().getSimpleName());
     customizer.tag(RESOURCE_METHOD, resourceInfo.getResourceMethod().getName());
-  }
-
-  public ContainerParser() { // intentionally public for @Inject to work without explicit binding
   }
 }

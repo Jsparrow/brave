@@ -24,22 +24,22 @@ import org.springframework.http.client.AsyncClientHttpRequestInterceptor;
 
 public class TracingAsyncClientHttpRequestInterceptorAutowireTest {
 
-  @Configuration static class HttpTracingConfiguration {
+  @After public void close() {
+	    Tracing.current().close();
+	  }
+
+	@Test public void autowiredWithBeanConfig() {
+	    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
+	    ctx.register(HttpTracingConfiguration.class);
+	    ctx.register(TracingAsyncClientHttpRequestInterceptor.class);
+	    ctx.refresh();
+	
+	    ctx.getBean(AsyncClientHttpRequestInterceptor.class);
+	  }
+
+@Configuration static class HttpTracingConfiguration {
     @Bean HttpTracing httpTracing() {
       return HttpTracing.create(Tracing.newBuilder().build());
     }
-  }
-
-  @After public void close() {
-    Tracing.current().close();
-  }
-
-  @Test public void autowiredWithBeanConfig() {
-    AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
-    ctx.register(HttpTracingConfiguration.class);
-    ctx.register(TracingAsyncClientHttpRequestInterceptor.class);
-    ctx.refresh();
-
-    ctx.getBean(AsyncClientHttpRequestInterceptor.class);
   }
 }

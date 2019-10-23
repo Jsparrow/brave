@@ -65,7 +65,9 @@ final class TracingMessagePostProcessor implements MessagePostProcessor {
 
     if (!span.isNoop()) {
       span.kind(Span.Kind.PRODUCER).name("publish");
-      if (remoteServiceName != null) span.remoteServiceName(remoteServiceName);
+      if (remoteServiceName != null) {
+		span.remoteServiceName(remoteServiceName);
+	}
       // incur timestamp overhead only once
       long timestamp = tracing.clock(span.context()).currentTimeMicroseconds();
       span.start(timestamp).finish(timestamp);

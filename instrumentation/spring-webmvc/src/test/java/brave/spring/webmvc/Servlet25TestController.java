@@ -66,7 +66,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
   @RequestMapping(value = "/items/{itemId}")
   public ResponseEntity<String> items(@PathVariable("itemId") String itemId) {
-    return new ResponseEntity<String>(itemId, HttpStatus.OK);
+    return new ResponseEntity<>(itemId, HttpStatus.OK);
   }
 
   @Controller
@@ -74,7 +74,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
   static class NestedController {
     @RequestMapping(value = "/items/{itemId}")
     public ResponseEntity<String> items(@PathVariable("itemId") String itemId) {
-      return new ResponseEntity<String>(itemId, HttpStatus.OK);
+      return new ResponseEntity<>(itemId, HttpStatus.OK);
     }
   }
 }

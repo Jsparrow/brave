@@ -36,81 +36,87 @@ import java.util.Map;
 import java.util.Set;
 
 final class BraveTracer implements Tracer {
-  static BraveTracer wrap(brave.Tracing tracing) {
-    if (tracing == null) throw new NullPointerException("tracing == null");
-    return new BraveTracer(tracing);
-  }
-
-  final Tracing tracing;
-  final brave.Tracer tracer;
-  final TraceContext.Injector<TextMap> injector;
-  final TraceContext.Extractor<TextMap> extractor;
-
-  BraveTracer(brave.Tracing tracing) {
-    this.tracing = tracing;
-    tracer = tracing.tracer();
-    injector = tracing.propagation().injector(TEXT_MAP_SETTER);
-    extractor = new TextMapExtractorAdaptor(tracing.propagation());
-  }
-
-  @Override public ScopeManager scopeManager() {
-    return null; // out-of-scope for a simple example
-  }
-
-  @Override public Span activeSpan() {
-    return null; // out-of-scope for a simple example
-  }
-
-  @Override public Scope activateSpan(Span span) {
-    return null; // out-of-scope for a simple example
-  }
-
-  @Override public BraveSpanBuilder buildSpan(String operationName) {
-    return new BraveSpanBuilder(tracer, operationName);
-  }
-
-  @Override public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
-    if (format != Format.Builtin.HTTP_HEADERS) {
-      throw new UnsupportedOperationException(format + " != Format.Builtin.HTTP_HEADERS");
-    }
-    TraceContext traceContext = ((BraveSpanContext) spanContext).context;
-    injector.inject(traceContext, (TextMap) carrier);
-  }
-
-  @Override public <C> BraveSpanContext extract(Format<C> format, C carrier) {
-    if (format != Format.Builtin.HTTP_HEADERS) {
-      throw new UnsupportedOperationException(format.toString());
-    }
-    TraceContextOrSamplingFlags extractionResult = extractor.extract((TextMap) carrier);
-    return BraveSpanContext.create(extractionResult);
-  }
-
-  @Override public void close() {
-    tracing.close();
-  }
-
   static final Setter<TextMap, String> TEXT_MAP_SETTER = new Setter<TextMap, String>() {
-    @Override public void put(TextMap carrier, String key, String value) {
-      carrier.put(key, value);
-    }
+	    @Override public void put(TextMap carrier, String key, String value) {
+	      carrier.put(key, value);
+	    }
+	
+	    @Override public String toString() {
+	      return "TextMap::put";
+	    }
+	  };
+	static final Getter<Map<String, String>, String> LC_MAP_GETTER =
+	    new Getter<Map<String, String>, String>() {
+	      @Override public String get(Map<String, String> carrier, String key) {
+	        return carrier.get(key.toLowerCase(Locale.ROOT));
+	      }
+	
+	      @Override public String toString() {
+	        return "Map::getLowerCase";
+	      }
+	    };
+	final Tracing tracing;
+	final brave.Tracer tracer;
+	final TraceContext.Injector<TextMap> injector;
+	final TraceContext.Extractor<TextMap> extractor;
 
-    @Override public String toString() {
-      return "TextMap::put";
-    }
-  };
+	BraveTracer(brave.Tracing tracing) {
+	    this.tracing = tracing;
+	    tracer = tracing.tracer();
+	    injector = tracing.propagation().injector(TEXT_MAP_SETTER);
+	    extractor = new TextMapExtractorAdaptor(tracing.propagation());
+	  }
 
-  static final Getter<Map<String, String>, String> LC_MAP_GETTER =
-    new Getter<Map<String, String>, String>() {
-      @Override public String get(Map<String, String> carrier, String key) {
-        return carrier.get(key.toLowerCase(Locale.ROOT));
-      }
+	static BraveTracer wrap(brave.Tracing tracing) {
+	    if (tracing == null) {
+			throw new NullPointerException("tracing == null");
+		}
+	    return new BraveTracer(tracing);
+	  }
 
-      @Override public String toString() {
-        return "Map::getLowerCase";
-      }
-    };
+	@Override public ScopeManager scopeManager() {
+	    return null; // out-of-scope for a simple example
+	  }
 
-  /**
+	@Override public Span activeSpan() {
+	    return null; // out-of-scope for a simple example
+	  }
+
+	@Override public Scope activateSpan(Span span) {
+	    return null; // out-of-scope for a simple example
+	  }
+
+	@Override public BraveSpanBuilder buildSpan(String operationName) {
+	    return new BraveSpanBuilder(tracer, operationName);
+	  }
+
+	@Override public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
+	    if (format != Format.Builtin.HTTP_HEADERS) {
+	      throw new UnsupportedOperationException(format + " != Format.Builtin.HTTP_HEADERS");
+	    }
+	    TraceContext traceContext = ((BraveSpanContext) spanContext).context;
+	    injector.inject(traceContext, (TextMap) carrier);
+	  }
+
+	@Override public <C> BraveSpanContext extract(Format<C> format, C carrier) {
+	    if (format != Format.Builtin.HTTP_HEADERS) {
+	      throw new UnsupportedOperationException(format.toString());
+	    }
+	    TraceContextOrSamplingFlags extractionResult = extractor.extract((TextMap) carrier);
+	    return BraveSpanContext.create(extractionResult);
+	  }
+
+	@Override public void close() {
+	    tracing.close();
+	  }
+
+	static Set<String> lowercaseSet(List<String> fields) {
+	    Set<String> lcSet = new LinkedHashSet<>();
+	    fields.forEach(f -> lcSet.add(f.toLowerCase(Locale.ROOT)));
+	    return lcSet;
+	  }
+
+/**
    * Eventhough TextMap is named like Map, it doesn't have a retrieve-by-key method.
    *
    * <p>See https://github.com/opentracing/opentracing-java/issues/305
@@ -139,13 +145,5 @@ final class BraveTracer implements Tracer {
       }
       return delegate.extract(cache);
     }
-  }
-
-  static Set<String> lowercaseSet(List<String> fields) {
-    Set<String> lcSet = new LinkedHashSet<>();
-    for (String f : fields) {
-      lcSet.add(f.toLowerCase(Locale.ROOT));
-    }
-    return lcSet;
   }
 }

@@ -32,9 +32,13 @@ public final class MutableSpanConverter {
 
   public MutableSpanConverter(ErrorParser errorParser, String localServiceName, String localIp,
     int localPort) {
-    if (errorParser == null) throw new NullPointerException("errorParser == null");
+    if (errorParser == null) {
+		throw new NullPointerException("errorParser == null");
+	}
     this.errorParser = errorParser;
-    if (localServiceName == null) throw new NullPointerException("localServiceName == null");
+    if (localServiceName == null) {
+		throw new NullPointerException("localServiceName == null");
+	}
     this.localServiceName = localServiceName;
     this.localIp = localIp;
     this.localPort = localPort;
@@ -45,9 +49,12 @@ public final class MutableSpanConverter {
   void convert(MutableSpan span, Span.Builder result) {
     result.name(span.name());
 
-    long start = span.startTimestamp(), finish = span.finishTimestamp();
+    long start = span.startTimestamp();
+	long finish = span.finishTimestamp();
     result.timestamp(start);
-    if (start != 0 && finish != 0L) result.duration(Math.max(finish - start, 1));
+    if (start != 0 && finish != 0L) {
+		result.duration(Math.max(finish - start, 1));
+	}
 
     // use ordinal comparison to defend against version skew
     brave.Span.Kind kind = span.kind();
@@ -56,7 +63,8 @@ public final class MutableSpanConverter {
     }
 
     addLocalEndpoint(span.localServiceName(), span.localIp(), span.localPort(), result);
-    String remoteServiceName = span.remoteServiceName(), remoteIp = span.remoteIp();
+    String remoteServiceName = span.remoteServiceName();
+	String remoteIp = span.remoteIp();
     if (remoteServiceName != null || remoteIp != null) {
       result.remoteEndpoint(zipkin2.Endpoint.newBuilder()
         .serviceName(remoteServiceName)
@@ -72,14 +80,22 @@ public final class MutableSpanConverter {
 
     span.forEachTag(Consumer.INSTANCE, result);
     span.forEachAnnotation(Consumer.INSTANCE, result);
-    if (span.shared()) result.shared(true);
+    if (span.shared()) {
+		result.shared(true);
+	}
   }
 
   // avoid re-allocating an endpoint when we have the same data
   void addLocalEndpoint(String serviceName, @Nullable String ip, int port, Span.Builder span) {
-    if (serviceName == null) serviceName = localServiceName;
-    if (ip == null) ip = localIp;
-    if (port <= 0) port = localPort;
+    if (serviceName == null) {
+		serviceName = localServiceName;
+	}
+    if (ip == null) {
+		ip = localIp;
+	}
+    if (port <= 0) {
+		port = localPort;
+	}
     if (localServiceName.equals(serviceName)
       && (localIp == null ? ip == null : localIp.equals(ip))
       && localPort == port) {

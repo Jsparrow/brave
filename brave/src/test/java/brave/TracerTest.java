@@ -45,6 +45,7 @@ import static brave.sampler.SamplerFunctions.neverSample;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import java.util.Collections;
 
 public class TracerTest {
   List<zipkin2.Span> spans = new ArrayList<>();
@@ -504,7 +505,7 @@ public class TracerTest {
 
   @Test public void nextSpan_extractedExtra_appendsToChildOfCurrent() {
     // current parent already has extra stuff
-    Span parent = tracer.toSpan(tracer.newTrace().context().toBuilder().extra(asList(1L)).build());
+    Span parent = tracer.toSpan(tracer.newTrace().context().toBuilder().extra(Collections.singletonList(1L)).build());
 
     TraceContextOrSamplingFlags extracted =
       TraceContextOrSamplingFlags.create(SamplingFlags.EMPTY).toBuilder().addExtra(1F).build();
@@ -949,57 +950,57 @@ public class TracerTest {
   @Test public void localRootId_nextSpan_notYetSampled() {
     TraceContext context1 = TraceContext.newBuilder().traceId(1).spanId(2).build();
     TraceContext context2 = TraceContext.newBuilder().traceId(1).spanId(3).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_notSampled() {
     TraceContext context1 = TraceContext.newBuilder().traceId(1).spanId(2).sampled(false).build();
     TraceContext context2 = TraceContext.newBuilder().traceId(1).spanId(3).sampled(false).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_sampled() {
     TraceContext context1 = TraceContext.newBuilder().traceId(1).spanId(2).sampled(true).build();
     TraceContext context2 = TraceContext.newBuilder().traceId(1).spanId(3).sampled(true).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_ids_notYetSampled() {
     TraceIdContext context1 = TraceIdContext.newBuilder().traceId(1).build();
     TraceIdContext context2 = TraceIdContext.newBuilder().traceId(2).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_ids_notSampled() {
     TraceIdContext context1 = TraceIdContext.newBuilder().traceId(1).sampled(false).build();
     TraceIdContext context2 = TraceIdContext.newBuilder().traceId(2).sampled(false).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_ids_sampled() {
     TraceIdContext context1 = TraceIdContext.newBuilder().traceId(1).sampled(true).build();
     TraceIdContext context2 = TraceIdContext.newBuilder().traceId(2).sampled(true).build();
-    localRootId(context1, context2, ctx -> tracer.nextSpan(ctx));
+    localRootId(context1, context2, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_flags_empty() {
     TraceContextOrSamplingFlags flags = TraceContextOrSamplingFlags.EMPTY;
-    localRootId(flags, flags, ctx -> tracer.nextSpan(ctx));
+    localRootId(flags, flags, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_flags_notSampled() {
     TraceContextOrSamplingFlags flags = TraceContextOrSamplingFlags.NOT_SAMPLED;
-    localRootId(flags, flags, ctx -> tracer.nextSpan(ctx));
+    localRootId(flags, flags, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_flags_sampled() {
     TraceContextOrSamplingFlags flags = TraceContextOrSamplingFlags.SAMPLED;
-    localRootId(flags, flags, ctx -> tracer.nextSpan(ctx));
+    localRootId(flags, flags, tracer::nextSpan);
   }
 
   @Test public void localRootId_nextSpan_flags_debug() {
     TraceContextOrSamplingFlags flags = TraceContextOrSamplingFlags.DEBUG;
-    localRootId(flags, flags, ctx -> tracer.nextSpan(ctx));
+    localRootId(flags, flags, tracer::nextSpan);
   }
 
   void localRootId(TraceContext c1, TraceContext c2,

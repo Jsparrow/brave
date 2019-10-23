@@ -72,18 +72,24 @@ public abstract class CorrelationFieldScopeDecorator implements ScopeDecorator {
     @Nullable String previousSampled
   ) {
     String traceId = currentSpan.traceIdString();
-    if (!traceId.equals(previousTraceId)) put("traceId", currentSpan.traceIdString());
+    if (!traceId.equals(previousTraceId)) {
+		put("traceId", currentSpan.traceIdString());
+	}
 
     String parentId = currentSpan.parentIdString();
     if (parentId == null) {
       remove("parentId");
     } else {
       boolean sameParentId = parentId.equals(previousParentId);
-      if (!sameParentId) put("parentId", parentId);
+      if (!sameParentId) {
+		put("parentId", parentId);
+	}
     }
 
     String spanId = currentSpan.spanIdString();
-    if (!spanId.equals(previousSpanId)) put("spanId", spanId);
+    if (!spanId.equals(previousSpanId)) {
+		put("spanId", spanId);
+	}
 
     Boolean sampled = currentSpan.sampled();
     if (sampled == null) {
@@ -91,7 +97,9 @@ public abstract class CorrelationFieldScopeDecorator implements ScopeDecorator {
     } else {
       String sampledString = sampled.toString();
       boolean sameSampled = sampledString.equals(previousSampled);
-      if (!sameSampled) put("sampled", sampledString);
+      if (!sameSampled) {
+		put("sampled", sampledString);
+	}
     }
   }
 

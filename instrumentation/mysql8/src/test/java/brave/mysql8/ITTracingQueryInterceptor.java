@@ -40,27 +40,26 @@ import static org.junit.Assume.assumeTrue;
 public class ITTracingQueryInterceptor {
   static final String QUERY = "select 'hello world'";
   static final String ERROR_QUERY = "select unknown_field FROM unknown_table";
+@Parameterized.Parameter
+  public boolean exceptionsTraced;
+/** JDBC is synchronous and we aren't using thread pools: everything happens on the main thread */
+  ArrayList<Span> spans = new ArrayList<>();
+Tracing tracing = tracingBuilder(Sampler.ALWAYS_SAMPLE).build();
+Connection connection;
 
-  @Parameterized.Parameters(name = "exceptions traced: {0}")
+@Parameterized.Parameters(name = "exceptions traced: {0}")
   public static Iterable<Boolean> exceptionsTraced() {
     return Arrays.asList(false, true);
   }
 
-  @Parameterized.Parameter
-  public boolean exceptionsTraced;
-
-  /** JDBC is synchronous and we aren't using thread pools: everything happens on the main thread */
-  ArrayList<Span> spans = new ArrayList<>();
-
-  Tracing tracing = tracingBuilder(Sampler.ALWAYS_SAMPLE).build();
-  Connection connection;
-
-  @Before public void init() throws SQLException {
+@Before public void init() throws SQLException {
     StringBuilder url = new StringBuilder("jdbc:mysql://");
     url.append(envOr("MYSQL_HOST", "127.0.0.1"));
     url.append(":").append(envOr("MYSQL_TCP_PORT", 3306));
     String db = envOr("MYSQL_DB", null);
-    if (db != null) url.append("/").append(db);
+    if (db != null) {
+		url.append("/").append(db);
+	}
     url.append("?queryInterceptors=").append(TracingQueryInterceptor.class.getName());
     if (exceptionsTraced) {
       url.append("&exceptionInterceptors=").append(TracingExceptionInterceptor.class.getName());
@@ -79,12 +78,14 @@ public class ITTracingQueryInterceptor {
     spans.clear();
   }
 
-  @After public void close() throws SQLException {
+@After public void close() throws SQLException {
     Tracing.current().close();
-    if (connection != null) connection.close();
+    if (connection != null) {
+		connection.close();
+	}
   }
 
-  @Test
+@Test
   public void makesChildOfCurrentSpan() throws Exception {
     ScopedSpan parent = tracing.tracer().startScopedSpan("test");
     try {
@@ -97,7 +98,7 @@ public class ITTracingQueryInterceptor {
       .hasSize(2);
   }
 
-  @Test
+@Test
   public void reportsClientKindToZipkin() throws Exception {
     prepareExecuteSelect(QUERY);
 
@@ -106,7 +107,7 @@ public class ITTracingQueryInterceptor {
       .containsExactly(Span.Kind.CLIENT);
   }
 
-  @Test
+@Test
   public void defaultSpanNameIsOperationName() throws Exception {
     prepareExecuteSelect(QUERY);
 
@@ -115,7 +116,7 @@ public class ITTracingQueryInterceptor {
       .containsExactly("select");
   }
 
-  /** This intercepts all SQL, not just queries. This ensures single-word statements work */
+/** This intercepts all SQL, not just queries. This ensures single-word statements work */
   @Test
   public void defaultSpanNameIsOperationName_oneWord() throws Exception {
     connection.setAutoCommit(false);
@@ -126,7 +127,7 @@ public class ITTracingQueryInterceptor {
       .contains("commit");
   }
 
-  @Test
+@Test
   public void addsQueryTag() throws Exception {
     prepareExecuteSelect(QUERY);
 
@@ -135,7 +136,7 @@ public class ITTracingQueryInterceptor {
       .containsExactly(entry("sql.query", QUERY));
   }
 
-  @Test
+@Test
   public void reportsServerAddress() throws Exception {
     prepareExecuteSelect(QUERY);
 
@@ -144,7 +145,7 @@ public class ITTracingQueryInterceptor {
       .contains("myservice");
   }
 
-  @Test
+@Test
   public void sqlError() throws Exception {
     assertThatThrownBy(() -> prepareExecuteSelect(ERROR_QUERY)).isInstanceOf(SQLException.class);
     assertThat(spans)
@@ -156,7 +157,7 @@ public class ITTracingQueryInterceptor {
     }
   }
 
-  void prepareExecuteSelect(String query) throws SQLException {
+void prepareExecuteSelect(String query) throws SQLException {
     try (PreparedStatement ps = connection.prepareStatement(query)) {
       try (ResultSet resultSet = ps.executeQuery()) {
         while (resultSet.next()) {
@@ -166,18 +167,18 @@ public class ITTracingQueryInterceptor {
     }
   }
 
-  Tracing.Builder tracingBuilder(Sampler sampler) {
+Tracing.Builder tracingBuilder(Sampler sampler) {
     return Tracing.newBuilder()
       .spanReporter(spans::add)
       .currentTraceContext(ThreadLocalCurrentTraceContext.create())
       .sampler(sampler);
   }
 
-  static int envOr(String key, int fallback) {
+static int envOr(String key, int fallback) {
     return System.getenv(key) != null ? Integer.parseInt(System.getenv(key)) : fallback;
   }
 
-  static String envOr(String key, String fallback) {
+static String envOr(String key, String fallback) {
     return System.getenv(key) != null ? System.getenv(key) : fallback;
   }
 }

@@ -38,51 +38,53 @@ import brave.internal.Nullable;
  * possibly your own, or raise an issue and explain what your use case is.
  */
 public class ThreadLocalCurrentTraceContext extends CurrentTraceContext { // not final for backport
-  public static CurrentTraceContext create() {
-    return new Builder().build();
-  }
+  static final ThreadLocal<TraceContext> DEFAULT = new ThreadLocal<>();
 
-  public static CurrentTraceContext.Builder newBuilder() {
-    return new Builder();
-  }
+	@SuppressWarnings("ThreadLocalUsage") // intentional: to support multiple Tracer instances
+	  final ThreadLocal<TraceContext> local;
 
-  static final class Builder extends CurrentTraceContext.Builder {
+	ThreadLocalCurrentTraceContext(
+	    CurrentTraceContext.Builder builder,
+	    ThreadLocal<TraceContext> local
+	  ) {
+	    super(builder);
+	    if (local == null) {
+			throw new NullPointerException("local == null");
+		}
+	    this.local = local;
+	  }
 
-    @Override public CurrentTraceContext build() {
-      return new ThreadLocalCurrentTraceContext(this, DEFAULT);
-    }
+	public static CurrentTraceContext create() {
+	    return new Builder().build();
+	  }
+
+	public static CurrentTraceContext.Builder newBuilder() {
+	    return new Builder();
+	  }
+
+	@Override public TraceContext get() {
+	    return local.get();
+	  }
+
+	@Override public Scope newScope(@Nullable TraceContext currentSpan) {
+	    final TraceContext previous = local.get();
+	    local.set(currentSpan);
+	    class ThreadLocalScope implements Scope {
+	      @Override public void close() {
+	        local.set(previous);
+	      }
+	    }
+	    Scope result = new ThreadLocalScope();
+	    return decorateScope(currentSpan, result);
+	  }
+
+static final class Builder extends CurrentTraceContext.Builder {
 
     Builder() {
     }
-  }
 
-  static final ThreadLocal<TraceContext> DEFAULT = new ThreadLocal<>();
-
-  @SuppressWarnings("ThreadLocalUsage") // intentional: to support multiple Tracer instances
-  final ThreadLocal<TraceContext> local;
-
-  ThreadLocalCurrentTraceContext(
-    CurrentTraceContext.Builder builder,
-    ThreadLocal<TraceContext> local
-  ) {
-    super(builder);
-    if (local == null) throw new NullPointerException("local == null");
-    this.local = local;
-  }
-
-  @Override public TraceContext get() {
-    return local.get();
-  }
-
-  @Override public Scope newScope(@Nullable TraceContext currentSpan) {
-    final TraceContext previous = local.get();
-    local.set(currentSpan);
-    class ThreadLocalScope implements Scope {
-      @Override public void close() {
-        local.set(previous);
-      }
+	@Override public CurrentTraceContext build() {
+      return new ThreadLocalCurrentTraceContext(this, DEFAULT);
     }
-    Scope result = new ThreadLocalScope();
-    return decorateScope(currentSpan, result);
   }
 }

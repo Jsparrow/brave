@@ -36,16 +36,22 @@ import static org.mockito.Mockito.verify;
 public class TracingFactoryBeanTest {
   public static final Clock CLOCK = mock(Clock.class);
   public static final ErrorParser ERROR_PARSER = mock(ErrorParser.class);
+public static final FinishedSpanHandler FIREHOSE_HANDLER = mock(FinishedSpanHandler.class);
+public static final TracingCustomizer CUSTOMIZER_ONE = mock(TracingCustomizer.class);
+public static final TracingCustomizer CUSTOMIZER_TWO = mock(TracingCustomizer.class);
+XmlBeans context;
 
-  XmlBeans context;
-
-  @After public void close() {
-    if (context != null) context.close();
+@After public void close() {
+    if (context != null) {
+		context.close();
+	}
     Tracing current = Tracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
-  @Test public void autoCloses() {
+@Test public void autoCloses() {
     context = new XmlBeans(""
       + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\"/>\n"
     );
@@ -60,11 +66,8 @@ public class TracingFactoryBeanTest {
     context = null;
   }
 
-  @Test public void localServiceName() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"localServiceName\" value=\"brave-webmvc-example\"/>\n"
-      + "</bean>"
+@Test public void localServiceName() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"localServiceName\" value=\"brave-webmvc-example\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -73,17 +76,9 @@ public class TracingFactoryBeanTest {
       .isEqualTo("brave-webmvc-example");
   }
 
-  @Test public void localEndpoint() {
-    context = new XmlBeans(""
-      + "<bean id=\"localEndpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "  <property name=\"ip\" value=\"1.2.3.4\"/>\n"
-      + "  <property name=\"port\" value=\"8080\"/>\n"
-      + "</bean>"
-      , ""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"localEndpoint\" ref=\"localEndpoint\"/>\n"
-      + "</bean>"
+@Test public void localEndpoint() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"localEndpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("  <property name=\"ip\" value=\"1.2.3.4\"/>\n").append("  <property name=\"port\" value=\"8080\"/>\n").append("</bean>").toString()
+      , new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"localEndpoint\" ref=\"localEndpoint\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -94,17 +89,9 @@ public class TracingFactoryBeanTest {
         .port(8080).build());
   }
 
-  @Test public void endpoint() {
-    context = new XmlBeans(""
-      + "<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "  <property name=\"ip\" value=\"1.2.3.4\"/>\n"
-      + "  <property name=\"port\" value=\"8080\"/>\n"
-      + "</bean>"
-      , ""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"endpoint\" ref=\"endpoint\"/>\n"
-      + "</bean>"
+@Test public void endpoint() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("  <property name=\"ip\" value=\"1.2.3.4\"/>\n").append("  <property name=\"port\" value=\"8080\"/>\n").append("</bean>").toString()
+      , new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"endpoint\" ref=\"endpoint\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -115,13 +102,8 @@ public class TracingFactoryBeanTest {
         .port(8080).build());
   }
 
-  @Test public void spanReporter() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"spanReporter\">\n"
-      + "    <util:constant static-field=\"zipkin2.reporter.Reporter.CONSOLE\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void spanReporter() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"spanReporter\">\n").append("    <util:constant static-field=\"zipkin2.reporter.Reporter.CONSOLE\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -129,15 +111,9 @@ public class TracingFactoryBeanTest {
       .isEqualTo(Reporter.CONSOLE);
   }
 
-  public static final FinishedSpanHandler FIREHOSE_HANDLER = mock(FinishedSpanHandler.class);
-
-  @Test public void finishedSpanHandlers() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"finishedSpanHandlers\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".FIREHOSE_HANDLER\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void finishedSpanHandlers() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"finishedSpanHandlers\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".FIREHOSE_HANDLER\"/>\n").append("  </property>\n").append("</bean>")
+			.toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -145,13 +121,9 @@ public class TracingFactoryBeanTest {
       .satisfies(a -> assertThat((FinishedSpanHandler[]) a).startsWith(FIREHOSE_HANDLER));
   }
 
-  @Test public void clock() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"clock\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".CLOCK\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void clock() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"clock\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".CLOCK\"/>\n").append("  </property>\n").append("</bean>")
+			.toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -159,13 +131,9 @@ public class TracingFactoryBeanTest {
       .isEqualTo(CLOCK);
   }
 
-  @Test public void errorParser() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"errorParser\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".ERROR_PARSER\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void errorParser() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"errorParser\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".ERROR_PARSER\"/>\n").append("  </property>\n").append("</bean>")
+			.toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -173,13 +141,8 @@ public class TracingFactoryBeanTest {
       .isEqualTo(ERROR_PARSER);
   }
 
-  @Test public void sampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"sampler\">\n"
-      + "    <util:constant static-field=\"brave.sampler.Sampler.NEVER_SAMPLE\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void sampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"sampler\">\n").append("    <util:constant static-field=\"brave.sampler.Sampler.NEVER_SAMPLE\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -187,13 +150,8 @@ public class TracingFactoryBeanTest {
       .isEqualTo(Sampler.NEVER_SAMPLE);
   }
 
-  @Test public void currentTraceContext() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"currentTraceContext\">\n"
-      + "    <bean class=\"brave.spring.beans.CurrentTraceContextFactoryBean\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void currentTraceContext() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"currentTraceContext\">\n").append("    <bean class=\"brave.spring.beans.CurrentTraceContextFactoryBean\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -201,22 +159,9 @@ public class TracingFactoryBeanTest {
       .isInstanceOf(ThreadLocalCurrentTraceContext.class);
   }
 
-  @Test public void propagationFactory() {
-    context = new XmlBeans(""
-      + "<bean id=\"propagationFactory\" class=\"brave.propagation.ExtraFieldPropagation\" factory-method=\"newFactory\">\n"
-      + "  <constructor-arg index=\"0\">\n"
-      + "    <util:constant static-field=\"brave.propagation.B3Propagation.FACTORY\"/>\n"
-      + "  </constructor-arg>\n"
-      + "  <constructor-arg index=\"1\">\n"
-      + "    <list>\n"
-      + "      <value>x-vcap-request-id</value>\n"
-      + "      <value>x-amzn-trace-id</value>\n"
-      + "    </list>"
-      + "  </constructor-arg>\n"
-      + "</bean>", ""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"propagationFactory\" ref=\"propagationFactory\"/>\n"
-      + "</bean>"
+@Test public void propagationFactory() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"propagationFactory\" class=\"brave.propagation.ExtraFieldPropagation\" factory-method=\"newFactory\">\n").append("  <constructor-arg index=\"0\">\n").append("    <util:constant static-field=\"brave.propagation.B3Propagation.FACTORY\"/>\n").append("  </constructor-arg>\n").append("  <constructor-arg index=\"1\">\n").append("    <list>\n").append("      <value>x-vcap-request-id</value>\n")
+			.append("      <value>x-amzn-trace-id</value>\n").append("    </list>").append("  </constructor-arg>\n").append("</bean>").toString(), new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"propagationFactory\" ref=\"propagationFactory\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class).propagation())
@@ -225,11 +170,8 @@ public class TracingFactoryBeanTest {
       .isEqualToComparingFieldByField(new String[] {"x-vcap-request-id", "x-amzn-trace-id"});
   }
 
-  @Test public void traceId128Bit() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"traceId128Bit\" value=\"true\"/>\n"
-      + "</bean>"
+@Test public void traceId128Bit() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"traceId128Bit\" value=\"true\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -237,11 +179,8 @@ public class TracingFactoryBeanTest {
       .isEqualTo(true);
   }
 
-  @Test public void supportsJoin() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"supportsJoin\" value=\"true\"/>\n"
-      + "</bean>"
+@Test public void supportsJoin() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"supportsJoin\" value=\"true\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("tracing", Tracing.class))
@@ -249,19 +188,9 @@ public class TracingFactoryBeanTest {
       .isEqualTo(true);
   }
 
-  public static final TracingCustomizer CUSTOMIZER_ONE = mock(TracingCustomizer.class);
-  public static final TracingCustomizer CUSTOMIZER_TWO = mock(TracingCustomizer.class);
-
-  @Test public void customizers() {
-    context = new XmlBeans(""
-      + "<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n"
-      + "  <property name=\"customizers\">\n"
-      + "    <list>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_ONE\"/>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_TWO\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
+@Test public void customizers() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"tracing\" class=\"brave.spring.beans.TracingFactoryBean\">\n").append("  <property name=\"customizers\">\n").append("    <list>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_ONE\"/>\n").append("      <util:constant static-field=\"")
+			.append(getClass().getName()).append(".CUSTOMIZER_TWO\"/>\n").append("    </list>\n").append("  </property>").append("</bean>").toString()
     );
 
     context.getBean("tracing", Tracing.class);

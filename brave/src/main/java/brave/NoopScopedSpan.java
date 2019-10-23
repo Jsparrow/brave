@@ -51,12 +51,16 @@ final class NoopScopedSpan extends ScopedSpan {
   }
 
   @Override public String toString() {
-    return "NoopScopedSpan(" + context + ")";
+    return new StringBuilder().append("NoopScopedSpan(").append(context).append(")").toString();
   }
 
   @Override public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof NoopScopedSpan)) return false;
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof NoopScopedSpan)) {
+		return false;
+	}
     NoopScopedSpan that = (NoopScopedSpan) o;
     return context.equals(that.context) && scope.equals(that.scope);
   }

@@ -26,9 +26,12 @@ import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.service.GenericService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 class TestServer {
-  BlockingQueue<Long> delayQueue = new LinkedBlockingQueue<>();
+  private static final Logger logger = LogManager.getLogger(TestServer.class);
+BlockingQueue<Long> delayQueue = new LinkedBlockingQueue<>();
   BlockingQueue<TraceContextOrSamplingFlags> requestQueue = new LinkedBlockingQueue<>();
   TraceContext.Extractor<DubboServerRequest> extractor =
     B3Propagation.B3_STRING.extractor(DubboServerRequest.GETTER);
@@ -53,7 +56,8 @@ class TestServer {
         try {
           Thread.sleep(delay);
         } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
+          logger.error(e.getMessage(), e);
+		Thread.currentThread().interrupt();
           throw new AssertionError("interrupted sleeping " + delay);
         }
       }

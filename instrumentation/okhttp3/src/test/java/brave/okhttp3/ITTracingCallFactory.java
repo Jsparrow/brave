@@ -32,10 +32,14 @@ import org.junit.Test;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ITTracingCallFactory extends ITHttpAsyncClient<Call.Factory> {
 
-  @Override protected Call.Factory newClient(int port) {
+  private static final Logger logger = LogManager.getLogger(ITTracingCallFactory.class);
+
+@Override protected Call.Factory newClient(int port) {
     return TracingCallFactory.create(httpTracing, new OkHttpClient.Builder()
       .connectTimeout(1, TimeUnit.SECONDS)
       .readTimeout(1, TimeUnit.SECONDS)
@@ -65,7 +69,7 @@ public class ITTracingCallFactory extends ITHttpAsyncClient<Call.Factory> {
     client.newCall(new Request.Builder().url(url(pathIncludingQuery)).build())
       .enqueue(new Callback() {
         @Override public void onFailure(Call call, IOException e) {
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
 
         @Override public void onResponse(Call call, Response response) {

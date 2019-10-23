@@ -33,7 +33,9 @@ final class TraceContextCompletableObserver implements CompletableObserver, Disp
   }
 
   @Override public void onSubscribe(Disposable d) {
-    if (!Util.validate(upstream, d)) return;
+    if (!Util.validate(upstream, d)) {
+		return;
+	}
     upstream = d;
     downstream.onSubscribe(this);
   }

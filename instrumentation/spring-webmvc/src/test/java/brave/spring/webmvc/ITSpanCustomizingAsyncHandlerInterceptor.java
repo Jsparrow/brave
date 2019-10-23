@@ -44,14 +44,6 @@ public class ITSpanCustomizingAsyncHandlerInterceptor extends ITServletContainer
       .containsEntry("mvc.controller.method", "foo");
   }
 
-  @Configuration
-  @EnableWebMvc
-  static class TracingConfig extends WebMvcConfigurerAdapter {
-    @Override public void addInterceptors(InterceptorRegistry registry) {
-      registry.addInterceptor(new SpanCustomizingAsyncHandlerInterceptor());
-    }
-  }
-
   @Override public void init(ServletContextHandler handler) {
     AnnotationConfigWebApplicationContext appContext =
       new AnnotationConfigWebApplicationContext() {
@@ -77,5 +69,13 @@ public class ITSpanCustomizingAsyncHandlerInterceptor extends ITServletContainer
       handler.getServletContext().addFilter("tracingFilter", DelegatingTracingFilter.class);
     filterRegistration.setAsyncSupported(true);
     filterRegistration.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
+  }
+
+@Configuration
+  @EnableWebMvc
+  static class TracingConfig extends WebMvcConfigurerAdapter {
+    @Override public void addInterceptors(InterceptorRegistry registry) {
+      registry.addInterceptor(new SpanCustomizingAsyncHandlerInterceptor());
+    }
   }
 }

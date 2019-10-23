@@ -29,18 +29,18 @@ public class CurrentTraceContextAssemblyTrackingClassLoaderTest {
     assertRunIsUnloadable(Noop.class, getClass().getClassLoader());
   }
 
-  static class Noop implements Runnable {
+  /** Proves when code is correct, we can unload our classes. */
+  @Test public void simpleUsage_unloadable() {
+    assertRunIsUnloadable(SimpleUsable.class, getClass().getClassLoader());
+  }
+
+static class Noop implements Runnable {
     @Override public void run() {
       new CurrentTraceContextAssemblyTracking(
         ThreadLocalCurrentTraceContext.newBuilder().build()
       ).enable();
       CurrentTraceContextAssemblyTracking.disable();
     }
-  }
-
-  /** Proves when code is correct, we can unload our classes. */
-  @Test public void simpleUsage_unloadable() {
-    assertRunIsUnloadable(SimpleUsable.class, getClass().getClassLoader());
   }
 
   static class SimpleUsable implements Runnable {

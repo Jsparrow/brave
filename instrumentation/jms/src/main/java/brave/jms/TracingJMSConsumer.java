@@ -35,11 +35,11 @@ import javax.jms.MessageListener;
     return delegate.getMessageSelector();
   }
 
-  @Override public MessageListener getMessageListener() throws JMSRuntimeException {
+  @Override public MessageListener getMessageListener() {
     return delegate.getMessageListener();
   }
 
-  @Override public void setMessageListener(MessageListener listener) throws JMSRuntimeException {
+  @Override public void setMessageListener(MessageListener listener) {
     delegate.setMessageListener(TracingMessageListener.create(listener, jmsTracing));
   }
 

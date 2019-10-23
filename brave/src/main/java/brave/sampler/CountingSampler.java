@@ -30,77 +30,81 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class CountingSampler extends Sampler {
 
-  /**
-   * @param probability probability a request will result in a new trace. 0 means never sample, 1
-   * means always sample. Minimum probability is 0.01, or 1% of traces
-   */
-  public static Sampler create(final float probability) {
-    if (probability == 0) return NEVER_SAMPLE;
-    if (probability == 1.0) return ALWAYS_SAMPLE;
-    if (probability < 0.01f || probability > 1) {
-      throw new IllegalArgumentException(
-        "probability should be between 0.01 and 1: was " + probability);
-    }
-    return new CountingSampler(probability);
-  }
-
   private final AtomicInteger counter;
-  private final BitSet sampleDecisions;
+	private final BitSet sampleDecisions;
 
-  /** Fills a bitset with decisions according to the supplied probability. */
-  CountingSampler(float probability) {
-    this(probability, new Random());
-  }
+	/** Fills a bitset with decisions according to the supplied probability. */
+	  CountingSampler(float probability) {
+	    this(probability, new Random());
+	  }
 
-  /**
-   * Fills a bitset with decisions according to the probability using the supplied {@link Random}.
-   */
-  CountingSampler(float probability, Random random) {
-    counter = new AtomicInteger();
-    int outOf100 = (int) (probability * 100.0f);
-    this.sampleDecisions = randomBitSet(100, outOf100, random);
-  }
+	/**
+	   * Fills a bitset with decisions according to the probability using the supplied {@link Random}.
+	   */
+	  CountingSampler(float probability, Random random) {
+	    counter = new AtomicInteger();
+	    int outOf100 = (int) (probability * 100.0f);
+	    this.sampleDecisions = randomBitSet(100, outOf100, random);
+	  }
 
-  /** loops over the pre-canned decisions, resetting to zero when it gets to the end. */
-  @Override
-  public boolean isSampled(long traceIdIgnored) {
-    return sampleDecisions.get(mod(counter.getAndIncrement(), 100));
-  }
+	/**
+	   * @param probability probability a request will result in a new trace. 0 means never sample, 1
+	   * means always sample. Minimum probability is 0.01, or 1% of traces
+	   */
+	  public static Sampler create(final float probability) {
+	    if (probability == 0) {
+			return NEVER_SAMPLE;
+		}
+	    if (probability == 1.0) {
+			return ALWAYS_SAMPLE;
+		}
+	    if (probability < 0.01f || probability > 1) {
+	      throw new IllegalArgumentException(
+	        "probability should be between 0.01 and 1: was " + probability);
+	    }
+	    return new CountingSampler(probability);
+	  }
 
-  @Override
-  public String toString() {
-    return "CountingSampler()";
-  }
+	/** loops over the pre-canned decisions, resetting to zero when it gets to the end. */
+	  @Override
+	  public boolean isSampled(long traceIdIgnored) {
+	    return sampleDecisions.get(mod(counter.getAndIncrement(), 100));
+	  }
 
-  /**
-   * Returns a non-negative mod.
-   */
-  static int mod(int dividend, int divisor) {
-    int result = dividend % divisor;
-    return result >= 0 ? result : divisor + result;
-  }
+	@Override
+	  public String toString() {
+	    return "CountingSampler()";
+	  }
 
-  /**
-   * Reservoir sampling algorithm borrowed from Stack Overflow.
-   *
-   * http://stackoverflow.com/questions/12817946/generate-a-random-bitset-with-n-1s
-   */
-  static BitSet randomBitSet(int size, int cardinality, Random rnd) {
-    BitSet result = new BitSet(size);
-    int[] chosen = new int[cardinality];
-    int i;
-    for (i = 0; i < cardinality; ++i) {
-      chosen[i] = i;
-      result.set(i);
-    }
-    for (; i < size; ++i) {
-      int j = rnd.nextInt(i + 1);
-      if (j < cardinality) {
-        result.clear(chosen[j]);
-        result.set(i);
-        chosen[j] = i;
-      }
-    }
-    return result;
-  }
+	/**
+	   * Returns a non-negative mod.
+	   */
+	  static int mod(int dividend, int divisor) {
+	    int result = dividend % divisor;
+	    return result >= 0 ? result : divisor + result;
+	  }
+
+	/**
+	   * Reservoir sampling algorithm borrowed from Stack Overflow.
+	   *
+	   * http://stackoverflow.com/questions/12817946/generate-a-random-bitset-with-n-1s
+	   */
+	  static BitSet randomBitSet(int size, int cardinality, Random rnd) {
+	    BitSet result = new BitSet(size);
+	    int[] chosen = new int[cardinality];
+	    int i;
+	    for (i = 0; i < cardinality; ++i) {
+	      chosen[i] = i;
+	      result.set(i);
+	    }
+	    for (; i < size; ++i) {
+	      int j = rnd.nextInt(i + 1);
+	      if (j < cardinality) {
+	        result.clear(chosen[j]);
+	        result.set(i);
+	        chosen[j] = i;
+	      }
+	    }
+	    return result;
+	  }
 }

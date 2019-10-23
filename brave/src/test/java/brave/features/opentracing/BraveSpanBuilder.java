@@ -42,7 +42,10 @@ final class BraveSpanBuilder implements Tracer.SpanBuilder {
   }
 
   @Override public BraveSpanBuilder addReference(String type, SpanContext context) {
-    if (reference != null || context == null) return this; // yolo pick the first parent!
+    if (reference != null || context == null)
+	 {
+		return this; // yolo pick the first parent!
+	}
     if (References.CHILD_OF.equals(type) || References.FOLLOWS_FROM.equals(type)) {
       this.reference = (BraveSpanContext) context;
     }
@@ -67,9 +70,15 @@ final class BraveSpanBuilder implements Tracer.SpanBuilder {
   }
 
   @Override public <T> Tracer.SpanBuilder withTag(Tag<T> tag, T t) {
-    if (t instanceof String) return withTag(tag.getKey(), (String) t);
-    if (t instanceof Number) return withTag(tag.getKey(), (Number) t);
-    if (t instanceof Boolean) return withTag(tag.getKey(), (Boolean) t);
+    if (t instanceof String) {
+		return withTag(tag.getKey(), (String) t);
+	}
+    if (t instanceof Number) {
+		return withTag(tag.getKey(), (Number) t);
+	}
+    if (t instanceof Boolean) {
+		return withTag(tag.getKey(), (Boolean) t);
+	}
     throw new IllegalArgumentException("tag value not a string, number or boolean: " + tag);
   }
 
@@ -88,10 +97,10 @@ final class BraveSpanBuilder implements Tracer.SpanBuilder {
       result = tracer.nextSpan(((BraveSpanContext.Incomplete) reference).extractionResult);
     }
 
-    if (operationName != null) result.name(operationName);
-    for (Map.Entry<String, String> tag : tags.entrySet()) {
-      result.tag(tag.getKey(), tag.getValue());
-    }
+    if (operationName != null) {
+		result.name(operationName);
+	}
+    tags.entrySet().forEach(tag -> result.tag(tag.getKey(), tag.getValue()));
     if (timestamp != 0) {
       return new BraveSpan(result.start(timestamp));
     }

@@ -86,7 +86,7 @@ public class MutableSpanBenchmarks {
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
       .addProfiler("gc")
-      .include(".*" + MutableSpanBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(MutableSpanBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

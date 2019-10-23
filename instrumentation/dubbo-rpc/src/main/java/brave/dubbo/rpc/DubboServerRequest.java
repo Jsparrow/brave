@@ -36,9 +36,13 @@ final class DubboServerRequest extends RpcServerRequest {
   final Map<String, String> attachments;
 
   DubboServerRequest(Invocation invocation, Map<String, String> attachments) {
-    if (invocation == null) throw new NullPointerException("invocation == null");
+    if (invocation == null) {
+		throw new NullPointerException("invocation == null");
+	}
     this.invocation = invocation;
-    if (attachments == null) throw new NullPointerException("attachments == null");
+    if (attachments == null) {
+		throw new NullPointerException("attachments == null");
+	}
     this.attachments = attachments;
   }
 

@@ -51,55 +51,78 @@ import static java.util.Collections.emptyList;
 //@Immutable
 public final class TraceContextOrSamplingFlags {
   public static final TraceContextOrSamplingFlags
-    EMPTY = new TraceContextOrSamplingFlags(3, SamplingFlags.EMPTY, emptyList()),
-    NOT_SAMPLED = new TraceContextOrSamplingFlags(3, SamplingFlags.NOT_SAMPLED, emptyList()),
-    SAMPLED = new TraceContextOrSamplingFlags(3, SamplingFlags.SAMPLED, emptyList()),
-    DEBUG = new TraceContextOrSamplingFlags(3, SamplingFlags.DEBUG, emptyList());
+    EMPTY = new TraceContextOrSamplingFlags(3, SamplingFlags.EMPTY, emptyList());
+public static final TraceContextOrSamplingFlags NOT_SAMPLED = new TraceContextOrSamplingFlags(3, SamplingFlags.NOT_SAMPLED, emptyList());
+public static final TraceContextOrSamplingFlags SAMPLED = new TraceContextOrSamplingFlags(3, SamplingFlags.SAMPLED, emptyList());
+public static final TraceContextOrSamplingFlags DEBUG = new TraceContextOrSamplingFlags(3, SamplingFlags.DEBUG, emptyList());
+final int type;
+final SamplingFlags value;
+final List<Object> extra;
 
-  public static Builder newBuilder() {
+TraceContextOrSamplingFlags(int type, SamplingFlags value, List<Object> extra) {
+    if (value == null) {
+		throw new NullPointerException("value == null");
+	}
+    if (extra == null) {
+		throw new NullPointerException("extra == null");
+	}
+    this.type = type;
+    this.value = value;
+    this.extra = extra;
+  }
+
+public static Builder newBuilder() {
     return new Builder();
   }
 
-  /** Returns {@link SamplingFlags#sampled()}, regardless of subtype. */
+/** Returns {@link SamplingFlags#sampled()}, regardless of subtype. */
   @Nullable public Boolean sampled() {
     return value.sampled();
   }
 
-  /** Returns {@link SamplingFlags#sampledLocal()}}, regardless of subtype. */
+/** Returns {@link SamplingFlags#sampledLocal()}}, regardless of subtype. */
   public final boolean sampledLocal() {
     return (value.flags & FLAG_SAMPLED_LOCAL) == FLAG_SAMPLED_LOCAL;
   }
 
-  /** @deprecated do not use object variant.. only set when you have a sampling decision */
+/** @deprecated do not use object variant.. only set when you have a sampling decision */
   @Deprecated
   public TraceContextOrSamplingFlags sampled(@Nullable Boolean sampled) {
-    if (sampled != null) return sampled(sampled.booleanValue());
+    if (sampled != null) {
+		return sampled(sampled.booleanValue());
+	}
     int flags = value.flags;
     flags &= ~FLAG_SAMPLED_SET;
     flags &= ~FLAG_SAMPLED;
-    if (flags == value.flags) return this; // save effort if no change
+    if (flags == value.flags)
+	 {
+		return this; // save effort if no change
+	}
     return withFlags(flags);
   }
 
-  public TraceContextOrSamplingFlags sampled(boolean sampled) {
+public TraceContextOrSamplingFlags sampled(boolean sampled) {
     int flags = InternalPropagation.sampled(sampled, value.flags);
-    if (flags == value.flags) return this; // save effort if no change
+    if (flags == value.flags)
+	 {
+		return this; // save effort if no change
+	}
     return withFlags(flags);
   }
 
-  @Nullable public TraceContext context() {
+@Nullable public TraceContext context() {
     return type == 1 ? (TraceContext) value : null;
   }
 
-  @Nullable public TraceIdContext traceIdContext() {
+@Nullable public TraceIdContext traceIdContext() {
     return type == 2 ? (TraceIdContext) value : null;
   }
 
-  @Nullable public SamplingFlags samplingFlags() {
+@Nullable public SamplingFlags samplingFlags() {
     return type == 3 ? value : null;
   }
 
-  /**
+/**
    * Non-empty when {@link #context} is null: A list of additional data extracted from the carrier.
    *
    * @see TraceContext#extra()
@@ -108,7 +131,7 @@ public final class TraceContextOrSamplingFlags {
     return extra;
   }
 
-  public final Builder toBuilder() {
+public final Builder toBuilder() {
     Builder result = new Builder();
     result.type = type;
     result.value = value;
@@ -116,44 +139,89 @@ public final class TraceContextOrSamplingFlags {
     return result;
   }
 
-  @Override
+@Override
   public String toString() {
-    return "{value=" + value + ", extra=" + extra + "}";
+    return new StringBuilder().append("{value=").append(value).append(", extra=").append(extra).append("}").toString();
   }
 
-  public static TraceContextOrSamplingFlags create(TraceContext context) {
+public static TraceContextOrSamplingFlags create(TraceContext context) {
     return new TraceContextOrSamplingFlags(1, context, emptyList());
   }
 
-  public static TraceContextOrSamplingFlags create(TraceIdContext traceIdContext) {
+public static TraceContextOrSamplingFlags create(TraceIdContext traceIdContext) {
     return new TraceContextOrSamplingFlags(2, traceIdContext, emptyList());
   }
 
-  public static TraceContextOrSamplingFlags create(SamplingFlags flags) {
+public static TraceContextOrSamplingFlags create(SamplingFlags flags) {
     // reuses constants to avoid excess allocation
-    if (flags == SamplingFlags.SAMPLED) return SAMPLED;
-    if (flags == SamplingFlags.EMPTY) return EMPTY;
-    if (flags == SamplingFlags.NOT_SAMPLED) return NOT_SAMPLED;
-    if (flags == SamplingFlags.DEBUG) return DEBUG;
+    if (flags == SamplingFlags.SAMPLED) {
+		return SAMPLED;
+	}
+    if (flags == SamplingFlags.EMPTY) {
+		return EMPTY;
+	}
+    if (flags == SamplingFlags.NOT_SAMPLED) {
+		return NOT_SAMPLED;
+	}
+    if (flags == SamplingFlags.DEBUG) {
+		return DEBUG;
+	}
     return new TraceContextOrSamplingFlags(3, flags, emptyList());
   }
 
-  public static TraceContextOrSamplingFlags create(@Nullable Boolean sampled, boolean debug) {
-    if (debug) return DEBUG;
-    if (sampled == null) return EMPTY;
+public static TraceContextOrSamplingFlags create(@Nullable Boolean sampled, boolean debug) {
+    if (debug) {
+		return DEBUG;
+	}
+    if (sampled == null) {
+		return EMPTY;
+	}
     return sampled ? SAMPLED : NOT_SAMPLED;
   }
 
-  final int type;
-  final SamplingFlags value;
-  final List<Object> extra;
+@Override public boolean equals(Object o) {
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof TraceContextOrSamplingFlags)) {
+		return false;
+	}
+    TraceContextOrSamplingFlags that = (TraceContextOrSamplingFlags) o;
+    return type == that.type && value.equals(that.value) && extra.equals(that.extra);
+  }
 
-  TraceContextOrSamplingFlags(int type, SamplingFlags value, List<Object> extra) {
-    if (value == null) throw new NullPointerException("value == null");
-    if (extra == null) throw new NullPointerException("extra == null");
-    this.type = type;
-    this.value = value;
-    this.extra = extra;
+@Override public int hashCode() {
+    int h = 1;
+    h *= 1000003;
+    h ^= this.type;
+    h *= 1000003;
+    h ^= this.value.hashCode();
+    h *= 1000003;
+    h ^= this.extra.hashCode();
+    return h;
+  }
+
+TraceContextOrSamplingFlags withFlags(int flags) {
+    switch (type) {
+      case 1:
+        TraceContext context = InternalPropagation.instance.withFlags((TraceContext) value, flags);
+        return new TraceContextOrSamplingFlags(type, context, extra);
+      case 2:
+        TraceIdContext traceIdContext = idContextWithFlags(flags);
+        return new TraceContextOrSamplingFlags(type, traceIdContext, extra);
+      case 3:
+        SamplingFlags samplingFlags = SamplingFlags.toSamplingFlags(flags);
+        if (extra.isEmpty()) {
+			return create(samplingFlags);
+		}
+        return new TraceContextOrSamplingFlags(type, samplingFlags, extra);
+    }
+    throw new AssertionError("programming error");
+  }
+
+TraceIdContext idContextWithFlags(int flags) {
+    TraceIdContext traceIdContext = (TraceIdContext) value;
+    return new TraceIdContext(flags, traceIdContext.traceIdHigh, traceIdContext.traceId);
   }
 
   public static final class Builder {
@@ -162,50 +230,63 @@ public final class TraceContextOrSamplingFlags {
     List<Object> extra = emptyList();
     boolean sampledLocal = false;
 
-    /** @see TraceContextOrSamplingFlags#context() */
+    Builder() { // no external implementations
+    }
+
+	/** @see TraceContextOrSamplingFlags#context() */
     public final Builder context(TraceContext context) {
-      if (context == null) throw new NullPointerException("context == null");
+      if (context == null) {
+		throw new NullPointerException("context == null");
+	}
       type = 1;
       value = context;
       return this;
     }
 
-    /** @see TraceContextOrSamplingFlags#traceIdContext() */
+	/** @see TraceContextOrSamplingFlags#traceIdContext() */
     public final Builder traceIdContext(TraceIdContext traceIdContext) {
-      if (traceIdContext == null) throw new NullPointerException("traceIdContext == null");
+      if (traceIdContext == null) {
+		throw new NullPointerException("traceIdContext == null");
+	}
       type = 2;
       value = traceIdContext;
       return this;
     }
 
-    /** @see TraceContext#sampledLocal() */
+	/** @see TraceContext#sampledLocal() */
     public Builder sampledLocal() {
       this.sampledLocal = true;
       return this;
     }
 
-    /** @see TraceContextOrSamplingFlags#samplingFlags() */
+	/** @see TraceContextOrSamplingFlags#samplingFlags() */
     public final Builder samplingFlags(SamplingFlags samplingFlags) {
-      if (samplingFlags == null) throw new NullPointerException("samplingFlags == null");
+      if (samplingFlags == null) {
+		throw new NullPointerException("samplingFlags == null");
+	}
       type = 3;
       value = samplingFlags;
       return this;
     }
 
-    /**
+	/**
      * Shares the input with the builder, replacing any current data in the builder.
      *
      * @see TraceContextOrSamplingFlags#extra()
      */
     public final Builder extra(List<Object> extra) {
-      if (extra == null) throw new NullPointerException("extra == null");
+      if (extra == null) {
+		throw new NullPointerException("extra == null");
+	}
       this.extra = extra; // sharing a copy in case it is immutable
       return this;
     }
 
-    /** @see TraceContextOrSamplingFlags#extra() */
+	/** @see TraceContextOrSamplingFlags#extra() */
     public final Builder addExtra(Object extra) {
-      if (extra == null) throw new NullPointerException("extra == null");
+      if (extra == null) {
+		throw new NullPointerException("extra == null");
+	}
       if (!(this.extra instanceof ArrayList)) {
         this.extra = new ArrayList<>(this.extra); // make it mutable
       }
@@ -213,7 +294,7 @@ public final class TraceContextOrSamplingFlags {
       return this;
     }
 
-    /** Returns an immutable result from the values currently in the builder */
+	/** Returns an immutable result from the values currently in the builder */
     public final TraceContextOrSamplingFlags build() {
       final TraceContextOrSamplingFlags result;
       if (!extra.isEmpty() && type == 1) { // move extra to the trace context
@@ -230,50 +311,11 @@ public final class TraceContextOrSamplingFlags {
         result = new TraceContextOrSamplingFlags(type, value, ensureImmutable(extra));
       }
 
-      if (!sampledLocal) return result; // save effort if no change
+      if (!sampledLocal)
+	 {
+		return result; // save effort if no change
+	}
       return result.withFlags(value.flags | FLAG_SAMPLED_LOCAL);
     }
-
-    Builder() { // no external implementations
-    }
-  }
-
-  @Override public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof TraceContextOrSamplingFlags)) return false;
-    TraceContextOrSamplingFlags that = (TraceContextOrSamplingFlags) o;
-    return type == that.type && value.equals(that.value) && extra.equals(that.extra);
-  }
-
-  @Override public int hashCode() {
-    int h = 1;
-    h *= 1000003;
-    h ^= this.type;
-    h *= 1000003;
-    h ^= this.value.hashCode();
-    h *= 1000003;
-    h ^= this.extra.hashCode();
-    return h;
-  }
-
-  TraceContextOrSamplingFlags withFlags(int flags) {
-    switch (type) {
-      case 1:
-        TraceContext context = InternalPropagation.instance.withFlags((TraceContext) value, flags);
-        return new TraceContextOrSamplingFlags(type, context, extra);
-      case 2:
-        TraceIdContext traceIdContext = idContextWithFlags(flags);
-        return new TraceContextOrSamplingFlags(type, traceIdContext, extra);
-      case 3:
-        SamplingFlags samplingFlags = SamplingFlags.toSamplingFlags(flags);
-        if (extra.isEmpty()) return create(samplingFlags);
-        return new TraceContextOrSamplingFlags(type, samplingFlags, extra);
-    }
-    throw new AssertionError("programming error");
-  }
-
-  TraceIdContext idContextWithFlags(int flags) {
-    TraceIdContext traceIdContext = (TraceIdContext) value;
-    return new TraceIdContext(flags, traceIdContext.traceIdHigh, traceIdContext.traceId);
   }
 }

@@ -33,7 +33,9 @@ final class TraceContextSingleObserver<T> implements SingleObserver<T>, Disposab
   }
 
   @Override public void onSubscribe(Disposable d) {
-    if (!Util.validate(upstream, d)) return;
+    if (!Util.validate(upstream, d)) {
+		return;
+	}
     upstream = d;
 
     // Operators need to detect the fuseable feature of their immediate upstream. We pass "this"

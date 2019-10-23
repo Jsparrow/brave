@@ -28,12 +28,6 @@ public class ThreadContextCurrentTraceContextTest extends CurrentTraceContextTes
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return ThreadContextCurrentTraceContext.create(CurrentTraceContext.Default.create());
-    }
-  }
-
   @Override protected void verifyImplicitContext(@Nullable TraceContext context) {
     if (context != null) {
       assertThat(ThreadContext.get("traceId"))
@@ -53,6 +47,12 @@ public class ThreadContextCurrentTraceContextTest extends CurrentTraceContextTes
         .isNull();
       assertThat(ThreadContext.get("sampled"))
         .isNull();
+    }
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return ThreadContextCurrentTraceContext.create(CurrentTraceContext.Default.create());
     }
   }
 }

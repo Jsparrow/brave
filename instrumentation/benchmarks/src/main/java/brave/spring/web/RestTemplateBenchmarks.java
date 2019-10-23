@@ -53,7 +53,7 @@ public class RestTemplateBenchmarks extends HttpClientBenchmarks<RestTemplate> {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + RestTemplateBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(RestTemplateBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

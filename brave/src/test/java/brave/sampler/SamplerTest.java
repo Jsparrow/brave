@@ -33,17 +33,17 @@ public abstract class SamplerTest {
    */
   static final int INPUT_SIZE = 100000;
 
-  abstract Sampler newSampler(float probability);
-
-  abstract Percentage expectedErrorProbability();
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @DataPoints
+@DataPoints
   public static final float[] SAMPLE_PROBABILITIES = {0.01f, 0.5f, 0.9f};
 
-  @Theory
+@Rule
+  public ExpectedException thrown = ExpectedException.none();
+
+abstract Sampler newSampler(float probability);
+
+abstract Percentage expectedErrorProbability();
+
+@Theory
   public void retainsPerSampleProbability(float sampleProbability) {
     final Sampler sampler = newSampler(sampleProbability);
 
@@ -54,14 +54,14 @@ public abstract class SamplerTest {
       .isCloseTo((long) (INPUT_SIZE * sampleProbability), expectedErrorProbability());
   }
 
-  @Test
+@Test
   public void zeroMeansDropAllTraces() {
     final Sampler sampler = newSampler(0.0f);
 
     assertThat(new Random().longs(INPUT_SIZE).filter(sampler::isSampled).findAny()).isEmpty();
   }
 
-  @Test
+@Test
   public void oneMeansKeepAllTraces() {
     final Sampler sampler = newSampler(1.0f);
 
@@ -69,14 +69,14 @@ public abstract class SamplerTest {
       INPUT_SIZE);
   }
 
-  @Test
+@Test
   public void probabilityCantBeNegative() {
     thrown.expect(IllegalArgumentException.class);
 
     newSampler(-1.0f);
   }
 
-  @Test
+@Test
   public void probabilityCantBeOverOne() {
     thrown.expect(IllegalArgumentException.class);
 

@@ -25,11 +25,15 @@ public class EndpointFactoryBean implements FactoryBean {
 
   @Override public Endpoint getObject() {
     Endpoint.Builder builder = Endpoint.newBuilder();
-    if (serviceName != null) builder.serviceName(serviceName);
+    if (serviceName != null) {
+		builder.serviceName(serviceName);
+	}
     if (ip != null && !builder.parseIp(ip)) {
-      throw new IllegalArgumentException("endpoint.ip: " + ip + " is not an IP literal");
+      throw new IllegalArgumentException(new StringBuilder().append("endpoint.ip: ").append(ip).append(" is not an IP literal").toString());
     }
-    if (port != null) builder.port(port);
+    if (port != null) {
+		builder.port(port);
+	}
     return builder.build();
   }
 

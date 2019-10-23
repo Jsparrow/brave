@@ -64,7 +64,7 @@ public class ListsTest {
   }
 
   @Test public void ensureImmutable_doesntCopyUnmodifiableList() {
-    List<Object> list = Collections.unmodifiableList(Arrays.asList("foo"));
+    List<Object> list = Collections.unmodifiableList(Collections.singletonList("foo"));
     assertThat(Lists.ensureImmutable(list))
       .isSameAs(list);
   }

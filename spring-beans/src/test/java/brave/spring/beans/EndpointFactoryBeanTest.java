@@ -25,14 +25,13 @@ public class EndpointFactoryBeanTest {
   XmlBeans context;
 
   @After public void close() {
-    if (context != null) context.close();
+    if (context != null) {
+		context.close();
+	}
   }
 
   @Test public void serviceName() {
-    context = new XmlBeans(""
-      + "<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "</bean>"
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("endpoint", Endpoint.class))
@@ -40,11 +39,7 @@ public class EndpointFactoryBeanTest {
   }
 
   @Test public void ip() {
-    context = new XmlBeans(""
-      + "<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "  <property name=\"ip\" value=\"1.2.3.4\"/>\n"
-      + "</bean>"
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("  <property name=\"ip\" value=\"1.2.3.4\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("endpoint", Endpoint.class))
@@ -55,11 +50,7 @@ public class EndpointFactoryBeanTest {
   }
 
   @Test public void ip_malformed() {
-    context = new XmlBeans(""
-      + "<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "  <property name=\"ip\" value=\"localhost\"/>\n"
-      + "</bean>"
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("  <property name=\"ip\" value=\"localhost\"/>\n").append("</bean>").toString()
     );
 
     try {
@@ -72,12 +63,7 @@ public class EndpointFactoryBeanTest {
   }
 
   @Test public void port() {
-    context = new XmlBeans(""
-      + "<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n"
-      + "  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n"
-      + "  <property name=\"ip\" value=\"1.2.3.4\"/>\n"
-      + "  <property name=\"port\" value=\"8080\"/>\n"
-      + "</bean>"
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"endpoint\" class=\"brave.spring.beans.EndpointFactoryBean\">\n").append("  <property name=\"serviceName\" value=\"brave-webmvc-example\"/>\n").append("  <property name=\"ip\" value=\"1.2.3.4\"/>\n").append("  <property name=\"port\" value=\"8080\"/>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("endpoint", Endpoint.class))

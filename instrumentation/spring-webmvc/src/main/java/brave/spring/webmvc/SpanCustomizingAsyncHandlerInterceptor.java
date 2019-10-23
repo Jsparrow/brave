@@ -37,7 +37,9 @@ public final class SpanCustomizingAsyncHandlerInterceptor extends HandlerInterce
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) {
     SpanCustomizer span = (SpanCustomizer) request.getAttribute(SpanCustomizer.class.getName());
-    if (span != null) handlerParser.preHandle(request, o, span);
+    if (span != null) {
+		handlerParser.preHandle(request, o, span);
+	}
     return true;
   }
 
@@ -46,6 +48,8 @@ public final class SpanCustomizingAsyncHandlerInterceptor extends HandlerInterce
   public void afterCompletion(
     HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
     SpanCustomizer span = (SpanCustomizer) request.getAttribute(SpanCustomizer.class.getName());
-    if (span != null) setHttpRouteAttribute(request);
+    if (span != null) {
+		setHttpRouteAttribute(request);
+	}
   }
 }

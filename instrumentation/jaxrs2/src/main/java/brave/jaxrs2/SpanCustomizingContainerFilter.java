@@ -35,27 +35,26 @@ import static javax.ws.rs.RuntimeType.SERVER;
 @ConstrainedTo(SERVER)
 public final class SpanCustomizingContainerFilter implements ContainerRequestFilter {
 
-  public static SpanCustomizingContainerFilter create() {
-    return create(new ContainerParser());
-  }
-
-  public static SpanCustomizingContainerFilter create(ContainerParser parser) {
-    return new SpanCustomizingContainerFilter(parser);
-  }
-
   final ContainerParser parser;
+	/** {@link PreMatching} cannot be used: pre-matching doesn't inject the resource info! */
+	  @Context ResourceInfo resourceInfo;
 
-  @Inject SpanCustomizingContainerFilter(ContainerParser parser) {
-    this.parser = parser;
-  }
+	@Inject SpanCustomizingContainerFilter(ContainerParser parser) {
+	    this.parser = parser;
+	  }
 
-  /** {@link PreMatching} cannot be used: pre-matching doesn't inject the resource info! */
-  @Context ResourceInfo resourceInfo;
+	public static SpanCustomizingContainerFilter create() {
+	    return create(new ContainerParser());
+	  }
 
-  @Override public void filter(ContainerRequestContext request) {
-    SpanCustomizer span = (SpanCustomizer) request.getProperty(SpanCustomizer.class.getName());
-    if (span != null && resourceInfo != null) {
-      parser.resourceInfo(resourceInfo, span);
-    }
-  }
+	public static SpanCustomizingContainerFilter create(ContainerParser parser) {
+	    return new SpanCustomizingContainerFilter(parser);
+	  }
+
+	@Override public void filter(ContainerRequestContext request) {
+	    SpanCustomizer span = (SpanCustomizer) request.getProperty(SpanCustomizer.class.getName());
+	    if (span != null && resourceInfo != null) {
+	      parser.resourceInfo(resourceInfo, span);
+	    }
+	  }
 }

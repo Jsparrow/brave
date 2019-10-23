@@ -101,9 +101,13 @@ public class HttpRuleSamplerTest {
 
   @Test public void exampleCustomMatcher() {
     Matcher<HttpRequest> playInTheUSA = request -> {
-      if (!"/play".equals(request.path())) return false;
+      if (!"/play".equals(request.path())) {
+		return false;
+	}
       String url = request.url();
-      if (url == null) return false;
+      if (url == null) {
+		return false;
+	}
       String query = URI.create(url).getQuery();
       return query != null && query.contains("country=US");
     };

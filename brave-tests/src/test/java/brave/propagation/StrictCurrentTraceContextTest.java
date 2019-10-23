@@ -18,17 +18,15 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class StrictCurrentTraceContextTest extends CurrentTraceContextTest {
 
-  @Override protected Class<? extends Supplier<CurrentTraceContext>> currentSupplier() {
-    return CurrentSupplier.class;
-  }
+  private static final Logger logger = LogManager.getLogger(StrictCurrentTraceContextTest.class);
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return new StrictCurrentTraceContext();
-    }
+@Override protected Class<? extends Supplier<CurrentTraceContext>> currentSupplier() {
+    return CurrentSupplier.class;
   }
 
   @Test public void scope_enforcesCloseOnSameThread() throws InterruptedException {
@@ -45,7 +43,7 @@ public class StrictCurrentTraceContextTest extends CurrentTraceContextTest {
         spawnedThread.start();
         spawnedThread.join();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage(), e);
         Thread.currentThread().interrupt();
       }
     }, "scoping thread");
@@ -56,6 +54,12 @@ public class StrictCurrentTraceContextTest extends CurrentTraceContextTest {
     assertThat(spawnedThreadException[0])
       .hasMessage("scope closed in a different thread: spawned thread");
     assertThat(spawnedThreadException[0].getCause())
-      .hasMessage("Thread scoping thread opened scope for " + context + " here:");
+      .hasMessage(new StringBuilder().append("Thread scoping thread opened scope for ").append(context).append(" here:").toString());
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return new StrictCurrentTraceContext();
+    }
   }
 }

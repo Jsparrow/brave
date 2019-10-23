@@ -45,7 +45,119 @@ import java.util.concurrent.ConcurrentMap;
  * @since 4.4
  */
 public abstract class DeclarativeSampler<M> implements SamplerFunction<M> {
-  /** @since 5.8 */
+  /** Prevents us from recomputing a method that had no configured factory */
+	  static final Sampler NULL_SENTINEL = new Sampler() {
+	    @Override public boolean isSampled(long traceId) {
+	      throw new AssertionError();
+	    }
+	  };
+	// this assumes input are compared by identity as typically annotations do not override hashCode
+	  final ConcurrentMap<M, Sampler> methodToSamplers = new ConcurrentHashMap<>();
+
+	DeclarativeSampler() {
+	  }
+
+	/* @since 5.8 */
+	  public static <M> DeclarativeSampler<M> createWithProbability(
+	    ProbabilityOfMethod<M> probabilityOfMethod) {
+	    if (probabilityOfMethod == null) {
+			throw new NullPointerException("probabilityOfMethod == null");
+		}
+	    return new DeclarativeCountingSampler<>(probabilityOfMethod);
+	  }
+
+	/* @since 5.8 */
+	  public static <M> DeclarativeSampler<M> createWithRate(RateOfMethod<M> rateOfMethod) {
+	    if (rateOfMethod == null) {
+			throw new NullPointerException("rateOfMethod == null");
+		}
+	    return new DeclarativeRateLimitingSampler<>(rateOfMethod);
+	  }
+
+	/**
+	   * {@inheritDoc}
+	   *
+	   * @since 5.8
+	   */
+	  @Override public @Nullable Boolean trySample(@Nullable M method) {
+	    if (method == null) {
+			return null;
+		}
+	    Sampler sampler = methodToSamplers.get(method);
+	    if (sampler == NULL_SENTINEL) {
+			return null;
+		}
+	    if (sampler != null)
+		 {
+			return sampler.isSampled(0L); // counting sampler ignores the input
+		}
+	
+	    sampler = samplerOfMethod(method);
+	    if (sampler == null) {
+	      methodToSamplers.put(method, NULL_SENTINEL);
+	      return null;
+	    }
+	
+	    Sampler previousSampler = methodToSamplers.putIfAbsent(method, sampler);
+	    if (previousSampler != null)
+		 {
+			sampler = previousSampler; // lost race, use the existing counter
+		}
+	    return sampler.isSampled(0L); // counting sampler ignores the input
+	  }
+
+	@Nullable abstract Sampler samplerOfMethod(M method);
+
+	/**
+	   * @since 4.4
+	   * @deprecated since 5.8, use {@link #createWithProbability(ProbabilityOfMethod)}
+	   */
+	  public static <M> DeclarativeSampler<M> create(RateForMethod<M> rateForMethod) {
+	    return createWithProbability(rateForMethod);
+	  }
+
+	/**
+	   * @since 4.4
+	   * @deprecated Since 5.8, use {@link Tracer#startScopedSpan(String, SamplerFunction, Object)}
+	   */
+	  @Deprecated public Sampler toSampler(M method) {
+	    return toSampler(method, Sampler.NEVER_SAMPLE);
+	  }
+
+	/**
+	   * @since 4.19
+	   * @deprecated Since 5.8, use {@link Tracer#startScopedSpan(String, SamplerFunction, Object)}
+	   */
+	  @Deprecated public Sampler toSampler(M method, Sampler fallback) {
+	    if (fallback == null) {
+			throw new NullPointerException("fallback == null");
+		}
+	    if (method == null) {
+			return fallback;
+		}
+	    return new Sampler() {
+	      @Override public boolean isSampled(long traceId) {
+	        Boolean decision = trySample(method);
+	        if (decision == null) {
+				return fallback.isSampled(traceId);
+			}
+	        return decision;
+	      }
+	    };
+	  }
+
+	/**
+	   * @since 4.4
+	   * @deprecated Since 5.8, use {@link #trySample(Object)}
+	   */
+	  @Deprecated public SamplingFlags sample(@Nullable M method) {
+	    if (method == null) {
+			return SamplingFlags.EMPTY;
+		}
+	    return SamplingFlags.Builder.build(trySample(method));
+	  }
+
+/** @since 5.8 */
   public interface ProbabilityOfMethod<M> {
     /** Returns null if there's no configured sample probability of this method */
     @Nullable Float get(M method);
@@ -57,53 +169,6 @@ public abstract class DeclarativeSampler<M> implements SamplerFunction<M> {
     @Nullable Integer get(M method);
   }
 
-  /* @since 5.8 */
-  public static <M> DeclarativeSampler<M> createWithProbability(
-    ProbabilityOfMethod<M> probabilityOfMethod) {
-    if (probabilityOfMethod == null) throw new NullPointerException("probabilityOfMethod == null");
-    return new DeclarativeCountingSampler<>(probabilityOfMethod);
-  }
-
-  /* @since 5.8 */
-  public static <M> DeclarativeSampler<M> createWithRate(RateOfMethod<M> rateOfMethod) {
-    if (rateOfMethod == null) throw new NullPointerException("rateOfMethod == null");
-    return new DeclarativeRateLimitingSampler<>(rateOfMethod);
-  }
-
-  // this assumes input are compared by identity as typically annotations do not override hashCode
-  final ConcurrentMap<M, Sampler> methodToSamplers = new ConcurrentHashMap<>();
-
-  /**
-   * {@inheritDoc}
-   *
-   * @since 5.8
-   */
-  @Override public @Nullable Boolean trySample(@Nullable M method) {
-    if (method == null) return null;
-    Sampler sampler = methodToSamplers.get(method);
-    if (sampler == NULL_SENTINEL) return null;
-    if (sampler != null) return sampler.isSampled(0L); // counting sampler ignores the input
-
-    sampler = samplerOfMethod(method);
-    if (sampler == null) {
-      methodToSamplers.put(method, NULL_SENTINEL);
-      return null;
-    }
-
-    Sampler previousSampler = methodToSamplers.putIfAbsent(method, sampler);
-    if (previousSampler != null) sampler = previousSampler; // lost race, use the existing counter
-    return sampler.isSampled(0L); // counting sampler ignores the input
-  }
-
-  /** Prevents us from recomputing a method that had no configured factory */
-  static final Sampler NULL_SENTINEL = new Sampler() {
-    @Override public boolean isSampled(long traceId) {
-      throw new AssertionError();
-    }
-  };
-
-  @Nullable abstract Sampler samplerOfMethod(M method);
-
   static final class DeclarativeCountingSampler<M> extends DeclarativeSampler<M> {
     final ProbabilityOfMethod<M> probabilityOfMethod;
 
@@ -113,12 +178,14 @@ public abstract class DeclarativeSampler<M> implements SamplerFunction<M> {
 
     @Override Sampler samplerOfMethod(M method) {
       Float probability = probabilityOfMethod.get(method);
-      if (probability == null) return null;
+      if (probability == null) {
+		return null;
+	}
       return CountingSampler.create(probability);
     }
 
     @Override public String toString() {
-      return "DeclarativeCountingSampler{" + probabilityOfMethod + "}";
+      return new StringBuilder().append("DeclarativeCountingSampler{").append(probabilityOfMethod).append("}").toString();
     }
   }
 
@@ -131,24 +198,15 @@ public abstract class DeclarativeSampler<M> implements SamplerFunction<M> {
 
     @Override Sampler samplerOfMethod(M method) {
       Integer rate = rateOfMethod.get(method);
-      if (rate == null) return null;
+      if (rate == null) {
+		return null;
+	}
       return RateLimitingSampler.create(rate);
     }
 
     @Override public String toString() {
-      return "DeclarativeRateLimitingSampler{" + rateOfMethod + "}";
+      return new StringBuilder().append("DeclarativeRateLimitingSampler{").append(rateOfMethod).append("}").toString();
     }
-  }
-
-  DeclarativeSampler() {
-  }
-
-  /**
-   * @since 4.4
-   * @deprecated since 5.8, use {@link #createWithProbability(ProbabilityOfMethod)}
-   */
-  public static <M> DeclarativeSampler<M> create(RateForMethod<M> rateForMethod) {
-    return createWithProbability(rateForMethod);
   }
 
   /**
@@ -156,38 +214,5 @@ public abstract class DeclarativeSampler<M> implements SamplerFunction<M> {
    * @deprecated since 5.8, use {@link ProbabilityOfMethod}
    */
   public interface RateForMethod<M> extends ProbabilityOfMethod<M> {
-  }
-
-  /**
-   * @since 4.4
-   * @deprecated Since 5.8, use {@link Tracer#startScopedSpan(String, SamplerFunction, Object)}
-   */
-  @Deprecated public Sampler toSampler(M method) {
-    return toSampler(method, Sampler.NEVER_SAMPLE);
-  }
-
-  /**
-   * @since 4.19
-   * @deprecated Since 5.8, use {@link Tracer#startScopedSpan(String, SamplerFunction, Object)}
-   */
-  @Deprecated public Sampler toSampler(M method, Sampler fallback) {
-    if (fallback == null) throw new NullPointerException("fallback == null");
-    if (method == null) return fallback;
-    return new Sampler() {
-      @Override public boolean isSampled(long traceId) {
-        Boolean decision = trySample(method);
-        if (decision == null) return fallback.isSampled(traceId);
-        return decision;
-      }
-    };
-  }
-
-  /**
-   * @since 4.4
-   * @deprecated Since 5.8, use {@link #trySample(Object)}
-   */
-  @Deprecated public SamplingFlags sample(@Nullable M method) {
-    if (method == null) return SamplingFlags.EMPTY;
-    return SamplingFlags.Builder.build(trySample(method));
   }
 }

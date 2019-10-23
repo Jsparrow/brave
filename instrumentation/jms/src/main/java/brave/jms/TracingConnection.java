@@ -34,91 +34,105 @@ import javax.jms.XATopicConnection;
 /** Implements all interfaces as according to ActiveMQ, this is typical of JMS 1.1. */
 class TracingConnection implements QueueConnection, TopicConnection {
   static final int
-    TYPE_QUEUE = 1 << 1,
-    TYPE_TOPIC = 1 << 2,
-    TYPE_XA = 1 << 3,
-    TYPE_XA_QUEUE = 1 << 4,
-    TYPE_XA_TOPIC = 1 << 5;
+    TYPE_QUEUE = 1 << 1;
+static final int TYPE_TOPIC = 1 << 2;
+static final int TYPE_XA = 1 << 3;
+static final int TYPE_XA_QUEUE = 1 << 4;
+static final int TYPE_XA_TOPIC = 1 << 5;
+final Connection delegate;
+final JmsTracing jmsTracing;
+final int types;
 
-  static TracingConnection create(Connection delegate, JmsTracing jmsTracing) {
-    if (delegate instanceof TracingConnection) return (TracingConnection) delegate;
-    return new TracingConnection(delegate, jmsTracing);
-  }
-
-  final Connection delegate;
-  final JmsTracing jmsTracing;
-  final int types;
-
-  TracingConnection(Connection delegate, JmsTracing jmsTracing) {
+TracingConnection(Connection delegate, JmsTracing jmsTracing) {
     this.delegate = delegate;
     this.jmsTracing = jmsTracing;
     int types = 0;
-    if (delegate instanceof QueueConnection) types |= TYPE_QUEUE;
-    if (delegate instanceof TopicConnection) types |= TYPE_TOPIC;
-    if (delegate instanceof XAConnection) types |= TYPE_XA;
-    if (delegate instanceof XAQueueConnection) types |= TYPE_XA_QUEUE;
-    if (delegate instanceof XATopicConnection) types |= TYPE_XA_TOPIC;
+    if (delegate instanceof QueueConnection) {
+		types |= TYPE_QUEUE;
+	}
+    if (delegate instanceof TopicConnection) {
+		types |= TYPE_TOPIC;
+	}
+    if (delegate instanceof XAConnection) {
+		types |= TYPE_XA;
+	}
+    if (delegate instanceof XAQueueConnection) {
+		types |= TYPE_XA_QUEUE;
+	}
+    if (delegate instanceof XATopicConnection) {
+		types |= TYPE_XA_TOPIC;
+	}
     this.types = types;
   }
 
-  @Override public Session createSession(boolean transacted, int acknowledgeMode)
+static TracingConnection create(Connection delegate, JmsTracing jmsTracing) {
+    if (delegate instanceof TracingConnection) {
+		return (TracingConnection) delegate;
+	}
+    return new TracingConnection(delegate, jmsTracing);
+  }
+
+@Override public Session createSession(boolean transacted, int acknowledgeMode)
     throws JMSException {
     return TracingSession.create(delegate.createSession(transacted, acknowledgeMode), jmsTracing);
   }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0
+/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+  @Override
+@JMS2_0
   public Session createSession(int sessionMode) throws JMSException {
     return TracingSession.create(delegate.createSession(sessionMode), jmsTracing);
   }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0
+/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+  @Override
+@JMS2_0
   public Session createSession() throws JMSException {
     return TracingSession.create(delegate.createSession(), jmsTracing);
   }
 
-  @Override public String getClientID() throws JMSException {
+@Override public String getClientID() throws JMSException {
     return delegate.getClientID();
   }
 
-  @Override public void setClientID(String clientID) throws JMSException {
+@Override public void setClientID(String clientID) throws JMSException {
     delegate.setClientID(clientID);
   }
 
-  @Override public ConnectionMetaData getMetaData() throws JMSException {
+@Override public ConnectionMetaData getMetaData() throws JMSException {
     return delegate.getMetaData();
   }
 
-  @Override public ExceptionListener getExceptionListener() throws JMSException {
+@Override public ExceptionListener getExceptionListener() throws JMSException {
     return delegate.getExceptionListener();
   }
 
-  @Override public void setExceptionListener(ExceptionListener listener) throws JMSException {
+@Override public void setExceptionListener(ExceptionListener listener) throws JMSException {
     delegate.setExceptionListener(TracingExceptionListener.create(listener, jmsTracing));
   }
 
-  @Override public void start() throws JMSException {
+@Override public void start() throws JMSException {
     delegate.start();
   }
 
-  @Override public void stop() throws JMSException {
+@Override public void stop() throws JMSException {
     delegate.stop();
   }
 
-  @Override public void close() throws JMSException {
+@Override public void close() throws JMSException {
     delegate.close();
   }
 
-  @Override public ConnectionConsumer createConnectionConsumer(Destination destination,
+@Override public ConnectionConsumer createConnectionConsumer(Destination destination,
     String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
     ConnectionConsumer cc =
       delegate.createConnectionConsumer(destination, messageSelector, sessionPool, maxMessages);
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0
+/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+  @Override
+@JMS2_0
   public ConnectionConsumer createSharedConnectionConsumer(Topic topic, String subscriptionName,
     String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
     ConnectionConsumer cc =
@@ -127,7 +141,7 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  @Override
+@Override
   public ConnectionConsumer createDurableConnectionConsumer(Topic topic, String subscriptionName,
     String messageSelector, ServerSessionPool sessionPool, int maxMessages) throws JMSException {
     ConnectionConsumer cc =
@@ -136,8 +150,9 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0
+/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+  @Override
+@JMS2_0
   public ConnectionConsumer createSharedDurableConnectionConsumer(Topic topic,
     String subscriptionName, String messageSelector, ServerSessionPool sessionPool,
     int maxMessages) throws JMSException {
@@ -147,7 +162,7 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  // QueueConnection
+// QueueConnection
   @Override public QueueSession createQueueSession(boolean transacted, int acknowledgeMode)
     throws JMSException {
     checkQueueConnection();
@@ -155,7 +170,7 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingSession.create(qs, jmsTracing);
   }
 
-  @Override public ConnectionConsumer createConnectionConsumer(Queue queue, String messageSelector,
+@Override public ConnectionConsumer createConnectionConsumer(Queue queue, String messageSelector,
     ServerSessionPool sessionPool, int maxMessages) throws JMSException {
     checkQueueConnection();
     ConnectionConsumer cc = ((QueueConnection) delegate)
@@ -163,13 +178,13 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  void checkQueueConnection() {
+void checkQueueConnection() {
     if ((types & TYPE_QUEUE) != TYPE_QUEUE) {
       throw new IllegalStateException(delegate + " is not a QueueConnection");
     }
   }
 
-  // TopicConnection
+// TopicConnection
   @Override public TopicSession createTopicSession(boolean transacted, int acknowledgeMode)
     throws JMSException {
     checkTopicConnection();
@@ -177,7 +192,7 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingSession.create(ts, jmsTracing);
   }
 
-  @Override public ConnectionConsumer createConnectionConsumer(Topic topic, String messageSelector,
+@Override public ConnectionConsumer createConnectionConsumer(Topic topic, String messageSelector,
     ServerSessionPool sessionPool, int maxMessages) throws JMSException {
     checkTopicConnection();
     ConnectionConsumer cc = ((TopicConnection) delegate)
@@ -185,7 +200,7 @@ class TracingConnection implements QueueConnection, TopicConnection {
     return TracingConnectionConsumer.create(cc, jmsTracing);
   }
 
-  void checkTopicConnection() {
+void checkTopicConnection() {
     if ((types & TYPE_TOPIC) != TYPE_TOPIC) {
       throw new IllegalStateException(delegate + " is not a TopicConnection");
     }

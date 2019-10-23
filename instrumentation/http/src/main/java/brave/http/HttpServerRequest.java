@@ -58,42 +58,58 @@ public abstract class HttpServerRequest extends HttpRequest {
     final Object unwrapped;
 
     ToHttpAdapter(HttpServerRequest delegate) {
-      if (delegate == null) throw new NullPointerException("delegate == null");
+      if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
       this.delegate = delegate;
       this.unwrapped = delegate.unwrap();
-      if (unwrapped == null) throw new NullPointerException("delegate.unwrap() == null");
+      if (unwrapped == null) {
+		throw new NullPointerException("delegate.unwrap() == null");
+	}
     }
 
     @Override public final boolean parseClientIpAndPort(Object req, Span span) {
-      if (req == unwrapped) {
-        if (parseClientIpFromXForwardedFor(req, span)) return true;
-        return delegate.parseClientIpAndPort(span);
-      }
-      return false;
+      if (req != unwrapped) {
+		return false;
+	}
+	if (parseClientIpFromXForwardedFor(req, span)) {
+		return true;
+	}
+	return delegate.parseClientIpAndPort(span);
     }
 
     @Override public final long startTimestamp(Object request) {
-      if (request == unwrapped) return delegate.startTimestamp();
+      if (request == unwrapped) {
+		return delegate.startTimestamp();
+	}
       return 0L;
     }
 
     @Override public final String method(Object request) {
-      if (request == unwrapped) return delegate.method();
+      if (request == unwrapped) {
+		return delegate.method();
+	}
       return null;
     }
 
     @Override public final String url(Object request) {
-      if (request == unwrapped) return delegate.url();
+      if (request == unwrapped) {
+		return delegate.url();
+	}
       return null;
     }
 
     @Override public final String requestHeader(Object request, String name) {
-      if (request == unwrapped) return delegate.header(name);
+      if (request == unwrapped) {
+		return delegate.header(name);
+	}
       return null;
     }
 
     @Override public final String path(Object request) {
-      if (request == unwrapped) return delegate.path();
+      if (request == unwrapped) {
+		return delegate.path();
+	}
       return null;
     }
 
@@ -129,9 +145,13 @@ public abstract class HttpServerRequest extends HttpRequest {
     final Req request;
 
     FromHttpAdapter(HttpServerAdapter<Req, ?> adapter, Req request) {
-      if (adapter == null) throw new NullPointerException("adapter == null");
+      if (adapter == null) {
+		throw new NullPointerException("adapter == null");
+	}
       this.adapter = adapter;
-      if (request == null) throw new NullPointerException("request == null");
+      if (request == null) {
+		throw new NullPointerException("request == null");
+	}
       this.request = request;
     }
 

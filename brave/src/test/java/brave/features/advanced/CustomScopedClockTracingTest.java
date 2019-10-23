@@ -43,39 +43,6 @@ public class CustomScopedClockTracingTest {
     Tracing.current().close();
   }
 
-  class Connection {
-    final UUID id;
-    boolean used;
-
-    Connection() {
-      id = UUID.randomUUID();
-    }
-
-    void reserve() {
-      used = true;
-    }
-
-    void release() {
-    }
-
-    void destroy() {
-    }
-  }
-
-  class Query {
-    final Connection connection;
-
-    Query(Connection connection) {
-      this.connection = connection;
-    }
-
-    void execute() {
-      connection.reserve();
-      // pretend you do something
-      connection.release();
-    }
-  }
-
   /**
    * Here, we speculatively start a trace based on a connection, which is abandoned of there are no
    * queries. As each query will be in a separate trace, we need to manually control timestamps.
@@ -143,5 +110,38 @@ public class CustomScopedClockTracingTest {
       // we expect to be able to correlate all traces by the connection ID
       .allSatisfy(s -> assertThat(s.tags())
         .containsEntry("connection.id", connection2.id.toString()));
+  }
+
+class Connection {
+    final UUID id;
+    boolean used;
+
+    Connection() {
+      id = UUID.randomUUID();
+    }
+
+    void reserve() {
+      used = true;
+    }
+
+    void release() {
+    }
+
+    void destroy() {
+    }
+  }
+
+  class Query {
+    final Connection connection;
+
+    Query(Connection connection) {
+      this.connection = connection;
+    }
+
+    void execute() {
+      connection.reserve();
+      // pretend you do something
+      connection.release();
+    }
   }
 }

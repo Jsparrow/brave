@@ -33,13 +33,6 @@ public class HandlerParserTest {
   HandlerParser parser = new HandlerParser();
   TestController controller = new TestController();
 
-  @Controller static class TestController {
-    @RequestMapping(value = "/items/{itemId}")
-    public ResponseEntity<String> items(@PathVariable String itemId) {
-      return new ResponseEntity<>(itemId, HttpStatus.OK);
-    }
-  }
-
   /** For Spring WebMVC 3.1+ */
   @Test public void preHandle_HandlerMethod_addsClassAndMethodTags() throws Exception {
     parser.preHandle(
@@ -53,7 +46,7 @@ public class HandlerParserTest {
     verifyNoMoreInteractions(request, customizer);
   }
 
-  /** For Spring WebMVC 2.5 */
+/** For Spring WebMVC 2.5 */
   @Test public void preHandle_Handler_addsClassTag() {
     parser.preHandle(request, controller, customizer);
 
@@ -61,9 +54,16 @@ public class HandlerParserTest {
     verifyNoMoreInteractions(request, customizer);
   }
 
-  @Test public void preHandle_NOOP_addsNothing() {
+@Test public void preHandle_NOOP_addsNothing() {
     HandlerParser.NOOP.preHandle(request, controller, customizer);
 
     verifyNoMoreInteractions(request, customizer);
+  }
+
+@Controller static class TestController {
+    @RequestMapping(value = "/items/{itemId}")
+    public ResponseEntity<String> items(@PathVariable String itemId) {
+      return new ResponseEntity<>(itemId, HttpStatus.OK);
+    }
   }
 }

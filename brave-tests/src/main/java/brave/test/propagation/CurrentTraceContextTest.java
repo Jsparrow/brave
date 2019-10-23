@@ -32,10 +32,13 @@ import static brave.test.util.ClassLoaders.assertRunIsUnloadableWithSupplier;
 import static brave.test.util.ClassLoaders.newInstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class CurrentTraceContextTest {
 
-  protected final CurrentTraceContext currentTraceContext;
+  private static final Logger logger = LogManager.getLogger(CurrentTraceContextTest.class);
+protected final CurrentTraceContext currentTraceContext;
   protected final TraceContext context =
     TraceContext.newBuilder().traceIdHigh(-1L).traceId(1L).spanId(1L).sampled(true).build();
   protected final TraceContext notYetSampledContext =
@@ -43,28 +46,28 @@ public abstract class CurrentTraceContextTest {
   protected final TraceContext unsampledContext =
     TraceContext.newBuilder().traceId(2L).spanId(2L).sampled(false).build();
 
-  protected abstract Class<? extends Supplier<CurrentTraceContext>> currentSupplier();
-
   protected CurrentTraceContextTest() {
     currentTraceContext = newInstance(currentSupplier(), getClass().getClassLoader()).get();
   }
 
-  protected void verifyImplicitContext(@Nullable TraceContext context) {
+protected abstract Class<? extends Supplier<CurrentTraceContext>> currentSupplier();
+
+protected void verifyImplicitContext(@Nullable TraceContext context) {
   }
 
-  @Test public void currentSpan_defaultsToNull() {
+@Test public void currentSpan_defaultsToNull() {
     assertThat(currentTraceContext.get()).isNull();
   }
 
-  @Test public void newScope_retainsContext() {
+@Test public void newScope_retainsContext() {
     retainsContext(currentTraceContext.newScope(context));
   }
 
-  @Test public void maybeScope_retainsContext() {
+@Test public void maybeScope_retainsContext() {
     retainsContext(currentTraceContext.maybeScope(context));
   }
 
-  void retainsContext(Scope scope) {
+void retainsContext(Scope scope) {
     try {
       assertThat(scope).isNotEqualTo(Scope.NOOP);
       assertThat(currentTraceContext.get())
@@ -75,15 +78,15 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void newScope_noticesDifferentSpanId() {
+@Test public void newScope_noticesDifferentSpanId() {
     noticesDifferentSpanId(currentTraceContext.newScope(context));
   }
 
-  @Test public void maybeScope_noticesDifferentSpanId() {
+@Test public void maybeScope_noticesDifferentSpanId() {
     noticesDifferentSpanId(currentTraceContext.maybeScope(context));
   }
 
-  void noticesDifferentSpanId(Scope scope) {
+void noticesDifferentSpanId(Scope scope) {
     TraceContext differentSpanId = context.toBuilder().spanId(context.spanId() + 1L).build();
     try (Scope scope2 = currentTraceContext.maybeScope(differentSpanId)) {
       assertThat(scope2).isNotEqualTo(Scope.NOOP);
@@ -95,15 +98,15 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void newScope_noticesDifferentContext() {
+@Test public void newScope_noticesDifferentContext() {
     noticesDifferentContext(currentTraceContext.newScope(context));
   }
 
-  @Test public void maybeScope_noticesDifferentContext() {
+@Test public void maybeScope_noticesDifferentContext() {
     noticesDifferentContext(currentTraceContext.maybeScope(context));
   }
 
-  void noticesDifferentContext(Scope scope) {
+void noticesDifferentContext(Scope scope) {
     try (Scope scope2 = currentTraceContext.maybeScope(unsampledContext)) {
       assertThat(scope2).isNotEqualTo(Scope.NOOP);
       assertThat(currentTraceContext.get())
@@ -120,7 +123,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void maybeScope_doesntDuplicateContext() {
+@Test public void maybeScope_doesntDuplicateContext() {
     try (Scope scope = currentTraceContext.newScope(context)) {
       try (Scope scope2 = currentTraceContext.maybeScope(context)) {
         assertThat(scope2).isEqualTo(Scope.NOOP);
@@ -128,21 +131,21 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void newScope_canClearScope() {
+@Test public void newScope_canClearScope() {
     canClearScope(() -> currentTraceContext.newScope(null));
   }
 
-  @Test public void maybeScope_canClearScope() {
+@Test public void maybeScope_canClearScope() {
     canClearScope(() -> currentTraceContext.maybeScope(null));
   }
 
-  @Test public void maybeScope_doesntDuplicateContext_onNull() {
+@Test public void maybeScope_doesntDuplicateContext_onNull() {
     try (Scope scope2 = currentTraceContext.maybeScope(null)) {
       assertThat(scope2).isEqualTo(Scope.NOOP);
     }
   }
 
-  void canClearScope(Supplier<Scope> noScoper) {
+void canClearScope(Supplier<Scope> noScoper) {
     try (Scope scope = currentTraceContext.newScope(context)) {
       try (Scope noScope = noScoper.get()) {
         assertThat(noScope).isNotEqualTo(Scope.NOOP);
@@ -158,7 +161,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  protected void is_inheritable(CurrentTraceContext inheritableCurrentTraceContext)
+protected void is_inheritable(CurrentTraceContext inheritableCurrentTraceContext)
     throws Exception {
     // use a single-threaded version of newCachedThreadPool
     ExecutorService service = new ThreadPoolExecutor(0, 1,
@@ -177,7 +180,7 @@ public abstract class CurrentTraceContextTest {
     service.shutdownNow();
   }
 
-  @Test public void isnt_inheritable() throws Exception {
+@Test public void isnt_inheritable() throws Exception {
     ExecutorService service = Executors.newCachedThreadPool();
 
     try (Scope scope = currentTraceContext.newScope(context)) {
@@ -186,7 +189,9 @@ public abstract class CurrentTraceContextTest {
         return currentTraceContext.get();
       }).get()).isNull();
     } catch (ExecutionException e) {
-      if (e.getCause() instanceof Error) throw (Error) e.getCause();
+      if (e.getCause() instanceof Error) {
+		throw (Error) e.getCause();
+	}
       throw (Exception) e.getCause();
     }
 
@@ -197,7 +202,7 @@ public abstract class CurrentTraceContextTest {
     service.shutdownNow();
   }
 
-  @Test public void attachesSpanInCallable_canClear() throws Exception {
+@Test public void attachesSpanInCallable_canClear() throws Exception {
     Callable<?> callable = currentTraceContext.wrap(() -> {
       assertThat(currentTraceContext.get()).isNull();
       verifyImplicitContext(null);
@@ -211,7 +216,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void attachesSpanInCallable() throws Exception {
+@Test public void attachesSpanInCallable() throws Exception {
     Callable<?> callable;
     try (Scope scope = currentTraceContext.newScope(context)) {
       callable = currentTraceContext.wrap(() -> {
@@ -231,7 +236,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void restoresSpanAfterCallable() throws Exception {
+@Test public void restoresSpanAfterCallable() throws Exception {
     try (Scope scope0 = currentTraceContext.newScope(context)) {
       attachesSpanInCallable();
       assertThat(currentTraceContext.get())
@@ -240,7 +245,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void attachesSpanInRunnable() throws Exception {
+@Test public void attachesSpanInRunnable() throws Exception {
     Runnable runnable;
     try (Scope scope = currentTraceContext.newScope(context)) {
       runnable = currentTraceContext.wrap(() -> {
@@ -259,7 +264,7 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void restoresSpanAfterRunnable() throws Exception {
+@Test public void restoresSpanAfterRunnable() throws Exception {
     TraceContext context0 = TraceContext.newBuilder().traceId(3L).spanId(3L).build();
 
     try (Scope scope0 = currentTraceContext.newScope(context0)) {
@@ -270,27 +275,15 @@ public abstract class CurrentTraceContextTest {
     }
   }
 
-  @Test public void unloadable_unused() {
+@Test public void unloadable_unused() {
     assertRunIsUnloadableWithSupplier(Unused.class, currentSupplier());
   }
 
-  static class Unused extends ClassLoaders.ConsumerRunnable<CurrentTraceContext> {
-    @Override public void accept(CurrentTraceContext currentTraceContext) {
-    }
-  }
-
-  @Test public void unloadable_afterScopeClose() {
+@Test public void unloadable_afterScopeClose() {
     assertRunIsUnloadableWithSupplier(ClosedScope.class, currentSupplier());
   }
 
-  static class ClosedScope extends ClassLoaders.ConsumerRunnable<CurrentTraceContext> {
-    @Override public void accept(CurrentTraceContext current) {
-      try (Scope ws = current.newScope(TraceContext.newBuilder().traceId(1L).spanId(2L).build())) {
-      }
-    }
-  }
-
-  /**
+/**
    * TODO: While it is an instrumentation bug to not close a scope, we should be tolerant. For
    * example, considering weak references or similar.
    */
@@ -300,8 +293,21 @@ public abstract class CurrentTraceContextTest {
       assertRunIsUnloadableWithSupplier(LeakedScope.class, currentSupplier());
       failBecauseExceptionWasNotThrown(AssertionError.class);
     } catch (AssertionError e) {
-      // clear the leaked scope so other tests don't break
+      logger.error(e.getMessage(), e);
+	// clear the leaked scope so other tests don't break
       currentTraceContext.newScope(null);
+    }
+  }
+
+static class Unused extends ClassLoaders.ConsumerRunnable<CurrentTraceContext> {
+    @Override public void accept(CurrentTraceContext currentTraceContext) {
+    }
+  }
+
+  static class ClosedScope extends ClassLoaders.ConsumerRunnable<CurrentTraceContext> {
+    @Override public void accept(CurrentTraceContext current) {
+      try (Scope ws = current.newScope(TraceContext.newBuilder().traceId(1L).spanId(2L).build())) {
+      }
     }
   }
 

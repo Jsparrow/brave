@@ -29,6 +29,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 import zipkin2.Call;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Access to servlet version-specific features
@@ -36,43 +38,43 @@ import zipkin2.Call;
  * <p>Originally designed by OkHttp team, derived from {@code okhttp3.internal.platform.Platform}
  */
 public abstract class ServletRuntime {
-  private static final ServletRuntime SERVLET_RUNTIME = findServletRuntime();
-
-  public HttpServletResponse httpServletResponse(ServletResponse response) {
-    return (HttpServletResponse) response;
-  }
-
-  /** public while {@link HttpServletAdapter} exists. */
-  public abstract int status(HttpServletResponse response);
-
-  public abstract boolean isAsync(HttpServletRequest request);
-
-  public abstract void handleAsync(
-    HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler,
-    HttpServletRequest request, HttpServletResponse response, Span span);
+  private static final Logger logger = LogManager.getLogger(ServletRuntime.class);
+private static final ServletRuntime SERVLET_RUNTIME = findServletRuntime();
 
   ServletRuntime() {
   }
 
-  public static ServletRuntime get() {
+public HttpServletResponse httpServletResponse(ServletResponse response) {
+    return (HttpServletResponse) response;
+  }
+
+/** public while {@link HttpServletAdapter} exists. */
+  public abstract int status(HttpServletResponse response);
+
+public abstract boolean isAsync(HttpServletRequest request);
+
+public abstract void handleAsync(
+    HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler,
+    HttpServletRequest request, HttpServletResponse response, Span span);
+
+public static ServletRuntime get() {
     return SERVLET_RUNTIME;
   }
 
-  public brave.http.HttpServerResponse httpServerResponse(
+public brave.http.HttpServerResponse httpServerResponse(
     HttpServletRequest req, HttpServletResponse resp) {
     return new HttpServerResponse(req, resp, status(resp));
   }
 
-  /** Attempt to match the host runtime to a capable Platform implementation. */
+/** Attempt to match the host runtime to a capable Platform implementation. */
   private static ServletRuntime findServletRuntime() {
     // Find Servlet v3 new methods
     try {
       Class.forName("javax.servlet.AsyncEvent");
       HttpServletRequest.class.getMethod("isAsyncStarted");
       return new Servlet3(); // intentionally doesn't not access the type prior to the above guard
-    } catch (NoSuchMethodException e) {
-      // pre Servlet v3
-    } catch (ClassNotFoundException e) {
+    } catch (ClassNotFoundException | NoSuchMethodException e) {
+		logger.error(e.getMessage(), e);
       // pre Servlet v3
     }
 
@@ -80,7 +82,7 @@ public abstract class ServletRuntime {
     return new Servlet25();
   }
 
-  static final class Servlet3 extends ServletRuntime {
+static final class Servlet3 extends ServletRuntime {
     @Override public boolean isAsync(HttpServletRequest request) {
       return request.isAsyncStarted();
     }
@@ -92,12 +94,21 @@ public abstract class ServletRuntime {
     @Override public void handleAsync(
       HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler,
       HttpServletRequest request, HttpServletResponse response, Span span) {
-      if (span.isNoop()) return; // don't add overhead when we aren't httpTracing
+      if (span.isNoop())
+	 {
+		return; // don't add overhead when we aren't httpTracing
+	}
       TracingAsyncListener listener = new TracingAsyncListener(handler, span);
       request.getAsyncContext().addListener(listener, request, response);
     }
 
-    static final class TracingAsyncListener implements AsyncListener {
+    static HttpServerResponse httpServerResponse(AsyncEvent event) {
+      HttpServletRequest req = (HttpServletRequest) event.getSuppliedRequest();
+      HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
+      return new HttpServerResponse(req, resp, resp.getStatus());
+    }
+
+	static final class TracingAsyncListener implements AsyncListener {
       final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
       final Span span;
       volatile boolean complete; // multiple async events can occur, only complete once
@@ -111,20 +122,26 @@ public abstract class ServletRuntime {
       }
 
       @Override public void onComplete(AsyncEvent e) {
-        if (complete) return;
+        if (complete) {
+			return;
+		}
         handler.handleSend(httpServerResponse(e), null, span);
         complete = true;
       }
 
       @Override public void onTimeout(AsyncEvent e) {
-        if (complete) return;
+        if (complete) {
+			return;
+		}
         span.tag("error", String.format("Timed out after %sms", e.getAsyncContext().getTimeout()));
         handler.handleSend(httpServerResponse(e), null, span);
         complete = true;
       }
 
       @Override public void onError(AsyncEvent e) {
-        if (complete) return;
+        if (complete) {
+			return;
+		}
         handler.handleSend(httpServerResponse(e), e.getThrowable(), span);
         complete = true;
       }
@@ -138,38 +155,32 @@ public abstract class ServletRuntime {
       }
 
       @Override public String toString() {
-        return "TracingAsyncListener{" + span + "}";
+        return new StringBuilder().append("TracingAsyncListener{").append(span).append("}").toString();
       }
-    }
-
-    static HttpServerResponse httpServerResponse(AsyncEvent event) {
-      HttpServletRequest req = (HttpServletRequest) event.getSuppliedRequest();
-      HttpServletResponse resp = (HttpServletResponse) event.getSuppliedResponse();
-      return new HttpServerResponse(req, resp, resp.getStatus());
     }
   }
 
   static final class Servlet25 extends ServletRuntime {
-    @Override public HttpServletResponse httpServletResponse(ServletResponse response) {
+    static final String RETURN_NULL = "RETURN_NULL";
+	// copy-on-write global reflection cache outperforms thread local copies
+    final AtomicReference<Map<Class<?>, Object>> classToGetStatus =
+      new AtomicReference<>(new LinkedHashMap<>());
+
+	@Override public HttpServletResponse httpServletResponse(ServletResponse response) {
       return new Servlet25ServerResponseAdapter(response);
     }
 
-    @Override public boolean isAsync(HttpServletRequest request) {
+	@Override public boolean isAsync(HttpServletRequest request) {
       return false;
     }
 
-    @Override public void handleAsync(
+	@Override public void handleAsync(
       HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler,
       HttpServletRequest request, HttpServletResponse response, Span span) {
       assert false : "this should never be called in Servlet 2.5";
     }
 
-    // copy-on-write global reflection cache outperforms thread local copies
-    final AtomicReference<Map<Class<?>, Object>> classToGetStatus =
-      new AtomicReference<>(new LinkedHashMap<>());
-    static final String RETURN_NULL = "RETURN_NULL";
-
-    /**
+	/**
      * Eventhough the Servlet 2.5 version of HttpServletResponse doesn't have the getStatus method,
      * routine servlet runtimes, do, for example {@code org.eclipse.jetty.server.Response}
      */
@@ -193,7 +204,10 @@ public abstract class ServletRuntime {
 
       // Now, we either have a cached method or we have room to cache a method
       if (getStatusMethod == null) {
-        if (clazz.isLocalClass() || clazz.isAnonymousClass()) return 0; // don't cache
+        if (clazz.isLocalClass() || clazz.isAnonymousClass())
+		 {
+			return 0; // don't cache
+		}
         try {
           // we don't check for accessibility as isAccessible is deprecated: just fail later
           getStatusMethod = clazz.getMethod("getStatus");
@@ -233,7 +247,8 @@ public abstract class ServletRuntime {
     }
 
     // Do not use @Override annotation to avoid compatibility on deprecated methods
-    public void setStatus(int sc, String sm) {
+    @Override
+	public void setStatus(int sc, String sm) {
       httpStatus = sc;
       super.setStatus(sc, sm);
     }
@@ -260,12 +275,17 @@ public abstract class ServletRuntime {
 
   static final class HttpServerResponse extends brave.http.HttpServerResponse {
     final HttpServletResponse delegate;
-    final String method, httpRoute;
+    final String method;
+	final String httpRoute;
     final int statusCode;
 
     HttpServerResponse(HttpServletRequest req, HttpServletResponse resp, int statusCode) {
-      if (req == null) throw new NullPointerException("req == null");
-      if (resp == null) throw new NullPointerException("resp == null");
+      if (req == null) {
+		throw new NullPointerException("req == null");
+	}
+      if (resp == null) {
+		throw new NullPointerException("resp == null");
+	}
       this.delegate = resp;
       this.method = req.getMethod();
       this.httpRoute = (String) req.getAttribute("http.route");

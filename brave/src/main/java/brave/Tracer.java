@@ -93,7 +93,9 @@ public class Tracer {
   final PendingSpans pendingSpans;
   final Sampler sampler;
   final CurrentTraceContext currentTraceContext;
-  final boolean traceId128Bit, supportsJoin, alwaysSampleLocal;
+  final boolean traceId128Bit;
+final boolean supportsJoin;
+final boolean alwaysSampleLocal;
   final AtomicBoolean noop;
 
   Tracer(
@@ -126,7 +128,9 @@ public class Tracer {
    * #startScopedSpan(String, SamplerFunction, Object)}
    */
   @Deprecated public Tracer withSampler(Sampler sampler) {
-    if (sampler == null) throw new NullPointerException("sampler == null");
+    if (sampler == null) {
+		throw new NullPointerException("sampler == null");
+	}
     return new Tracer(
       clock,
       propagationFactory,
@@ -179,8 +183,11 @@ public class Tracer {
    * @see #nextSpan(TraceContextOrSamplingFlags)
    */
   public final Span joinSpan(TraceContext context) {
-    if (context == null) throw new NullPointerException("context == null");
-    long parentId = context.parentIdAsLong(), spanId = context.spanId();
+    if (context == null) {
+		throw new NullPointerException("context == null");
+	}
+    long parentId = context.parentIdAsLong();
+	long spanId = context.spanId();
     if (!supportsJoin) {
       parentId = context.spanId();
       spanId = 0L;
@@ -196,7 +203,9 @@ public class Tracer {
    * #nextSpan()}.
    */
   public Span newChild(TraceContext parent) {
-    if (parent == null) throw new NullPointerException("parent == null");
+    if (parent == null) {
+		throw new NullPointerException("parent == null");
+	}
     return _toSpan(decorateContext(parent, parent.spanId(), 0L));
   }
 
@@ -214,7 +223,9 @@ public class Tracer {
    */
   TraceContext decorateContext(TraceContext parent, long parentId, long spanId) {
     int flags = InternalPropagation.instance.flags(parent);
-    if (spanId != 0L) flags |= FLAG_SHARED;
+    if (spanId != 0L) {
+		flags |= FLAG_SHARED;
+	}
     return decorateContext(
       flags,
       parent.traceIdHigh(),
@@ -257,7 +268,9 @@ public class Tracer {
       flags |= FLAG_SAMPLED_LOCAL;
     }
 
-    if (spanId == 0L) spanId = nextId();
+    if (spanId == 0L) {
+		spanId = nextId();
+	}
 
     if (traceId == 0L) { // make a new trace ID
       traceIdHigh = traceId128Bit ? Platform.get().nextTraceIdHigh() : 0L;
@@ -316,9 +329,13 @@ public class Tracer {
   // the code is a bit easier to work with especially if we want to avoid excess allocations. Here,
   // we manually code some things to keep the cpu and allocations low, at the cost of readability.
   public Span nextSpan(TraceContextOrSamplingFlags extracted) {
-    if (extracted == null) throw new NullPointerException("extracted == null");
+    if (extracted == null) {
+		throw new NullPointerException("extracted == null");
+	}
     TraceContext context = extracted.context();
-    if (context != null) return newChild(context);
+    if (context != null) {
+		return newChild(context);
+	}
 
     TraceIdContext traceIdContext = extracted.traceIdContext();
     if (traceIdContext != null) {
@@ -338,7 +355,10 @@ public class Tracer {
 
     TraceContext implicitParent = currentTraceContext.get();
     int flags;
-    long traceIdHigh = 0L, traceId = 0L, localRootId = 0L, spanId = 0L;
+    long traceIdHigh = 0L;
+	long traceId = 0L;
+	long localRootId = 0L;
+	long spanId = 0L;
     if (implicitParent != null) {
       // At this point, we didn't extract trace IDs, but do have a trace in progress. Since typical
       // trace sampling is up front, we retain the decision from the parent.
@@ -356,8 +376,12 @@ public class Tracer {
 
   /** Converts the context to a Span object after decorating it for propagation */
   public Span toSpan(TraceContext context) {
-    if (context == null) throw new NullPointerException("context == null");
-    if (isDecorated(context)) return _toSpan(context);
+    if (context == null) {
+		throw new NullPointerException("context == null");
+	}
+    if (isDecorated(context)) {
+		return _toSpan(context);
+	}
 
     return _toSpan(decorateContext(
       InternalPropagation.instance.flags(context),
@@ -371,7 +395,9 @@ public class Tracer {
   }
 
   Span _toSpan(TraceContext decorated) {
-    if (isNoop(decorated)) return new NoopSpan(decorated);
+    if (isNoop(decorated)) {
+		return new NoopSpan(decorated);
+	}
     // allocate a mutable span in case multiple threads call this method.. they'll use the same data
     PendingSpan pendingSpan = pendingSpans.getOrCreate(decorated, false);
     return new RealSpan(decorated, pendingSpans, pendingSpan.state(), pendingSpan.clock(),
@@ -436,7 +462,9 @@ public class Tracer {
   public SpanCustomizer currentSpanCustomizer() {
     // note: we don't need to decorate the context for propagation as it is only used for toString
     TraceContext context = currentTraceContext.get();
-    if (context == null || isNoop(context)) return NoopSpanCustomizer.INSTANCE;
+    if (context == null || isNoop(context)) {
+		return NoopSpanCustomizer.INSTANCE;
+	}
     return new SpanCustomizerShield(toSpan(context));
   }
 
@@ -448,11 +476,15 @@ public class Tracer {
    */
   @Nullable public Span currentSpan() {
     TraceContext context = currentTraceContext.get();
-    if (context == null) return null;
+    if (context == null) {
+		return null;
+	}
     if (!isDecorated(context)) { // It wasn't initialized by our tracer, so we must decorate.
       context = decorateContext(context, context.parentIdAsLong(), context.spanId());
     }
-    if (isNoop(context)) return new NoopSpan(context);
+    if (isNoop(context)) {
+		return new NoopSpan(context);
+	}
 
     // Returns a lazy span to reduce overhead when tracer.currentSpan() is invoked just to see if
     // one exists, or when the result is never used.
@@ -503,7 +535,9 @@ public class Tracer {
    * @since 5.8
    */
   public <T> ScopedSpan startScopedSpan(String name, SamplerFunction<T> samplerFunction, T arg) {
-    if (name == null) throw new NullPointerException("name == null");
+    if (name == null) {
+		throw new NullPointerException("name == null");
+	}
     return newScopedSpan(name, nextContext(samplerFunction, arg));
   }
 
@@ -522,10 +556,16 @@ public class Tracer {
   }
 
   <T> TraceContext nextContext(SamplerFunction<T> samplerFunction, T arg) {
-    if (samplerFunction == null) throw new NullPointerException("samplerFunction == null");
-    if (arg == null) throw new NullPointerException("arg == null");
+    if (samplerFunction == null) {
+		throw new NullPointerException("samplerFunction == null");
+	}
+    if (arg == null) {
+		throw new NullPointerException("arg == null");
+	}
     TraceContext parent = currentTraceContext.get();
-    if (parent != null) return decorateContext(parent, parent.spanId(), 0L);
+    if (parent != null) {
+		return decorateContext(parent, parent.spanId(), 0L);
+	}
 
     Boolean sampled = samplerFunction.trySample(arg);
     SamplingFlags flags = sampled != null ? (sampled ? SAMPLED : NOT_SAMPLED) : EMPTY;
@@ -540,8 +580,12 @@ public class Tracer {
    */
   // this api is needed to make tools such as executors which need to carry the invocation context
   public ScopedSpan startScopedSpanWithParent(String name, @Nullable TraceContext parent) {
-    if (name == null) throw new NullPointerException("name == null");
-    if (parent == null) parent = currentTraceContext.get();
+    if (name == null) {
+		throw new NullPointerException("name == null");
+	}
+    if (parent == null) {
+		parent = currentTraceContext.get();
+	}
     TraceContext context =
       parent != null ? decorateContext(parent, parent.spanId(), 0L) : newRootContext(0);
     return newScopedSpan(name, context);
@@ -549,7 +593,9 @@ public class Tracer {
 
   ScopedSpan newScopedSpan(String name, TraceContext context) {
     Scope scope = currentTraceContext.newScope(context);
-    if (isNoop(context)) return new NoopScopedSpan(context, scope);
+    if (isNoop(context)) {
+		return new NoopScopedSpan(context, scope);
+	}
 
     PendingSpan pendingSpan = pendingSpans.getOrCreate(context, true);
     Clock clock = pendingSpan.clock();
@@ -558,13 +604,50 @@ public class Tracer {
     return new RealScopedSpan(context, scope, state, clock, pendingSpans, finishedSpanHandler);
   }
 
-  /** A span remains in the scope it was bound to until close is called. */
+  @Override public String toString() {
+    TraceContext currentSpan = currentTraceContext.get();
+    return new StringBuilder().append("Tracer{").append(currentSpan != null ? ("currentSpan=" + currentSpan + ", ") : "").append(noop.get() ? "noop=true, " : "").append("finishedSpanHandler=")
+			.append(finishedSpanHandler).append("}").toString();
+  }
+
+boolean isNoop(TraceContext context) {
+    if (finishedSpanHandler == FinishedSpanHandler.NOOP || noop.get()) {
+		return true;
+	}
+    int flags = InternalPropagation.instance.flags(context);
+    if ((flags & FLAG_SAMPLED_LOCAL) == FLAG_SAMPLED_LOCAL) {
+		return false;
+	}
+    return (flags & FLAG_SAMPLED) != FLAG_SAMPLED;
+  }
+
+/**
+   * To save overhead, we shouldn't re-decorate a context on operations such as {@link
+   * #toSpan(TraceContext)} or {@link #currentSpan()}. As the {@link TraceContext#localRootId()} can
+   * only be set internally, we use this as a signal that we've already decorated.
+   */
+  static boolean isDecorated(TraceContext context) {
+    return context.localRootId() != 0L;
+  }
+
+/** Generates a new 64-bit ID, taking care to dodge zero which can be confused with absent */
+  long nextId() {
+    long nextId = Platform.get().randomLong();
+    while (nextId == 0L) {
+      nextId = Platform.get().randomLong();
+    }
+    return nextId;
+  }
+
+/** A span remains in the scope it was bound to until close is called. */
   public static final class SpanInScope implements Closeable {
     final Scope scope;
 
     // This type hides the SPI type and allows us to double-check the SPI didn't return null.
     SpanInScope(Scope scope) {
-      if (scope == null) throw new NullPointerException("scope == null");
+      if (scope == null) {
+		throw new NullPointerException("scope == null");
+	}
       this.scope = scope;
     }
 
@@ -576,39 +659,5 @@ public class Tracer {
     @Override public String toString() {
       return scope.toString();
     }
-  }
-
-  @Override public String toString() {
-    TraceContext currentSpan = currentTraceContext.get();
-    return "Tracer{"
-      + (currentSpan != null ? ("currentSpan=" + currentSpan + ", ") : "")
-      + (noop.get() ? "noop=true, " : "")
-      + "finishedSpanHandler=" + finishedSpanHandler
-      + "}";
-  }
-
-  boolean isNoop(TraceContext context) {
-    if (finishedSpanHandler == FinishedSpanHandler.NOOP || noop.get()) return true;
-    int flags = InternalPropagation.instance.flags(context);
-    if ((flags & FLAG_SAMPLED_LOCAL) == FLAG_SAMPLED_LOCAL) return false;
-    return (flags & FLAG_SAMPLED) != FLAG_SAMPLED;
-  }
-
-  /**
-   * To save overhead, we shouldn't re-decorate a context on operations such as {@link
-   * #toSpan(TraceContext)} or {@link #currentSpan()}. As the {@link TraceContext#localRootId()} can
-   * only be set internally, we use this as a signal that we've already decorated.
-   */
-  static boolean isDecorated(TraceContext context) {
-    return context.localRootId() != 0L;
-  }
-
-  /** Generates a new 64-bit ID, taking care to dodge zero which can be confused with absent */
-  long nextId() {
-    long nextId = Platform.get().randomLong();
-    while (nextId == 0L) {
-      nextId = Platform.get().randomLong();
-    }
-    return nextId;
   }
 }

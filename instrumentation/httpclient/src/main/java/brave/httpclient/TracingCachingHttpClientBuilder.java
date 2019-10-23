@@ -24,30 +24,32 @@ import org.apache.http.protocol.HttpContext;
 
 public final class TracingCachingHttpClientBuilder extends CachingHttpClientBuilder {
 
-  public static CachingHttpClientBuilder create(Tracing tracing) {
-    return new TracingCachingHttpClientBuilder(HttpTracing.create(tracing));
-  }
-
-  public static CachingHttpClientBuilder create(HttpTracing httpTracing) {
-    return new TracingCachingHttpClientBuilder(httpTracing);
-  }
-
   final HttpTracing httpTracing;
 
-  TracingCachingHttpClientBuilder(HttpTracing httpTracing) { // intentionally hidden
-    if (httpTracing == null) throw new NullPointerException("HttpTracing == null");
-    this.httpTracing = httpTracing;
-  }
+	TracingCachingHttpClientBuilder(HttpTracing httpTracing) { // intentionally hidden
+	    if (httpTracing == null) {
+			throw new NullPointerException("HttpTracing == null");
+		}
+	    this.httpTracing = httpTracing;
+	  }
 
-  @Override protected ClientExecChain decorateProtocolExec(ClientExecChain protocolExec) {
-    return new TracingProtocolExec(httpTracing, protocolExec);
-  }
+	public static CachingHttpClientBuilder create(Tracing tracing) {
+	    return new TracingCachingHttpClientBuilder(HttpTracing.create(tracing));
+	  }
 
-  @Override protected ClientExecChain decorateMainExec(ClientExecChain exec) {
-    return new LocalIfFromCacheTracingMainExec(httpTracing, super.decorateMainExec(exec));
-  }
+	public static CachingHttpClientBuilder create(HttpTracing httpTracing) {
+	    return new TracingCachingHttpClientBuilder(httpTracing);
+	  }
 
-  static final class LocalIfFromCacheTracingMainExec extends TracingMainExec {
+	@Override protected ClientExecChain decorateProtocolExec(ClientExecChain protocolExec) {
+	    return new TracingProtocolExec(httpTracing, protocolExec);
+	  }
+
+	@Override protected ClientExecChain decorateMainExec(ClientExecChain exec) {
+	    return new LocalIfFromCacheTracingMainExec(httpTracing, super.decorateMainExec(exec));
+	  }
+
+static final class LocalIfFromCacheTracingMainExec extends TracingMainExec {
     LocalIfFromCacheTracingMainExec(HttpTracing httpTracing, ClientExecChain mainExec) {
       super(httpTracing, mainExec);
     }
@@ -55,7 +57,9 @@ public final class TracingCachingHttpClientBuilder extends CachingHttpClientBuil
     @Override boolean isRemote(HttpContext context, Span span) {
       boolean cacheHit = CacheResponseStatus.CACHE_HIT.equals(
         context.getAttribute(HttpCacheContext.CACHE_RESPONSE_STATUS));
-      if (cacheHit) span.tag("http.cache_hit", "");
+      if (cacheHit) {
+		span.tag("http.cache_hit", "");
+	}
       return !cacheHit;
     }
   }

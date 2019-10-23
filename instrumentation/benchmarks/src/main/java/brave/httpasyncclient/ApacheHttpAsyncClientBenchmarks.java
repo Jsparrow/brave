@@ -51,7 +51,7 @@ public class ApacheHttpAsyncClientBenchmarks extends
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + ApacheHttpAsyncClientBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(ApacheHttpAsyncClientBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

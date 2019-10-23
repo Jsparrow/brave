@@ -35,7 +35,9 @@ final class HelloWorldHandler extends ChannelInboundHandlerAdapter {
   static final byte[] HELLO_WORLD = "hello world".getBytes(StandardCharsets.UTF_8);
 
   @Override public void channelRead(ChannelHandlerContext ctx, Object msg) {
-    if (!(msg instanceof HttpRequest)) return;
+    if (!(msg instanceof HttpRequest)) {
+		return;
+	}
     HttpRequest req = (HttpRequest) msg;
 
     if (HttpUtil.is100ContinueExpected(req)) {

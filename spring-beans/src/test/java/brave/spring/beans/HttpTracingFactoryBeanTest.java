@@ -33,20 +33,19 @@ public class HttpTracingFactoryBeanTest {
   public static Tracing TRACING = mock(Tracing.class);
   public static HttpClientParser CLIENT_PARSER = mock(HttpClientParser.class);
   public static HttpServerParser SERVER_PARSER = mock(HttpServerParser.class);
+public static final HttpTracingCustomizer CUSTOMIZER_ONE = mock(HttpTracingCustomizer.class);
+public static final HttpTracingCustomizer CUSTOMIZER_TWO = mock(HttpTracingCustomizer.class);
+XmlBeans context;
 
-  XmlBeans context;
-
-  @After public void close() {
-    if (context != null) context.close();
+@After public void close() {
+    if (context != null) {
+		context.close();
+	}
   }
 
-  @Test public void tracing() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void tracing() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("</bean>")
+			.toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class))
@@ -54,16 +53,9 @@ public class HttpTracingFactoryBeanTest {
       .isEqualTo(TRACING);
   }
 
-  @Test public void clientParser() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"clientParser\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".CLIENT_PARSER\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void clientParser() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"clientParser\">\n")
+			.append("    <util:constant static-field=\"").append(getClass().getName()).append(".CLIENT_PARSER\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class))
@@ -71,16 +63,9 @@ public class HttpTracingFactoryBeanTest {
       .isEqualTo(CLIENT_PARSER);
   }
 
-  @Test public void serverParser() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"serverParser\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".SERVER_PARSER\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void serverParser() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"serverParser\">\n")
+			.append("    <util:constant static-field=\"").append(getClass().getName()).append(".SERVER_PARSER\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class))
@@ -88,16 +73,9 @@ public class HttpTracingFactoryBeanTest {
       .isEqualTo(SERVER_PARSER);
   }
 
-  @Test public void clientSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"clientSampler\">\n"
-      + "    <util:constant static-field=\"brave.http.HttpSampler.NEVER_SAMPLE\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void clientSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"clientSampler\">\n")
+			.append("    <util:constant static-field=\"brave.http.HttpSampler.NEVER_SAMPLE\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class))
@@ -105,32 +83,18 @@ public class HttpTracingFactoryBeanTest {
       .isEqualTo(HttpSampler.NEVER_SAMPLE);
   }
 
-  @Test public void clientRequestSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"clientSampler\">\n"
-      + "    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void clientRequestSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"clientSampler\">\n")
+			.append("    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class).clientRequestSampler())
       .isEqualTo(SamplerFunctions.neverSample());
   }
 
-  @Test public void serverSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"serverSampler\">\n"
-      + "    <util:constant static-field=\"brave.http.HttpSampler.NEVER_SAMPLE\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void serverSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"serverSampler\">\n")
+			.append("    <util:constant static-field=\"brave.http.HttpSampler.NEVER_SAMPLE\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class))
@@ -138,38 +102,19 @@ public class HttpTracingFactoryBeanTest {
       .isEqualTo(HttpSampler.NEVER_SAMPLE);
   }
 
-  @Test public void serverRequestSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"serverSampler\">\n"
-      + "    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void serverRequestSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"serverSampler\">\n")
+			.append("    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("httpTracing", HttpTracing.class).serverRequestSampler())
       .isEqualTo(SamplerFunctions.neverSample());
   }
 
-  public static final HttpTracingCustomizer CUSTOMIZER_ONE = mock(HttpTracingCustomizer.class);
-  public static final HttpTracingCustomizer CUSTOMIZER_TWO = mock(HttpTracingCustomizer.class);
-
-  @Test public void customizers() {
-    context = new XmlBeans(""
-      + "<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"customizers\">\n"
-      + "    <list>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_ONE\"/>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_TWO\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
+@Test public void customizers() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"httpTracing\" class=\"brave.spring.beans.HttpTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"customizers\">\n")
+			.append("    <list>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_ONE\"/>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_TWO\"/>\n").append("    </list>\n")
+			.append("  </property>").append("</bean>").toString()
     );
 
     context.getBean("httpTracing", HttpTracing.class);

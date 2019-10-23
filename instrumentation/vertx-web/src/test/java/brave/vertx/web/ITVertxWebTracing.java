@@ -47,43 +47,29 @@ public class ITVertxWebTracing extends ITHttpServer {
     vertx = Vertx.vertx(new VertxOptions());
 
     Router router = Router.router(vertx);
-    router.route(HttpMethod.OPTIONS, "/").handler(ctx -> {
-      ctx.response().end("bar");
-    });
-    router.route("/foo").handler(ctx -> {
-      ctx.response().end("bar");
-    });
+    router.route(HttpMethod.OPTIONS, "/").handler(ctx -> ctx.response().end("bar"));
+    router.route("/foo").handler(ctx -> ctx.response().end("bar"));
     router.route("/async").handler(ctx -> {
       if (Tracing.currentTracer().currentSpan() == null) {
         throw new IllegalStateException("couldn't read current span!");
       }
       ctx.request().endHandler(v -> ctx.response().end("bar"));
     });
-    router.route("/reroute").handler(ctx -> {
-      ctx.reroute("/foo");
-    });
+    router.route("/reroute").handler(ctx -> ctx.reroute("/foo"));
     router.route("/rerouteAsync").handler(ctx -> {
       if (Tracing.currentTracer().currentSpan() == null) {
         throw new IllegalStateException("couldn't read current span!");
       }
       ctx.reroute("/async");
     });
-    router.route("/extra").handler(ctx -> {
-      ctx.response().end(ExtraFieldPropagation.get(EXTRA_KEY));
-    });
-    router.route("/badrequest").handler(ctx -> {
-      ctx.response().setStatusCode(400).end();
-    });
+    router.route("/extra").handler(ctx -> ctx.response().end(ExtraFieldPropagation.get(EXTRA_KEY)));
+    router.route("/badrequest").handler(ctx -> ctx.response().setStatusCode(400).end());
     router.route("/child").handler(ctx -> {
       httpTracing.tracing().tracer().nextSpan().name("child").start().finish();
       ctx.response().end("happy");
     });
-    router.route("/exception").handler(ctx -> {
-      ctx.fail(new Exception());
-    });
-    router.route("/items/:itemId").handler(ctx -> {
-      ctx.response().end(ctx.request().getParam("itemId"));
-    });
+    router.route("/exception").handler(ctx -> ctx.fail(new Exception()));
+    router.route("/items/:itemId").handler(ctx -> ctx.response().end(ctx.request().getParam("itemId")));
     router.route("/async_items/:itemId").handler(ctx -> {
       if (Tracing.currentTracer().currentSpan() == null) {
         throw new IllegalStateException("couldn't read current span!");
@@ -91,13 +77,9 @@ public class ITVertxWebTracing extends ITHttpServer {
       ctx.request().endHandler(v -> ctx.response().end(ctx.request().getParam("itemId")));
     });
     Router subrouter = Router.router(vertx);
-    subrouter.route("/items/:itemId").handler(ctx -> {
-      ctx.response().end(ctx.request().getParam("itemId"));
-    });
+    subrouter.route("/items/:itemId").handler(ctx -> ctx.response().end(ctx.request().getParam("itemId")));
     router.mountSubRouter("/nested", subrouter);
-    router.route("/exceptionAsync").handler(ctx -> {
-      ctx.request().endHandler(v -> ctx.fail(new Exception()));
-    });
+    router.route("/exceptionAsync").handler(ctx -> ctx.request().endHandler(v -> ctx.fail(new Exception())));
 
     Handler<RoutingContext> routingContextHandler =
       VertxWebTracing.create(httpTracing).routingContextHandler();
@@ -160,24 +142,21 @@ public class ITVertxWebTracing extends ITHttpServer {
 
   @Override
   protected String url(String path) {
-    return "http://127.0.0.1:" + port + path;
+    return new StringBuilder().append("http://127.0.0.1:").append(port).append(path).toString();
   }
 
   @After public void stop() throws Exception {
     if (server != null) {
       CountDownLatch latch = new CountDownLatch(1);
-      server.close(ar -> {
-        latch.countDown();
-      });
+      server.close(ar -> latch.countDown());
       latch.await(10, TimeUnit.SECONDS);
     }
-    if (vertx != null) {
-      CountDownLatch latch = new CountDownLatch(1);
-      vertx.close(ar -> {
-        latch.countDown();
-      });
-      latch.await(10, TimeUnit.SECONDS);
-      vertx = null;
-    }
+    if (vertx == null) {
+		return;
+	}
+	CountDownLatch latch = new CountDownLatch(1);
+	vertx.close(ar -> latch.countDown());
+	latch.await(10, TimeUnit.SECONDS);
+	vertx = null;
   }
 }

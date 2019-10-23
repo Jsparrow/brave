@@ -128,7 +128,19 @@ public class NotYetSupportedTest {
     testSubscriber.assertValues(1).assertNoErrors();
   }
 
-  /** This ensures we don't accidentally think we tested tryOnNext */
+  Observable<Integer> assertXMapFusion(Observable<Integer> fuseable) {
+    return fuseable
+      // prove XMap fusion occurred
+      .doOnSubscribe(d -> assertThat(d).isInstanceOf(ObservableScalarXMap.ScalarDisposable.class))
+      .doOnNext(e -> assertInAssemblyContext())
+      .doOnComplete(this::assertInAssemblyContext);
+  }
+
+void assertInAssemblyContext() {
+    assertThat(currentTraceContext.get()).isEqualTo(assemblyContext);
+  }
+
+/** This ensures we don't accidentally think we tested tryOnNext */
   class ConditionalTestSubscriber<T> extends TestSubscriber<T> implements ConditionalSubscriber<T> {
 
     @Override public boolean tryOnNext(T value) {
@@ -139,19 +151,5 @@ public class NotYetSupportedTest {
     @Override public void onNext(T value) {
       throw new AssertionError("unexpected call to onNext: check assumptions");
     }
-  }
-
-  Observable<Integer> assertXMapFusion(Observable<Integer> fuseable) {
-    return fuseable
-      // prove XMap fusion occurred
-      .doOnSubscribe(d -> {
-        assertThat(d).isInstanceOf(ObservableScalarXMap.ScalarDisposable.class);
-      })
-      .doOnNext(e -> assertInAssemblyContext())
-      .doOnComplete(this::assertInAssemblyContext);
-  }
-
-  void assertInAssemblyContext() {
-    assertThat(currentTraceContext.get()).isEqualTo(assemblyContext);
   }
 }

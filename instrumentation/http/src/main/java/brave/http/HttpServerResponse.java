@@ -54,7 +54,7 @@ public abstract class HttpServerResponse {
 
   @Override public String toString() {
     // unwrap() returning null is a bug, but don't NPE during toString()
-    return "HttpServerResponse{" + unwrap() + "}";
+    return new StringBuilder().append("HttpServerResponse{").append(unwrap()).append("}").toString();
   }
 
   /**
@@ -71,10 +71,14 @@ public abstract class HttpServerResponse {
     final Object unwrapped;
 
     Adapter(HttpServerResponse delegate) {
-      if (delegate == null) throw new NullPointerException("delegate == null");
+      if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
       this.delegate = delegate;
       this.unwrapped = delegate.unwrap();
-      if (unwrapped == null) throw new NullPointerException("delegate.unwrap() == null");
+      if (unwrapped == null) {
+		throw new NullPointerException("delegate.unwrap() == null");
+	}
     }
 
     // Skip request adapter methods
@@ -101,12 +105,16 @@ public abstract class HttpServerResponse {
     // Begin response adapter methods
 
     @Override public final String methodFromResponse(Object response) {
-      if (response == unwrapped) return delegate.method();
+      if (response == unwrapped) {
+		return delegate.method();
+	}
       return null;
     }
 
     @Override public final String route(Object response) {
-      if (response == unwrapped) return delegate.route();
+      if (response == unwrapped) {
+		return delegate.route();
+	}
       return null;
     }
 
@@ -116,12 +124,16 @@ public abstract class HttpServerResponse {
     }
 
     @Override public final int statusCodeAsInt(Object response) {
-      if (response == unwrapped) return delegate.statusCode();
+      if (response == unwrapped) {
+		return delegate.statusCode();
+	}
       return 0;
     }
 
     @Override public final long finishTimestamp(Object response) {
-      if (response == unwrapped) return delegate.finishTimestamp();
+      if (response == unwrapped) {
+		return delegate.finishTimestamp();
+	}
       return 0L;
     }
 
@@ -130,8 +142,12 @@ public abstract class HttpServerResponse {
     }
 
     @Override public boolean equals(Object o) { // implemented to make testing easier
-      if (o == this) return true;
-      if (!(o instanceof Adapter)) return false;
+      if (o == this) {
+		return true;
+	}
+      if (!(o instanceof Adapter)) {
+		return false;
+	}
       Adapter that = (Adapter) o;
       return delegate == that.delegate;
     }

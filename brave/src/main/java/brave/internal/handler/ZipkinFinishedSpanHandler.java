@@ -39,13 +39,17 @@ public final class ZipkinFinishedSpanHandler extends FinishedSpanHandler {
    * Otherwise, we could accidentally send 100% data.
    */
   @Override public boolean handle(TraceContext context, MutableSpan span) {
-    if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) return true;
+    if (!alwaysReportSpans && !Boolean.TRUE.equals(context.sampled())) {
+		return true;
+	}
 
     Span.Builder builderWithContextData = Span.newBuilder()
       .traceId(context.traceIdString())
       .parentId(context.parentIdString())
       .id(context.spanIdString());
-    if (context.debug()) builderWithContextData.debug(true);
+    if (context.debug()) {
+		builderWithContextData.debug(true);
+	}
 
     converter.convert(span, builderWithContextData);
     spanReporter.report(builderWithContextData.build());

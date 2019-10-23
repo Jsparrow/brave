@@ -64,145 +64,168 @@ import static zipkin2.Span.Kind.PRODUCER;
 
 public class ITSpringRabbitTracing {
 
-  @Rule public TestName testName = new TestName();
-
   @ClassRule public static BrokerRunning brokerRunning = BrokerRunning.isRunning();
 
-  static ITSpringAmqpTracingTestFixture testFixture;
+	static ITSpringAmqpTracingTestFixture testFixture;
 
-  @BeforeClass public static void setupTestFixture() {
-    testFixture = new ITSpringAmqpTracingTestFixture();
-  }
+	@Rule public TestName testName = new TestName();
 
-  @AfterClass public static void close() {
-    Tracing.current().close();
-  }
+	@BeforeClass public static void setupTestFixture() {
+	    testFixture = new ITSpringAmqpTracingTestFixture();
+	  }
 
-  @Before public void reset() {
-    testFixture.reset();
-  }
+	@AfterClass public static void close() {
+	    Tracing.current().close();
+	  }
 
-  @Test public void propagates_trace_info_across_amqp_from_producer() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
+	@Before public void reset() {
+	    testFixture.reset();
+	  }
 
-    List<Span> allSpans = new ArrayList<>();
-    allSpans.add(takeProducerSpan());
-    allSpans.add(takeConsumerSpan());
-    allSpans.add(takeConsumerSpan());
+	@Test public void propagates_trace_info_across_amqp_from_producer() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    List<Span> allSpans = new ArrayList<>();
+	    allSpans.add(takeProducerSpan());
+	    allSpans.add(takeConsumerSpan());
+	    allSpans.add(takeConsumerSpan());
+	
+	    String originatingTraceId = allSpans.get(0).traceId();
+	    String consumerSpanId = allSpans.get(1).id();
+	
+	    assertThat(allSpans)
+	      .extracting(Span::kind, Span::traceId, Span::parentId)
+	      .containsExactly(
+	        tuple(PRODUCER, originatingTraceId, null),
+	        tuple(CONSUMER, originatingTraceId, originatingTraceId),
+	        tuple(null, originatingTraceId, consumerSpanId)
+	      );
+	  }
 
-    String originatingTraceId = allSpans.get(0).traceId();
-    String consumerSpanId = allSpans.get(1).id();
+	@Test public void clears_message_headers_after_propagation() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    Message capturedMessage = testFixture.capturedMessage();
+	    Map<String, Object> headers = capturedMessage.getMessageProperties().getHeaders();
+	    assertThat(headers.keySet()).containsExactly("not-zipkin-header");
+	  }
 
-    assertThat(allSpans)
-      .extracting(Span::kind, Span::traceId, Span::parentId)
-      .containsExactly(
-        tuple(PRODUCER, originatingTraceId, null),
-        tuple(CONSUMER, originatingTraceId, originatingTraceId),
-        tuple(null, originatingTraceId, consumerSpanId)
-      );
-  }
+	@Test public void tags_spans_with_exchange_and_routing_key() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    List<Span> consumerSpans = new ArrayList<>();
+	    consumerSpans.add(takeConsumerSpan());
+	    consumerSpans.add(takeConsumerSpan());
+	
+	    assertThat(consumerSpans)
+	      .filteredOn(s -> s.kind() == CONSUMER)
+	      .flatExtracting(s -> s.tags().entrySet())
+	      .containsOnly(
+	        entry("rabbit.exchange", "test-exchange"),
+	        entry("rabbit.routing_key", "test.binding"),
+	        entry("rabbit.queue", "test-queue")
+	      );
+	
+	    assertThat(consumerSpans)
+	      .filteredOn(s -> s.kind() != CONSUMER)
+	      .flatExtracting(s -> s.tags().entrySet())
+	      .isEmpty();
+	  }
 
-  @Test public void clears_message_headers_after_propagation() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
+	/** Technical implementation of clock sharing might imply a race. This ensures happens-after */
+	  @Test public void listenerSpanHappensAfterConsumerSpan() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    Span span1 = takeConsumerSpan();
+		Span span2 = takeConsumerSpan();
+	    Span consumerSpan = span1.kind() == Span.Kind.CONSUMER ? span1 : span2;
+	    Span listenerSpan = consumerSpan == span1 ? span2 : span1;
+	
+	    assertThat(consumerSpan.timestampAsLong() + consumerSpan.durationAsLong())
+	      .isLessThanOrEqualTo(listenerSpan.timestampAsLong());
+	  }
 
-    Message capturedMessage = testFixture.capturedMessage();
-    Map<String, Object> headers = capturedMessage.getMessageProperties().getHeaders();
-    assertThat(headers.keySet()).containsExactly("not-zipkin-header");
-  }
+	@Test public void creates_dependency_links() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    List<Span> allSpans = new ArrayList<>();
+	    allSpans.add(takeProducerSpan());
+	    allSpans.add(takeConsumerSpan());
+	    allSpans.add(takeConsumerSpan());
+	
+	    List<DependencyLink> links = new DependencyLinker().putTrace(allSpans).link();
+	    assertThat(links).extracting("parent", "child").containsExactly(
+	      tuple("spring-amqp-producer", "rabbitmq"),
+	      tuple("rabbitmq", "spring-amqp-consumer")
+	    );
+	  }
 
-  @Test public void tags_spans_with_exchange_and_routing_key() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
+	@Test public void tags_spans_with_exchange_and_routing_key_from_default() throws Exception {
+	    testFixture.produceMessageFromDefault();
+	    testFixture.awaitMessageConsumed();
+	
+	    List<Span> consumerSpans = new ArrayList<>();
+	    consumerSpans.add(takeProducerSpan());
+	    consumerSpans.add(takeConsumerSpan());
+	
+	    assertThat(consumerSpans)
+	      .filteredOn(s -> s.kind() == CONSUMER)
+	      .flatExtracting(s -> s.tags().entrySet())
+	      .containsOnly(
+	        entry("rabbit.exchange", "test-exchange"),
+	        entry("rabbit.routing_key", "test.binding"),
+	        entry("rabbit.queue", "test-queue")
+	      );
+	
+	    assertThat(consumerSpans)
+	      .filteredOn(s -> s.kind() != CONSUMER)
+	      .flatExtracting(s -> s.tags().entrySet())
+	      .isEmpty();
+	  }
 
-    List<Span> consumerSpans = new ArrayList<>();
-    consumerSpans.add(takeConsumerSpan());
-    consumerSpans.add(takeConsumerSpan());
+	// We will revisit this eventually, but these names mostly match the method names
+	  @Test public void method_names_as_span_names() throws Exception {
+	    testFixture.produceMessage();
+	    testFixture.awaitMessageConsumed();
+	
+	    List<Span> allSpans = new ArrayList<>();
+	    allSpans.add(takeProducerSpan());
+	    allSpans.add(takeConsumerSpan());
+	    allSpans.add(takeConsumerSpan());
+	
+	    assertThat(allSpans)
+	      .extracting(Span::name)
+	      .containsExactly("publish", "next-message", "on-message");
+	  }
 
-    assertThat(consumerSpans)
-      .filteredOn(s -> s.kind() == CONSUMER)
-      .flatExtracting(s -> s.tags().entrySet())
-      .containsOnly(
-        entry("rabbit.exchange", "test-exchange"),
-        entry("rabbit.routing_key", "test.binding"),
-        entry("rabbit.queue", "test-queue")
-      );
+	/** Call this to block until a span was reported */
+	  Span takeProducerSpan() throws InterruptedException {
+	    Span result = testFixture.producerSpans.poll(3, TimeUnit.SECONDS);
+	    assertThat(result)
+	      .withFailMessage("Producer span was not reported")
+	      .isNotNull();
+	    // ensure the span finished
+	    assertThat(result.durationAsLong()).isPositive();
+	    return result;
+	  }
 
-    assertThat(consumerSpans)
-      .filteredOn(s -> s.kind() != CONSUMER)
-      .flatExtracting(s -> s.tags().entrySet())
-      .isEmpty();
-  }
+	/** Call this to block until a span was reported */
+	  Span takeConsumerSpan() throws InterruptedException {
+	    Span result = testFixture.consumerSpans.poll(3, TimeUnit.SECONDS);
+	    assertThat(result)
+	      .withFailMessage("Consumer span was not reported")
+	      .isNotNull();
+	    // ensure the span finished
+	    assertThat(result.durationAsLong()).isPositive();
+	    return result;
+	  }
 
-  /** Technical implementation of clock sharing might imply a race. This ensures happens-after */
-  @Test public void listenerSpanHappensAfterConsumerSpan() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
-
-    Span span1 = takeConsumerSpan(), span2 = takeConsumerSpan();
-    Span consumerSpan = span1.kind() == Span.Kind.CONSUMER ? span1 : span2;
-    Span listenerSpan = consumerSpan == span1 ? span2 : span1;
-
-    assertThat(consumerSpan.timestampAsLong() + consumerSpan.durationAsLong())
-      .isLessThanOrEqualTo(listenerSpan.timestampAsLong());
-  }
-
-  @Test public void creates_dependency_links() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
-
-    List<Span> allSpans = new ArrayList<>();
-    allSpans.add(takeProducerSpan());
-    allSpans.add(takeConsumerSpan());
-    allSpans.add(takeConsumerSpan());
-
-    List<DependencyLink> links = new DependencyLinker().putTrace(allSpans).link();
-    assertThat(links).extracting("parent", "child").containsExactly(
-      tuple("spring-amqp-producer", "rabbitmq"),
-      tuple("rabbitmq", "spring-amqp-consumer")
-    );
-  }
-
-  @Test public void tags_spans_with_exchange_and_routing_key_from_default() throws Exception {
-    testFixture.produceMessageFromDefault();
-    testFixture.awaitMessageConsumed();
-
-    List<Span> consumerSpans = new ArrayList<>();
-    consumerSpans.add(takeProducerSpan());
-    consumerSpans.add(takeConsumerSpan());
-
-    assertThat(consumerSpans)
-      .filteredOn(s -> s.kind() == CONSUMER)
-      .flatExtracting(s -> s.tags().entrySet())
-      .containsOnly(
-        entry("rabbit.exchange", "test-exchange"),
-        entry("rabbit.routing_key", "test.binding"),
-        entry("rabbit.queue", "test-queue")
-      );
-
-    assertThat(consumerSpans)
-      .filteredOn(s -> s.kind() != CONSUMER)
-      .flatExtracting(s -> s.tags().entrySet())
-      .isEmpty();
-  }
-
-  // We will revisit this eventually, but these names mostly match the method names
-  @Test public void method_names_as_span_names() throws Exception {
-    testFixture.produceMessage();
-    testFixture.awaitMessageConsumed();
-
-    List<Span> allSpans = new ArrayList<>();
-    allSpans.add(takeProducerSpan());
-    allSpans.add(takeConsumerSpan());
-    allSpans.add(takeConsumerSpan());
-
-    assertThat(allSpans)
-      .extracting(Span::name)
-      .containsExactly("publish", "next-message", "on-message");
-  }
-
-  @Configuration
+@Configuration
   public static class CommonRabbitConfig {
     @Bean
     public ConnectionFactory connectionFactory() {
@@ -429,27 +452,5 @@ public class ITSpringRabbitTracing {
       HelloWorldConsumer consumer = consumerContext.getBean(HelloWorldConsumer.class);
       return consumer.capturedMessage;
     }
-  }
-
-  /** Call this to block until a span was reported */
-  Span takeProducerSpan() throws InterruptedException {
-    Span result = testFixture.producerSpans.poll(3, TimeUnit.SECONDS);
-    assertThat(result)
-      .withFailMessage("Producer span was not reported")
-      .isNotNull();
-    // ensure the span finished
-    assertThat(result.durationAsLong()).isPositive();
-    return result;
-  }
-
-  /** Call this to block until a span was reported */
-  Span takeConsumerSpan() throws InterruptedException {
-    Span result = testFixture.consumerSpans.poll(3, TimeUnit.SECONDS);
-    assertThat(result)
-      .withFailMessage("Consumer span was not reported")
-      .isNotNull();
-    // ensure the span finished
-    assertThat(result.durationAsLong()).isPositive();
-    return result;
   }
 }

@@ -35,7 +35,9 @@ final class HttpAdapter extends brave.http.HttpClientAdapter<HttpRequestWrapper,
 
   @Override public String url(HttpRequestWrapper request) {
     HttpHost target = request.getTarget();
-    if (target != null) return target.toURI() + request.getURI();
+    if (target != null) {
+		return target.toURI() + request.getURI();
+	}
     return request.getRequestLine().getUri();
   }
 
@@ -55,13 +57,18 @@ final class HttpAdapter extends brave.http.HttpClientAdapter<HttpRequestWrapper,
   }
 
   static void parseTargetAddress(HttpRequestWrapper httpRequest, Span span) {
-    if (span.isNoop()) return;
+    if (span.isNoop()) {
+		return;
+	}
     HttpHost target = httpRequest.getTarget();
-    if (target == null) return;
+    if (target == null) {
+		return;
+	}
     InetAddress address = target.getAddress();
-    if (address != null) {
-      if (span.remoteIpAndPort(address.getHostAddress(), target.getPort())) return;
-    }
+    boolean condition = address != null && span.remoteIpAndPort(address.getHostAddress(), target.getPort());
+	if (condition) {
+		return;
+	}
     span.remoteIpAndPort(target.getHostName(), target.getPort());
   }
 }

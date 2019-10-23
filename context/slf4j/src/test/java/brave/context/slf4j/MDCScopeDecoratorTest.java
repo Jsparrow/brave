@@ -29,14 +29,6 @@ public class MDCScopeDecoratorTest extends CurrentTraceContextTest {
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return ThreadLocalCurrentTraceContext.newBuilder()
-        .addScopeDecorator(MDCScopeDecorator.create())
-        .build();
-    }
-  }
-
   @Override protected void verifyImplicitContext(@Nullable TraceContext context) {
     if (context != null) {
       assertThat(MDC.get("traceId"))
@@ -56,6 +48,14 @@ public class MDCScopeDecoratorTest extends CurrentTraceContextTest {
         .isNull();
       assertThat(MDC.get("sampled"))
         .isNull();
+    }
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return ThreadLocalCurrentTraceContext.newBuilder()
+        .addScopeDecorator(MDCScopeDecorator.create())
+        .build();
     }
   }
 }

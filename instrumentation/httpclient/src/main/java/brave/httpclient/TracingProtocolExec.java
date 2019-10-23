@@ -91,7 +91,9 @@ final class TracingProtocolExec implements ClientExecChain {
       if (delegate instanceof HttpRequestWrapper) {
         HttpRequestWrapper wrapper = (HttpRequestWrapper) delegate;
         HttpHost target = wrapper.getTarget();
-        if (target != null) return target.toURI() + wrapper.getURI();
+        if (target != null) {
+			return target.toURI() + wrapper.getURI();
+		}
       }
       return delegate.getRequestLine().getUri();
     }

@@ -47,17 +47,23 @@ class ArtemisJmsTestRule extends JmsTestRule {
   }
 
   @Override Connection newConnection() throws Exception {
-    if (!started.getAndSet(true)) resource.start();
+    if (!started.getAndSet(true)) {
+		resource.start();
+	}
     return factory.createConnection();
   }
 
   @Override QueueConnection newQueueConnection() throws Exception {
-    if (!started.getAndSet(true)) resource.start();
+    if (!started.getAndSet(true)) {
+		resource.start();
+	}
     return factory.createQueueConnection();
   }
 
   @Override TopicConnection newTopicConnection() throws Exception {
-    if (!started.getAndSet(true)) resource.start();
+    if (!started.getAndSet(true)) {
+		resource.start();
+	}
     return factory.createTopicConnection();
   }
 

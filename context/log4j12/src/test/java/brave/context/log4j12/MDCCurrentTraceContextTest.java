@@ -35,22 +35,17 @@ public class MDCCurrentTraceContextTest extends CurrentTraceContextTest {
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return MDCCurrentTraceContext.create();
-    }
-  }
-
   @Test public void is_inheritable() throws Exception {
     super.is_inheritable(currentTraceContext);
   }
 
-  @Test(expected = ComparisonFailure.class) // Log4J 1.2.x MDC is inheritable by default
+@Override
+@Test(expected = ComparisonFailure.class) // Log4J 1.2.x MDC is inheritable by default
   public void isnt_inheritable() throws Exception {
     super.isnt_inheritable();
   }
 
-  @Override protected void verifyImplicitContext(@Nullable TraceContext context) {
+@Override protected void verifyImplicitContext(@Nullable TraceContext context) {
     if (context != null) {
       assertThat(MDC.get("traceId"))
         .isEqualTo(context.traceIdString());
@@ -69,6 +64,12 @@ public class MDCCurrentTraceContextTest extends CurrentTraceContextTest {
         .isNull();
       assertThat(MDC.get("sampled"))
         .isNull();
+    }
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return MDCCurrentTraceContext.create();
     }
   }
 }

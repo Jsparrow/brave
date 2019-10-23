@@ -89,12 +89,16 @@ final class NoopSpan extends Span {
   }
 
   @Override public String toString() {
-    return "NoopSpan(" + context + ")";
+    return new StringBuilder().append("NoopSpan(").append(context).append(")").toString();
   }
 
   @Override public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof NoopSpan)) return false;
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof NoopSpan)) {
+		return false;
+	}
     return context.equals(((NoopSpan) o).context);
   }
 

@@ -43,23 +43,6 @@ public final class ClassLoaders {
     }
   }
 
-  public static abstract class ConsumerRunnable<T> implements Runnable, Consumer<T> {
-    Class<? extends Supplier<T>> subjectSupplier;
-
-    protected ConsumerRunnable() {
-      try {
-        subjectSupplier =
-          (Class) Class.forName(System.getProperty(getClass().getName() + ".supplier"));
-      } catch (ClassNotFoundException e) {
-        throw new AssertionError(e);
-      }
-    }
-
-    @Override public void run() {
-      accept(newInstance(subjectSupplier, getClass().getClassLoader()).get());
-    }
-  }
-
   /** Validating instance creator that ensures the supplier type is static or top-level */
   public static <T> T newInstance(Class<T> type, ClassLoader loader) {
     assertThat(type)
@@ -80,7 +63,7 @@ public final class ClassLoaders {
     }
   }
 
-  /** Runs the type in a new classloader that recreates brave classes */
+/** Runs the type in a new classloader that recreates brave classes */
   public static void assertRunIsUnloadable(Class<? extends Runnable> runnable, ClassLoader parent) {
     // We can't use log4j2's log manager. More importantly, we want to make sure loggers don't hold
     // our test classloader from being collected.
@@ -101,7 +84,7 @@ public final class ClassLoaders {
       .isNull();
   }
 
-  static WeakReference<ClassLoader> invokeRunFromNewClassLoader(
+static WeakReference<ClassLoader> invokeRunFromNewClassLoader(
     Class<? extends Runnable> runnable, ClassLoader parent) throws Exception {
 
     ClassLoader loader = ClassLoaders.reloadClassNamePrefix(parent, "brave");
@@ -118,7 +101,7 @@ public final class ClassLoaders {
     return new WeakReference<>(loader);
   }
 
-  /**
+/**
    * Creates a new classloader that reloads types matching the given prefix. This is used to test
    * behavior such a leaked type in a thread local.
    *
@@ -132,7 +115,9 @@ public final class ClassLoaders {
     ClassLoader bridge = new ClassLoader(parent) {
       @Override
       protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (name.startsWith(prefix)) throw new ClassNotFoundException("reloading type: " + name);
+        if (name.startsWith(prefix)) {
+			throw new ClassNotFoundException("reloading type: " + name);
+		}
         return super.loadClass(name, resolve);
       }
     };
@@ -143,12 +128,29 @@ public final class ClassLoaders {
     }
   }
 
-  static URL[] classpathToUrls() throws MalformedURLException {
+static URL[] classpathToUrls() throws MalformedURLException {
     String[] classpath = System.getProperty("java.class.path").split(File.pathSeparator, -1);
     URL[] result = new URL[classpath.length];
     for (int i = 0; i < classpath.length; i++) {
       result[i] = new File(classpath[i]).toURI().toURL();
     }
     return result;
+  }
+
+public abstract static class ConsumerRunnable<T> implements Runnable, Consumer<T> {
+    Class<? extends Supplier<T>> subjectSupplier;
+
+    protected ConsumerRunnable() {
+      try {
+        subjectSupplier =
+          (Class) Class.forName(System.getProperty(getClass().getName() + ".supplier"));
+      } catch (ClassNotFoundException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    @Override public void run() {
+      accept(newInstance(subjectSupplier, getClass().getClassLoader()).get());
+    }
   }
 }

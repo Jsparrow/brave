@@ -74,10 +74,13 @@ public class GrpcPropagationBenchmarks {
   static final TraceContext contextWithTags = bothFactory.decorate(context);
 
   static final GrpcServerRequest
-    incomingB3 = new GrpcServerRequest(methodDescriptor, new Metadata()),
-    incomingBoth = new GrpcServerRequest(methodDescriptor, new Metadata()),
-    incomingBothNoTags = new GrpcServerRequest(methodDescriptor, new Metadata()),
-    nothingIncoming = new GrpcServerRequest(methodDescriptor, new Metadata());
+    incomingB3 = new GrpcServerRequest(methodDescriptor, new Metadata());
+
+static final GrpcServerRequest incomingBoth = new GrpcServerRequest(methodDescriptor, new Metadata());
+
+static final GrpcServerRequest incomingBothNoTags = new GrpcServerRequest(methodDescriptor, new Metadata());
+
+static final GrpcServerRequest nothingIncoming = new GrpcServerRequest(methodDescriptor, new Metadata());
 
   static {
     PropagationFields.put(contextWithTags, "method", "helloworld.Greeter/SayHello", Tags.class);

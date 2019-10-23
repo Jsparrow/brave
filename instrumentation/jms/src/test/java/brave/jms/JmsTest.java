@@ -33,19 +33,19 @@ import org.junit.runner.Description;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class JmsTest {
-  @After public void tearDown() {
-    tracing.close();
-  }
+  private static final Logger logger = LoggerFactory.getLogger(JmsTest.class);
 
-  /**
+/**
    * See brave.http.ITHttp for rationale on using a concurrent blocking queue eventhough some calls,
    * like those using blocking clients, happen on the main thread.
    */
   BlockingQueue<Span> spans = new LinkedBlockingQueue<>();
 
-  // See brave.http.ITHttp for rationale on polling after tests complete
+// See brave.http.ITHttp for rationale on polling after tests complete
   @Rule public TestRule assertSpansEmpty = new TestWatcher() {
     // only check success path to avoid masking assertion errors or exceptions
     @Override protected void succeeded(Description description) {
@@ -54,12 +54,27 @@ public abstract class JmsTest {
           .withFailMessage("Span remaining in queue. Check for redundant reporting")
           .isNull();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage(), e);
       }
     }
   };
 
-  /** Call this to block until a span was reported */
+Tracing tracing = Tracing.newBuilder()
+    .currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder()
+      .addScopeDecorator(StrictScopeDecorator.create())
+      .build())
+    .spanReporter(spans::add)
+    .build();
+
+CurrentTraceContext current = tracing.currentTraceContext();
+
+JmsTracing jmsTracing = JmsTracing.create(tracing);
+
+@After public void tearDown() {
+    tracing.close();
+  }
+
+/** Call this to block until a span was reported */
   Span takeSpan() throws InterruptedException {
     Span result = spans.poll(3, TimeUnit.SECONDS);
     assertThat(result)
@@ -68,16 +83,7 @@ public abstract class JmsTest {
     return result;
   }
 
-  Tracing tracing = Tracing.newBuilder()
-    .currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder()
-      .addScopeDecorator(StrictScopeDecorator.create())
-      .build())
-    .spanReporter(spans::add)
-    .build();
-  CurrentTraceContext current = tracing.currentTraceContext();
-  JmsTracing jmsTracing = JmsTracing.create(tracing);
-
-  static Map<String, String> propertiesToMap(Message headers) throws Exception {
+static Map<String, String> propertiesToMap(Message headers) throws Exception {
     Map<String, String> result = new LinkedHashMap<>();
 
     Enumeration<String> names = headers.getPropertyNames();
@@ -88,7 +94,7 @@ public abstract class JmsTest {
     return result;
   }
 
-  interface JMSRunnable {
+interface JMSRunnable {
     void run() throws JMSException;
   }
 }

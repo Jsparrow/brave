@@ -28,10 +28,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * https://github.com/census-instrumentation/opencensus-specs/blob/master/encodings/BinaryEncoding.md
  */
 final class TraceContextBinaryFormat {
-  static final byte VERSION = 0,
-    TRACE_ID_FIELD_ID = 0,
-    SPAN_ID_FIELD_ID = 1,
-    TRACE_OPTION_FIELD_ID = 2;
+  static final byte VERSION = 0;
+
+static final byte TRACE_ID_FIELD_ID = 0;
+
+static final byte SPAN_ID_FIELD_ID = 1;
+
+static final byte TRACE_OPTION_FIELD_ID = 2;
 
   static final int FORMAT_LENGTH =
     4 /* version + 3 fields */ + 16 /* trace ID */ + 8 /* span ID */ + 1 /* sampled bit */;
@@ -53,8 +56,13 @@ final class TraceContextBinaryFormat {
   }
 
   @Nullable static TraceContext parseBytes(byte[] bytes, @Nullable Tags tags) {
-    if (bytes == null) throw new NullPointerException("bytes == null"); // programming error
-    if (bytes.length == 0) return null;
+    if (bytes == null)
+	 {
+		throw new NullPointerException("bytes == null"); // programming error
+	}
+    if (bytes.length == 0) {
+		return null;
+	}
     if (bytes[0] != VERSION) {
       Platform.get().log("Invalid input: unsupported version {0}", bytes[0], null);
       return null;
@@ -63,7 +71,9 @@ final class TraceContextBinaryFormat {
       Platform.get().log("Invalid input: truncated", null);
       return null;
     }
-    long traceIdHigh, traceId, spanId;
+    long traceIdHigh;
+	long traceId;
+	long spanId;
     int pos = 1;
     if (bytes[pos] == TRACE_ID_FIELD_ID) {
       pos++;
@@ -96,8 +106,12 @@ final class TraceContextBinaryFormat {
       .traceIdHigh(traceIdHigh)
       .traceId(traceId)
       .spanId(spanId);
-    if (sampled != null) builder.sampled(sampled.booleanValue());
-    if (tags != null) builder.extra(Collections.singletonList(tags));
+    if (sampled != null) {
+		builder.sampled(sampled.booleanValue());
+	}
+    if (tags != null) {
+		builder.extra(Collections.singletonList(tags));
+	}
     return builder.build();
   }
 

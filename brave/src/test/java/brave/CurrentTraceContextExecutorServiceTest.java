@@ -27,6 +27,8 @@ import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * This class is in a separate test as ExecutorService has more features than everything else
@@ -34,7 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Tests were ported from com.github.kristofa.brave.BraveExecutorServiceTest
  */
 public class CurrentTraceContextExecutorServiceTest {
-  // Ensures one at-a-time, but also on a different thread
+  private static final Logger logger = LogManager.getLogger(CurrentTraceContextExecutorServiceTest.class);
+
+// Ensures one at-a-time, but also on a different thread
   ExecutorService wrappedExecutor = Executors.newSingleThreadExecutor();
 
   // override default so that it isn't inheritable
@@ -46,15 +50,16 @@ public class CurrentTraceContextExecutorServiceTest {
   TraceContext context = TraceContext.newBuilder().traceId(1).spanId(1).build();
   TraceContext context2 = TraceContext.newBuilder().traceId(2).spanId(1).build();
 
-  @After public void shutdownExecutor() throws InterruptedException {
+final TraceContext[] threadValues = new TraceContext[2];
+
+CountDownLatch latch = new CountDownLatch(1);
+
+@After public void shutdownExecutor() throws InterruptedException {
     wrappedExecutor.shutdown();
     wrappedExecutor.awaitTermination(1, TimeUnit.SECONDS);
   }
 
-  final TraceContext[] threadValues = new TraceContext[2];
-  CountDownLatch latch = new CountDownLatch(1);
-
-  @Test
+@Test
   public void execute() throws Exception {
     eachTaskHasCorrectSpanAttached(() -> {
       executor.execute(() -> {
@@ -63,7 +68,7 @@ public class CurrentTraceContextExecutorServiceTest {
           latch.await();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
       });
       // this won't run immediately because the other is blocked
@@ -72,7 +77,7 @@ public class CurrentTraceContextExecutorServiceTest {
     });
   }
 
-  @Test
+@Test
   public void submit_Runnable() throws Exception {
     eachTaskHasCorrectSpanAttached(() -> {
       executor.submit(() -> {
@@ -81,7 +86,7 @@ public class CurrentTraceContextExecutorServiceTest {
           latch.await();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
       });
       // this won't run immediately because the other is blocked
@@ -89,7 +94,7 @@ public class CurrentTraceContextExecutorServiceTest {
     });
   }
 
-  @Test
+@Test
   public void submit_Callable() throws Exception {
     eachTaskHasCorrectSpanAttached(() -> {
       executor.submit(() -> {
@@ -102,7 +107,7 @@ public class CurrentTraceContextExecutorServiceTest {
     });
   }
 
-  @Test
+@Test
   public void invokeAll() throws Exception {
     eachTaskHasCorrectSpanAttached(() -> executor.invokeAll(asList(
       () -> {
@@ -116,7 +121,7 @@ public class CurrentTraceContextExecutorServiceTest {
     ));
   }
 
-  void eachTaskHasCorrectSpanAttached(Callable<?> scheduleTwoTasks) throws Exception {
+void eachTaskHasCorrectSpanAttached(Callable<?> scheduleTwoTasks) throws Exception {
     // First task should block the queue, forcing the latter to not be scheduled immediately
     // Both should have the same parent, as the parent applies to the task creation time, not
     // execution time.

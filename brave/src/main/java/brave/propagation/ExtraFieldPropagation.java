@@ -98,35 +98,201 @@ import java.util.Set;
  * }</pre>
  */
 public final class ExtraFieldPropagation<K> implements Propagation<K> {
-  /** Wraps an underlying propagation implementation, pushing one or more fields */
-  public static Factory newFactory(Propagation.Factory delegate, String... fieldNames) {
-    if (delegate == null) throw new NullPointerException("delegate == null");
-    if (fieldNames == null) throw new NullPointerException("fieldNames == null");
-    String[] validated = ensureLowerCase(new LinkedHashSet<>(Arrays.asList(fieldNames)));
-    return new Factory(delegate, validated, validated, new BitSet());
-  }
+  final Factory factory;
+	final Propagation<K> delegate;
+	final List<K> keys;
+	final BitSet redacted;
 
-  /** Wraps an underlying propagation implementation, pushing one or more fields */
-  public static Factory newFactory(Propagation.Factory delegate,
-    Collection<String> fieldNames) {
-    if (delegate == null) throw new NullPointerException("delegate == null");
-    if (fieldNames == null) throw new NullPointerException("fieldNames == null");
-    String[] validated = ensureLowerCase(new LinkedHashSet<>(fieldNames));
-    return new Factory(delegate, validated, validated, new BitSet());
-  }
+	ExtraFieldPropagation(Factory factory, Propagation.KeyFactory<K> keyFactory, List<K> keys,
+	    BitSet redacted) {
+	    this.factory = factory;
+	    this.delegate = factory.delegate.create(keyFactory);
+	    this.keys = keys;
+	    this.redacted = redacted;
+	  }
 
-  public static FactoryBuilder newFactoryBuilder(Propagation.Factory delegate) {
-    return new FactoryBuilder(delegate);
-  }
+	/** Wraps an underlying propagation implementation, pushing one or more fields */
+	  public static Factory newFactory(Propagation.Factory delegate, String... fieldNames) {
+	    if (delegate == null) {
+			throw new NullPointerException("delegate == null");
+		}
+	    if (fieldNames == null) {
+			throw new NullPointerException("fieldNames == null");
+		}
+	    String[] validated = ensureLowerCase(new LinkedHashSet<>(Arrays.asList(fieldNames)));
+	    return new Factory(delegate, validated, validated, new BitSet());
+	  }
 
-  public static final class FactoryBuilder {
+	/** Wraps an underlying propagation implementation, pushing one or more fields */
+	  public static Factory newFactory(Propagation.Factory delegate,
+	    Collection<String> fieldNames) {
+	    if (delegate == null) {
+			throw new NullPointerException("delegate == null");
+		}
+	    if (fieldNames == null) {
+			throw new NullPointerException("fieldNames == null");
+		}
+	    String[] validated = ensureLowerCase(new LinkedHashSet<>(fieldNames));
+	    return new Factory(delegate, validated, validated, new BitSet());
+	  }
+
+	public static FactoryBuilder newFactoryBuilder(Propagation.Factory delegate) {
+	    return new FactoryBuilder(delegate);
+	  }
+
+	/** Synonym for {@link #get(String)} */
+	  @Nullable public static String current(String name) {
+	    return get(name);
+	  }
+
+	/**
+	   * Returns the value of the field with the specified key or null if not available.
+	   *
+	   * <p>Prefer {@link #get(TraceContext, String)} if you have a reference to a span.
+	   */
+	  @Nullable public static String get(String name) {
+	    TraceContext context = currentTraceContext();
+	    return context != null ? get(context, name) : null;
+	  }
+
+	/**
+	   * Sets the current value of the field with the specified key, or drops if not a configured
+	   * field.
+	   *
+	   * <p>Prefer {@link #set(TraceContext, String, String)} if you have a reference to a span.
+	   */
+	  public static void set(String name, String value) {
+	    TraceContext context = currentTraceContext();
+	    if (context != null) {
+			set(context, name, value);
+		}
+	  }
+
+	/**
+	   * Returns a mapping of fields in the current trace context, or empty if there are none.
+	   *
+	   * <p>Prefer {@link #set(TraceContext, String, String)} if you have a reference to a span.
+	   */
+	  public static Map<String, String> getAll() {
+	    TraceContext context = currentTraceContext();
+	    if (context == null) {
+			return Collections.emptyMap();
+		}
+	    return getAll(context);
+	  }
+
+	/** Returns a mapping of any fields in the extraction result. */
+	  public static Map<String, String> getAll(TraceContextOrSamplingFlags extracted) {
+	    if (extracted == null) {
+			throw new NullPointerException("extracted == null");
+		}
+	    TraceContext extractedContext = extracted.context();
+	    if (extractedContext != null) {
+			return getAll(extractedContext);
+		}
+	    Extra fields = TraceContext.findExtra(Extra.class, extracted.extra());
+	    return fields != null ? fields.toMap() : Collections.emptyMap();
+	  }
+
+	/** Returns a mapping of any fields in the trace context. */
+	  public static Map<String, String> getAll(TraceContext context) {
+	    if (context == null) {
+			throw new NullPointerException("context == null");
+		}
+	    Extra fields = context.findExtra(Extra.class);
+	    return fields != null ? fields.toMap() : Collections.emptyMap();
+	  }
+
+	@Nullable static TraceContext currentTraceContext() {
+	    Tracing tracing = Tracing.current();
+	    return tracing != null ? tracing.currentTraceContext().get() : null;
+	  }
+
+	/** Returns the value of the field with the specified key or null if not available */
+	  @Nullable public static String get(TraceContext context, String name) {
+	    return PropagationFields.get(context, lowercase(name), Extra.class);
+	  }
+
+	/** Sets the value of the field with the specified key, or drops if not a configured field */
+	  public static void set(TraceContext context, String name, String value) {
+	    PropagationFields.put(context, lowercase(name), value, Extra.class);
+	  }
+
+	/**
+	   * Returns the extra keys this component can extract. This result is lowercase and does not
+	   * include any {@link #keys() trace context keys}.
+	   */
+	  // This is here to support extraction from carriers missing a get field by name function. The only
+	  // known example is OpenTracing TextMap https://github.com/opentracing/opentracing-java/issues/305
+	  public List<K> extraKeys() {
+	    return keys;
+	  }
+
+	/**
+	   * Only returns trace context keys. Extra field names are not returned to ensure tools don't
+	   * delete them. This is to support users accessing extra fields without Brave apis (ex via
+	   * headers).
+	   */
+	  @Override public List<K> keys() {
+	    return delegate.keys();
+	  }
+
+	@Override public <C> Injector<C> injector(Setter<C, K> setter) {
+	    return new ExtraFieldInjector<>(this, setter);
+	  }
+
+	@Override public <C> Extractor<C> extractor(Getter<C, K> getter) {
+	    return new ExtraFieldExtractor<>(this, getter);
+	  }
+
+	static String[] ensureLowerCase(Collection<String> names) {
+	    if (names.isEmpty()) {
+			throw new IllegalArgumentException("names is empty");
+		}
+	    Iterator<String> nextName = names.iterator();
+	    String[] result = new String[names.size()];
+	    for (int i = 0; nextName.hasNext(); i++) {
+	      String name = nextName.next();
+	      if (name == null) {
+			throw new NullPointerException(new StringBuilder().append("names[").append(i).append("] == null").toString());
+		}
+	      name = name.trim();
+	      if (name.isEmpty()) {
+			throw new IllegalArgumentException(new StringBuilder().append("names[").append(i).append("] is empty").toString());
+		}
+	      result[i] = name.toLowerCase(Locale.ROOT);
+	    }
+	    return result;
+	  }
+
+	static String lowercase(String name) {
+	    if (name == null) {
+			throw new NullPointerException("name == null");
+		}
+	    return name.toLowerCase(Locale.ROOT);
+	  }
+
+	static String validateFieldName(String fieldName) {
+	    if (fieldName == null) {
+			throw new NullPointerException("fieldName == null");
+		}
+	    fieldName = fieldName.toLowerCase(Locale.ROOT).trim();
+	    if (fieldName.isEmpty()) {
+			throw new IllegalArgumentException("fieldName is empty");
+		}
+	    return fieldName;
+	  }
+
+public static final class FactoryBuilder {
     final Propagation.Factory delegate;
     final Set<String> fieldNames = new LinkedHashSet<>();
     final Set<String> redactedFieldNames = new LinkedHashSet<>();
     final Map<String, String[]> prefixedNames = new LinkedHashMap<>();
 
     FactoryBuilder(Propagation.Factory delegate) {
-      if (delegate == null) throw new NullPointerException("delegate == null");
+      if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
       this.delegate = delegate;
     }
 
@@ -156,33 +322,42 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
      * <p>Note: any {@code fieldNames} will be implicitly lower-cased.
      */
     public FactoryBuilder addPrefixedFields(String prefix, Collection<String> fieldNames) {
-      if (prefix == null) throw new NullPointerException("prefix == null");
-      if (prefix.isEmpty()) throw new IllegalArgumentException("prefix is empty");
-      if (fieldNames == null) throw new NullPointerException("fieldNames == null");
+      if (prefix == null) {
+		throw new NullPointerException("prefix == null");
+	}
+      if (prefix.isEmpty()) {
+		throw new IllegalArgumentException("prefix is empty");
+	}
+      if (fieldNames == null) {
+		throw new NullPointerException("fieldNames == null");
+	}
       prefixedNames.put(prefix, ensureLowerCase(new LinkedHashSet<>(fieldNames)));
       return this;
     }
 
     public Factory build() {
       BitSet redacted = new BitSet();
-      List<String> fields = new ArrayList<>(), keys = new ArrayList<>();
+      List<String> fields = new ArrayList<>();
+	List<String> keys = new ArrayList<>();
       List<Integer> keyToFieldList = new ArrayList<>();
 
       // First pass: add any field names that are used as propagation keys directly
       int i = 0;
       for (String fieldName : fieldNames) {
-        if (redactedFieldNames.contains(fieldName)) redacted.set(i); // flag to redact on inject
+        if (redactedFieldNames.contains(fieldName))
+		 {
+			redacted.set(i); // flag to redact on inject
+		}
         fields.add(fieldName);
         keys.add(fieldName);
         keyToFieldList.add(i++);
       }
 
       // Second pass: add prefixed fields, noting a prefixed field could be a dupe of a non-prefixed
-      for (Map.Entry<String, String[]> entry : prefixedNames.entrySet()) {
+	prefixedNames.entrySet().forEach(entry -> {
         String nextPrefix = entry.getKey();
         String[] nextFieldNames = entry.getValue();
-        for (i = 0; i < nextFieldNames.length; i++) {
-          String nextFieldName = nextFieldNames[i];
+        for (String nextFieldName : nextFieldNames) {
           int index = fields.indexOf(nextFieldName);
           if (index == -1) {
             index = fields.size();
@@ -191,7 +366,7 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
           keys.add(nextPrefix + nextFieldName);
           keyToFieldList.add(index);
         }
-      }
+      });
 
       // Last pass: we may have multiple propagation keys pointing to the same field. Create an
       // index so that an update a field mapped as "user-id" and "x-user-id" affect the same cell
@@ -202,74 +377,6 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
       return new Factory(delegate, fields.toArray(new String[0]), keys.toArray(new String[0]),
         keyToField, redacted);
     }
-  }
-
-  /** Synonym for {@link #get(String)} */
-  @Nullable public static String current(String name) {
-    return get(name);
-  }
-
-  /**
-   * Returns the value of the field with the specified key or null if not available.
-   *
-   * <p>Prefer {@link #get(TraceContext, String)} if you have a reference to a span.
-   */
-  @Nullable public static String get(String name) {
-    TraceContext context = currentTraceContext();
-    return context != null ? get(context, name) : null;
-  }
-
-  /**
-   * Sets the current value of the field with the specified key, or drops if not a configured
-   * field.
-   *
-   * <p>Prefer {@link #set(TraceContext, String, String)} if you have a reference to a span.
-   */
-  public static void set(String name, String value) {
-    TraceContext context = currentTraceContext();
-    if (context != null) set(context, name, value);
-  }
-
-  /**
-   * Returns a mapping of fields in the current trace context, or empty if there are none.
-   *
-   * <p>Prefer {@link #set(TraceContext, String, String)} if you have a reference to a span.
-   */
-  public static Map<String, String> getAll() {
-    TraceContext context = currentTraceContext();
-    if (context == null) return Collections.emptyMap();
-    return getAll(context);
-  }
-
-  /** Returns a mapping of any fields in the extraction result. */
-  public static Map<String, String> getAll(TraceContextOrSamplingFlags extracted) {
-    if (extracted == null) throw new NullPointerException("extracted == null");
-    TraceContext extractedContext = extracted.context();
-    if (extractedContext != null) return getAll(extractedContext);
-    Extra fields = TraceContext.findExtra(Extra.class, extracted.extra());
-    return fields != null ? fields.toMap() : Collections.emptyMap();
-  }
-
-  /** Returns a mapping of any fields in the trace context. */
-  public static Map<String, String> getAll(TraceContext context) {
-    if (context == null) throw new NullPointerException("context == null");
-    Extra fields = context.findExtra(Extra.class);
-    return fields != null ? fields.toMap() : Collections.emptyMap();
-  }
-
-  @Nullable static TraceContext currentTraceContext() {
-    Tracing tracing = Tracing.current();
-    return tracing != null ? tracing.currentTraceContext().get() : null;
-  }
-
-  /** Returns the value of the field with the specified key or null if not available */
-  @Nullable public static String get(TraceContext context, String name) {
-    return PropagationFields.get(context, lowercase(name), Extra.class);
-  }
-
-  /** Sets the value of the field with the specified key, or drops if not a configured field */
-  public static void set(TraceContext context, String name, String value) {
-    PropagationFields.put(context, lowercase(name), value, Extra.class);
   }
 
   public static final class Factory extends Propagation.Factory {
@@ -284,16 +391,6 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
       this(delegate, fieldNames, keyNames, keyToField(keyNames), redacted);
     }
 
-    /**
-     * We have a key to field mapping as there may be multiple propagation keys that reference the
-     * same field. For example, "baggage-userid" and "baggage_userid".
-     */
-    static int[] keyToField(String[] keyNames) {
-      int[] result = new int[keyNames.length];
-      for (int i = 0; i < result.length; i++) result[i] = i;
-      return result;
-    }
-
     Factory(Propagation.Factory delegate, String[] fieldNames, String[] keyNames,
       int[] keyToField, BitSet redacted) {
       this.delegate = delegate;
@@ -304,15 +401,27 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
       this.extraFactory = new ExtraFactory(fieldNames);
     }
 
-    @Override public boolean supportsJoin() {
+	/**
+     * We have a key to field mapping as there may be multiple propagation keys that reference the
+     * same field. For example, "baggage-userid" and "baggage_userid".
+     */
+    static int[] keyToField(String[] keyNames) {
+      int[] result = new int[keyNames.length];
+      for (int i = 0; i < result.length; i++) {
+		result[i] = i;
+	}
+      return result;
+    }
+
+	@Override public boolean supportsJoin() {
       return delegate.supportsJoin();
     }
 
-    @Override public boolean requires128BitTraceId() {
+	@Override public boolean requires128BitTraceId() {
       return delegate.requires128BitTraceId();
     }
 
-    @Override
+	@Override
     public final <K> ExtraFieldPropagation<K> create(Propagation.KeyFactory<K> keyFactory) {
       int length = keyNames.length;
       List<K> keys = new ArrayList<>(length);
@@ -322,50 +431,10 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
       return new ExtraFieldPropagation<>(this, keyFactory, keys, redacted);
     }
 
-    @Override public TraceContext decorate(TraceContext context) {
+	@Override public TraceContext decorate(TraceContext context) {
       TraceContext result = delegate.decorate(context);
       return extraFactory.decorate(result);
     }
-  }
-
-  final Factory factory;
-  final Propagation<K> delegate;
-  final List<K> keys;
-  final BitSet redacted;
-
-  ExtraFieldPropagation(Factory factory, Propagation.KeyFactory<K> keyFactory, List<K> keys,
-    BitSet redacted) {
-    this.factory = factory;
-    this.delegate = factory.delegate.create(keyFactory);
-    this.keys = keys;
-    this.redacted = redacted;
-  }
-
-  /**
-   * Returns the extra keys this component can extract. This result is lowercase and does not
-   * include any {@link #keys() trace context keys}.
-   */
-  // This is here to support extraction from carriers missing a get field by name function. The only
-  // known example is OpenTracing TextMap https://github.com/opentracing/opentracing-java/issues/305
-  public List<K> extraKeys() {
-    return keys;
-  }
-
-  /**
-   * Only returns trace context keys. Extra field names are not returned to ensure tools don't
-   * delete them. This is to support users accessing extra fields without Brave apis (ex via
-   * headers).
-   */
-  @Override public List<K> keys() {
-    return delegate.keys();
-  }
-
-  @Override public <C> Injector<C> injector(Setter<C, K> setter) {
-    return new ExtraFieldInjector<>(this, setter);
-  }
-
-  @Override public <C> Extractor<C> extractor(Getter<C, K> getter) {
-    return new ExtraFieldExtractor<>(this, getter);
   }
 
   static final class ExtraFieldInjector<C, K> implements Injector<C> {
@@ -382,15 +451,22 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
     @Override public void inject(TraceContext traceContext, C carrier) {
       delegate.inject(traceContext, carrier);
       Extra extra = traceContext.findExtra(Extra.class);
-      if (extra == null) return;
+      if (extra == null) {
+		return;
+	}
       inject(extra, carrier);
     }
 
     void inject(Extra fields, C carrier) {
       for (int i = 0, length = propagation.keys.size(); i < length; i++) {
-        if (propagation.redacted.get(i)) continue; // don't propagate downstream
+        if (propagation.redacted.get(i))
+		 {
+			continue; // don't propagate downstream
+		}
         String maybeValue = fields.get(propagation.factory.keyToField[i]);
-        if (maybeValue == null) continue;
+        if (maybeValue == null) {
+			continue;
+		}
         setter.put(carrier, propagation.keys.get(i), maybeValue);
       }
     }
@@ -414,25 +490,13 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
       Extra fields = propagation.factory.extraFactory.create();
       for (int i = 0, length = propagation.keys.size(); i < length; i++) {
         String maybeValue = getter.get(carrier, propagation.keys.get(i));
-        if (maybeValue == null) continue;
+        if (maybeValue == null) {
+			continue;
+		}
         fields.put(propagation.factory.keyToField[i], maybeValue);
       }
       return result.toBuilder().addExtra(fields).build();
     }
-  }
-
-  static String[] ensureLowerCase(Collection<String> names) {
-    if (names.isEmpty()) throw new IllegalArgumentException("names is empty");
-    Iterator<String> nextName = names.iterator();
-    String[] result = new String[names.size()];
-    for (int i = 0; nextName.hasNext(); i++) {
-      String name = nextName.next();
-      if (name == null) throw new NullPointerException("names[" + i + "] == null");
-      name = name.trim();
-      if (name.isEmpty()) throw new IllegalArgumentException("names[" + i + "] is empty");
-      result[i] = name.toLowerCase(Locale.ROOT);
-    }
-    return result;
   }
 
   static final class ExtraFactory extends PropagationFieldsFactory<String, String, Extra> {
@@ -467,17 +531,5 @@ public final class ExtraFieldPropagation<K> implements Propagation<K> {
     Extra(Extra parent, String... fieldNames) {
       super(parent, fieldNames);
     }
-  }
-
-  static String lowercase(String name) {
-    if (name == null) throw new NullPointerException("name == null");
-    return name.toLowerCase(Locale.ROOT);
-  }
-
-  static String validateFieldName(String fieldName) {
-    if (fieldName == null) throw new NullPointerException("fieldName == null");
-    fieldName = fieldName.toLowerCase(Locale.ROOT).trim();
-    if (fieldName.isEmpty()) throw new IllegalArgumentException("fieldName is empty");
-    return fieldName;
   }
 }

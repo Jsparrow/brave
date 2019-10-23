@@ -81,7 +81,9 @@ public class PlatformTest {
     assertThat(platform.linkLocalIp).isNull(); // sanity check setup
 
     // cannot test as the there is no link local IP
-    if (platform.produceLinkLocalIp() == null) return;
+    if (platform.produceLinkLocalIp() == null) {
+		return;
+	}
 
     assertThat(platform.linkLocalIp())
       .isNotNull();
@@ -164,7 +166,7 @@ public class PlatformTest {
     // create all the tasks up front so that they are executed with no delay
     List<Callable<String>> tasks = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      tasks.add(() -> platform.linkLocalIp());
+      tasks.add(platform::linkLocalIp);
     }
 
     ExecutorService executor = Executors.newFixedThreadPool(tasks.size());
@@ -183,7 +185,9 @@ public class PlatformTest {
   static void nicWithAddress(@Nullable InetAddress address) throws SocketException {
     mockStatic(NetworkInterface.class);
     Vector<InetAddress> addresses = new Vector<>();
-    if (address != null) addresses.add(address);
+    if (address != null) {
+		addresses.add(address);
+	}
     NetworkInterface nic = mock(NetworkInterface.class);
     Vector<NetworkInterface> nics = new Vector<>();
     nics.add(nic);

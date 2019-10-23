@@ -40,32 +40,8 @@ public class RedactingFinishedSpanHandlerTest {
    * for a realistic one.
    */
   static final Pattern CREDIT_CARD = Pattern.compile("[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}");
-
-  enum ValueRedactor implements TagUpdater, AnnotationUpdater {
-    INSTANCE;
-
-    @Override public String update(String key, String value) {
-      return maybeUpdateValue(value);
-    }
-
-    @Override public String update(long timestamp, String value) {
-      return maybeUpdateValue(value);
-    }
-
-    /** Simple example of a replacement pattern, deleting entries which only include credit cards */
-    static String maybeUpdateValue(String value) {
-      Matcher matcher = CREDIT_CARD.matcher(value);
-      if (matcher.find()) {
-        String matched = matcher.group(0);
-        if (matched.equals(value)) return null;
-        return value.replace(matched, "xxxx-xxxx-xxxx-xxxx");
-      }
-      return value;
-    }
-  }
-
-  BlockingQueue<Span> spans = new LinkedBlockingQueue<>();
-  FinishedSpanHandler redacter = new FinishedSpanHandler() {
+BlockingQueue<Span> spans = new LinkedBlockingQueue<>();
+FinishedSpanHandler redacter = new FinishedSpanHandler() {
     @Override public boolean handle(TraceContext context, MutableSpan span) {
       span.forEachTag(ValueRedactor.INSTANCE);
       span.forEachAnnotation(ValueRedactor.INSTANCE);
@@ -76,26 +52,24 @@ public class RedactingFinishedSpanHandlerTest {
       return true; // also redact data leaked by bugs
     }
   };
-
-  // Only handles non-orphans
+// Only handles non-orphans
   FinishedSpanHandler markFinished = new FinishedSpanHandler() {
     @Override public boolean handle(TraceContext context, MutableSpan span) {
       span.tag("oliver-twist", "false");
       return true;
     }
   };
-
-  Tracing tracing = Tracing.newBuilder()
+Tracing tracing = Tracing.newBuilder()
     .addFinishedSpanHandler(redacter)
     .addFinishedSpanHandler(markFinished)
     .spanReporter(spans::add)
     .build();
 
-  @After public void close() {
+@After public void close() {
     tracing.close();
   }
 
-  @Test public void showRedaction() throws Exception {
+@Test public void showRedaction() throws Exception {
     ScopedSpan span = tracing.tracer().startScopedSpan("auditor");
     try {
       span.tag("a", "1");
@@ -135,5 +109,30 @@ public class RedactingFinishedSpanHandlerTest {
     assertThat(leaked.annotations()).flatExtracting(Annotation::value).containsExactly(
       "brave.flush"
     );
+  }
+
+enum ValueRedactor implements TagUpdater, AnnotationUpdater {
+    INSTANCE;
+
+    @Override public String update(String key, String value) {
+      return maybeUpdateValue(value);
+    }
+
+    @Override public String update(long timestamp, String value) {
+      return maybeUpdateValue(value);
+    }
+
+    /** Simple example of a replacement pattern, deleting entries which only include credit cards */
+    static String maybeUpdateValue(String value) {
+      Matcher matcher = CREDIT_CARD.matcher(value);
+      if (!matcher.find()) {
+		return value;
+	}
+	String matched = matcher.group(0);
+	if (matched.equals(value)) {
+		return null;
+	}
+	return value.replace(matched, "xxxx-xxxx-xxxx-xxxx");
+    }
   }
 }

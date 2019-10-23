@@ -96,7 +96,28 @@ public class FinagleContextInteropTest {
     assertThat(Trace.idOption().isDefined()).isFalse();
   }
 
-  /**
+  static TraceContext toTraceContext(TraceId id) {
+    return TraceContext.newBuilder()
+      .traceId(id.traceId().self())
+      .parentId(id._parentId().isEmpty() ? null : id.parentId().self())
+      .spanId(id.spanId().self())
+      .sampled(id.getSampled().isEmpty() ? null : id.getSampled().get())
+      .debug(id.flags().isDebug())
+      // .shared(isn't known in finagle)
+      .build();
+  }
+
+static TraceId toTraceId(TraceContext context) {
+    return new TraceId(
+      Option.apply(SpanId.apply(context.traceId())),
+      Option.apply(context.parentIdAsLong() == 0L ? null : SpanId.apply(context.parentIdAsLong())),
+      SpanId.apply(context.spanId()),
+      Option.apply(context.sampled()),
+      Flags$.MODULE$.apply(context.debug() ? 1 : 0)
+    );
+  }
+
+/**
    * In Finagle, let forms are used to apply an trace context to a function. This is implemented
    * under the scenes by a try-finally block using {@link Local#set(Option)}. The below code uses
    * this detail to allow interop between finagle and {@link CurrentTraceContext}.
@@ -114,7 +135,9 @@ public class FinagleContextInteropTest {
 
     @Override public TraceContext get() {
       Option<TraceId> option = broadcast().get(Trace$.MODULE$.TraceIdContext());
-      if (option.isEmpty()) return null;
+      if (option.isEmpty()) {
+		return null;
+	}
       return toTraceContext(option.get());
     }
 
@@ -137,26 +160,5 @@ public class FinagleContextInteropTest {
       broadcastLocal.set(new Some(update));
       return () -> broadcastLocal.set(new Some(saved));
     }
-  }
-
-  static TraceContext toTraceContext(TraceId id) {
-    return TraceContext.newBuilder()
-      .traceId(id.traceId().self())
-      .parentId(id._parentId().isEmpty() ? null : id.parentId().self())
-      .spanId(id.spanId().self())
-      .sampled(id.getSampled().isEmpty() ? null : id.getSampled().get())
-      .debug(id.flags().isDebug())
-      // .shared(isn't known in finagle)
-      .build();
-  }
-
-  static TraceId toTraceId(TraceContext context) {
-    return new TraceId(
-      Option.apply(SpanId.apply(context.traceId())),
-      Option.apply(context.parentIdAsLong() == 0L ? null : SpanId.apply(context.parentIdAsLong())),
-      SpanId.apply(context.spanId()),
-      Option.apply(context.sampled()),
-      Flags$.MODULE$.apply(context.debug() ? 1 : 0)
-    );
   }
 }

@@ -28,26 +28,13 @@ public final class SamplerFunctions {
    * @since 5.8
    */
   public static <T> SamplerFunction<T> nullSafe(SamplerFunction<T> delegate) {
-    if (delegate == null) throw new NullPointerException("delegate == null");
-    if (delegate instanceof Constants || delegate instanceof NullSafe) return delegate;
+    if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
+    if (delegate instanceof Constants || delegate instanceof NullSafe) {
+		return delegate;
+	}
     return new NullSafe<>(delegate);
-  }
-
-  static final class NullSafe<T> implements SamplerFunction<T> {
-    final SamplerFunction<T> delegate;
-
-    NullSafe(SamplerFunction<T> delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override public Boolean trySample(T arg) {
-      if (arg == null) return null;
-      return delegate.trySample(arg);
-    }
-
-    @Override public String toString() {
-      return "NullSafe(" + delegate + ")";
-    }
   }
 
   /**
@@ -61,7 +48,7 @@ public final class SamplerFunctions {
     return (SamplerFunction<T>) Constants.DEFER_DECISION;
   }
 
-  /**
+/**
    * Ignores the argument and returns false. This means it will never start new traces.
    *
    * <p>For example, you may wish to only capture traces if they originated from an inbound server
@@ -74,7 +61,7 @@ public final class SamplerFunctions {
     return (SamplerFunction<T>) Constants.NEVER_SAMPLE;
   }
 
-  enum Constants implements SamplerFunction<Object> {
+enum Constants implements SamplerFunction<Object> {
     DEFER_DECISION {
       @Override @Nullable public Boolean trySample(Object request) {
         return null;
@@ -92,6 +79,25 @@ public final class SamplerFunctions {
       @Override public String toString() {
         return "NeverSample";
       }
+    }
+  }
+
+static final class NullSafe<T> implements SamplerFunction<T> {
+    final SamplerFunction<T> delegate;
+
+    NullSafe(SamplerFunction<T> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override public Boolean trySample(T arg) {
+      if (arg == null) {
+		return null;
+	}
+      return delegate.trySample(arg);
+    }
+
+    @Override public String toString() {
+      return new StringBuilder().append("NullSafe(").append(delegate).append(")").toString();
     }
   }
 }

@@ -84,19 +84,7 @@ public class ITTracingClientInterceptor {
   TestServer server = new TestServer();
   ManagedChannel client;
 
-  @Before public void setup() throws IOException {
-    server.start();
-    client = newClient();
-  }
-
-  @After public void close() throws Exception {
-    closeClient(client);
-    server.stop();
-    Tracing current = Tracing.current();
-    if (current != null) current.close();
-  }
-
-  // See brave.http.ITHttp for rationale on polling after tests complete
+// See brave.http.ITHttp for rationale on polling after tests complete
   @Rule public TestRule assertSpansEmpty = new TestWatcher() {
     // only check success path to avoid masking assertion errors or exceptions
     @Override protected void succeeded(Description description) {
@@ -105,28 +93,42 @@ public class ITTracingClientInterceptor {
           .withFailMessage("Span remaining in queue. Check for redundant reporting")
           .isNull();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        testLogger.error(e.getMessage(), e);
       }
     }
   };
 
-  ManagedChannel newClient() {
+@Before public void setup() throws IOException {
+    server.start();
+    client = newClient();
+  }
+
+@After public void close() throws Exception {
+    closeClient(client);
+    server.stop();
+    Tracing current = Tracing.current();
+    if (current != null) {
+		current.close();
+	}
+  }
+
+ManagedChannel newClient() {
     return newClient(grpcTracing.newClientInterceptor());
   }
 
-  ManagedChannel newClient(ClientInterceptor... clientInterceptors) {
+ManagedChannel newClient(ClientInterceptor... clientInterceptors) {
     return ManagedChannelBuilder.forAddress("localhost", server.port())
       .intercept(clientInterceptors)
       .usePlaintext(true)
       .build();
   }
 
-  void closeClient(ManagedChannel client) throws Exception {
+void closeClient(ManagedChannel client) throws Exception {
     client.shutdown();
     client.awaitTermination(1, TimeUnit.SECONDS);
   }
 
-  @Test public void propagatesSpan() throws Exception {
+@Test public void propagatesSpan() throws Exception {
     GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
 
     TraceContext context = server.takeRequest().context();
@@ -136,7 +138,7 @@ public class ITTracingClientInterceptor {
     takeSpan();
   }
 
-  @Test public void makesChildOfCurrentSpan() throws Exception {
+@Test public void makesChildOfCurrentSpan() throws Exception {
     ScopedSpan parent = tracer.startScopedSpan("test");
     try {
       GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
@@ -156,7 +158,7 @@ public class ITTracingClientInterceptor {
       .containsOnly(null, Span.Kind.CLIENT);
   }
 
-  /**
+/**
    * This tests that the parent is determined at the time the request was made, not when the request
    * was executed.
    */
@@ -191,7 +193,7 @@ public class ITTracingClientInterceptor {
       .containsOnly(null, Span.Kind.CLIENT);
   }
 
-  /** Unlike Brave 3, Brave 4 propagates trace ids even when unsampled */
+/** Unlike Brave 3, Brave 4 propagates trace ids even when unsampled */
   @Test public void propagates_sampledFalse() throws Exception {
     grpcTracing = GrpcTracing.create(tracingBuilder(NEVER_SAMPLE).build());
     closeClient(client);
@@ -205,7 +207,7 @@ public class ITTracingClientInterceptor {
     // @After will check that nothing is reported
   }
 
-  @Test public void reportsClientKindToZipkin() throws Exception {
+@Test public void reportsClientKindToZipkin() throws Exception {
     GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
 
     Span span = takeSpan();
@@ -213,7 +215,7 @@ public class ITTracingClientInterceptor {
       .isEqualTo(Span.Kind.CLIENT);
   }
 
-  @Test public void defaultSpanNameIsMethodName() throws Exception {
+@Test public void defaultSpanNameIsMethodName() throws Exception {
     GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
 
     Span span = takeSpan();
@@ -221,7 +223,7 @@ public class ITTracingClientInterceptor {
       .isEqualTo("helloworld.greeter/sayhello");
   }
 
-  @Test public void onTransportException_addsErrorTag() throws Exception {
+@Test public void onTransportException_addsErrorTag() throws Exception {
     server.stop();
 
     StatusRuntimeException thrown = catchThrowableOfType(
@@ -235,11 +237,12 @@ public class ITTracingClientInterceptor {
     );
   }
 
-  @Test public void addsErrorTag_onUnimplemented() throws Exception {
+@Test public void addsErrorTag_onUnimplemented() throws Exception {
     try {
       GraterGrpc.newBlockingStub(client).seyHallo(HELLO_REQUEST);
       failBecauseExceptionWasNotThrown(StatusRuntimeException.class);
     } catch (StatusRuntimeException e) {
+		testLogger.error(e.getMessage(), e);
     }
 
     Span span = takeSpan();
@@ -249,7 +252,7 @@ public class ITTracingClientInterceptor {
     );
   }
 
-  @Test public void addsErrorTag_onCanceledFuture() throws Exception {
+@Test public void addsErrorTag_onCanceledFuture() throws Exception {
     server.enqueueDelay(TimeUnit.SECONDS.toMillis(1));
 
     ListenableFuture<HelloReply> resp = GreeterGrpc.newFutureStub(client).sayHello(HELLO_REQUEST);
@@ -262,7 +265,7 @@ public class ITTracingClientInterceptor {
     );
   }
 
-  /**
+/**
    * NOTE: for this to work, the tracing interceptor must be last (so that it executes first)
    *
    * <p>Also notice that we are only making the current context available in the request side.
@@ -296,7 +299,7 @@ public class ITTracingClientInterceptor {
       .containsOnly("before", "start");
   }
 
-  @Test public void clientParserTest() throws Exception {
+@Test public void clientParserTest() throws Exception {
     closeClient(client);
     grpcTracing = grpcTracing.toBuilder().clientParser(new GrpcClientParser() {
       @Override protected <M> void onMessageSent(M message, SpanCustomizer span) {
@@ -330,7 +333,7 @@ public class ITTracingClientInterceptor {
     );
   }
 
-  @Test public void clientParserTestStreamingResponse() throws Exception {
+@Test public void clientParserTestStreamingResponse() throws Exception {
     closeClient(client);
     grpcTracing = grpcTracing.toBuilder().clientParser(new GrpcClientParser() {
       int receiveCount = 0;
@@ -350,7 +353,7 @@ public class ITTracingClientInterceptor {
     assertThat(span.tags()).hasSize(10);
   }
 
-  @Test public void customSampler() throws Exception {
+@Test public void customSampler() throws Exception {
     closeClient(client);
 
     RpcTracing rpcTracing = RpcTracing.newBuilder(tracing).clientSampler(RpcRuleSampler.newBuilder()
@@ -372,7 +375,7 @@ public class ITTracingClientInterceptor {
     // @After will also check that sayHelloWithManyReplies was not sampled
   }
 
-  Tracing.Builder tracingBuilder(Sampler sampler) {
+Tracing.Builder tracingBuilder(Sampler sampler) {
     return Tracing.newBuilder()
       .spanReporter(spans::add)
       .currentTraceContext( // connect to log4j
@@ -383,7 +386,7 @@ public class ITTracingClientInterceptor {
       .sampler(sampler);
   }
 
-  /** Call this to block until a span was reported */
+/** Call this to block until a span was reported */
   Span takeSpan() throws InterruptedException {
     Span result = spans.poll(3, TimeUnit.SECONDS);
     assertThat(result)

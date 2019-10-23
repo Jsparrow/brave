@@ -37,6 +37,6 @@ final class SpanCustomizerShield implements SpanCustomizer {
   }
 
   @Override public String toString() {
-    return "SpanCustomizer(" + delegate + ")";
+    return new StringBuilder().append("SpanCustomizer(").append(delegate).append(")").toString();
   }
 }

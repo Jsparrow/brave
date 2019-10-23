@@ -29,17 +29,26 @@ public class HttpTracingFactoryBean implements FactoryBean {
   Tracing tracing;
   HttpClientParser clientParser;
   HttpServerParser serverParser;
-  SamplerFunction<HttpRequest> clientSampler, serverSampler;
+  SamplerFunction<HttpRequest> clientSampler;
+SamplerFunction<HttpRequest> serverSampler;
   List<HttpTracingCustomizer> customizers;
 
   @Override public HttpTracing getObject() {
     HttpTracing.Builder builder = HttpTracing.newBuilder(tracing);
-    if (clientParser != null) builder.clientParser(clientParser);
-    if (serverParser != null) builder.serverParser(serverParser);
-    if (clientSampler != null) builder.clientSampler(clientSampler);
-    if (serverSampler != null) builder.serverSampler(serverSampler);
+    if (clientParser != null) {
+		builder.clientParser(clientParser);
+	}
+    if (serverParser != null) {
+		builder.serverParser(serverParser);
+	}
+    if (clientSampler != null) {
+		builder.clientSampler(clientSampler);
+	}
+    if (serverSampler != null) {
+		builder.serverSampler(serverSampler);
+	}
     if (customizers != null) {
-      for (HttpTracingCustomizer customizer : customizers) customizer.customize(builder);
+      customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
   }

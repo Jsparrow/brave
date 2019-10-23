@@ -63,22 +63,44 @@ import static brave.sampler.Matchers.and;
  *
  * @since 4.4
  */
-public final class HttpRuleSampler extends HttpSampler implements SamplerFunction<HttpRequest> {
-  /** @since 4.4 */
-  public static Builder newBuilder() {
-    return new Builder();
-  }
+public final class HttpRuleSampler extends HttpSampler {
+  final ParameterizedSampler<HttpRequest> delegate;
 
-  /** @since 4.4 */
+	HttpRuleSampler(ParameterizedSampler<HttpRequest> delegate) {
+	    this.delegate = delegate;
+	  }
+
+	/** @since 4.4 */
+	  public static Builder newBuilder() {
+	    return new Builder();
+	  }
+
+	@Override public Boolean trySample(HttpRequest request) {
+	    return delegate.trySample(request);
+	  }
+
+	@Override public <Req> Boolean trySample(HttpAdapter<Req, ?> adapter, Req request) {
+	    if (request == null) {
+			return null;
+		}
+	    return trySample(new FromHttpAdapter<>(adapter, request));
+	  }
+
+/** @since 4.4 */
   public static final class Builder {
     final ParameterizedSampler.Builder<HttpRequest> delegate = ParameterizedSampler.newBuilder();
 
-    /**
+    Builder() {
+    }
+
+	/**
      * @since 4.4
      * @deprecated Since 5.8, use {@link #putRule(Matcher, Sampler)}
      */
     @Deprecated public Builder addRule(@Nullable String method, String path, float probability) {
-      if (path == null) throw new NullPointerException("path == null");
+      if (path == null) {
+		throw new NullPointerException("path == null");
+	}
       Sampler sampler = CountingSampler.create(probability);
       if (method == null) {
         delegate.putRule(pathStartsWith(path), RateLimitingSampler.create(10));
@@ -88,18 +110,20 @@ public final class HttpRuleSampler extends HttpSampler implements SamplerFunctio
       return this;
     }
 
-    /**
+	/**
      * Adds or replaces all rules in this sampler with those of the input.
      *
      * @since 5.8
      */
     public Builder putAllRules(HttpRuleSampler sampler) {
-      if (sampler == null) throw new NullPointerException("sampler == null");
+      if (sampler == null) {
+		throw new NullPointerException("sampler == null");
+	}
       delegate.putAllRules(sampler.delegate);
       return this;
     }
 
-    /**
+	/**
      * Adds or replaces the sampler for the matcher.
      *
      * <p>Ex.
@@ -116,26 +140,8 @@ public final class HttpRuleSampler extends HttpSampler implements SamplerFunctio
       return this;
     }
 
-    public HttpRuleSampler build() {
+	public HttpRuleSampler build() {
       return new HttpRuleSampler(delegate.build());
     }
-
-    Builder() {
-    }
-  }
-
-  final ParameterizedSampler<HttpRequest> delegate;
-
-  HttpRuleSampler(ParameterizedSampler<HttpRequest> delegate) {
-    this.delegate = delegate;
-  }
-
-  @Override public Boolean trySample(HttpRequest request) {
-    return delegate.trySample(request);
-  }
-
-  @Override public <Req> Boolean trySample(HttpAdapter<Req, ?> adapter, Req request) {
-    if (request == null) return null;
-    return trySample(new FromHttpAdapter<>(adapter, request));
   }
 }

@@ -46,15 +46,40 @@ public class ServletRuntimeTest {
       .isZero();
   }
 
-  class ExceptionResponse extends HttpServletResponseImpl {
-    @Override public int getStatus() {
-      throw new IllegalStateException("foo");
-    }
-  }
-
   @Test public void servlet25_status_nullOnException() throws Exception {
     assertThat(servlet25.status(new ExceptionResponse()))
       .isZero();
+  }
+
+@Test public void servlet25_status_cachesUpToTenTypes() throws Exception {
+    assertThat(servlet25.status(new Response1()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response2()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response3()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response4()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response5()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response6()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response7()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response8()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response9()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response10()))
+      .isEqualTo(200);
+    assertThat(servlet25.status(new Response11()))
+      .isZero();
+  }
+
+class ExceptionResponse extends HttpServletResponseImpl {
+    @Override public int getStatus() {
+      throw new IllegalStateException("foo");
+    }
   }
 
   class Response1 extends HttpServletResponseImpl {
@@ -88,31 +113,6 @@ public class ServletRuntimeTest {
   }
 
   class Response11 extends HttpServletResponseImpl {
-  }
-
-  @Test public void servlet25_status_cachesUpToTenTypes() throws Exception {
-    assertThat(servlet25.status(new Response1()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response2()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response3()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response4()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response5()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response6()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response7()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response8()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response9()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response10()))
-      .isEqualTo(200);
-    assertThat(servlet25.status(new Response11()))
-      .isZero();
   }
 
   public static class HttpServletResponseImpl implements HttpServletResponse {

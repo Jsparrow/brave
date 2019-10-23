@@ -32,7 +32,9 @@ public class CurrentTracingTest {
 
   @After public void close() {
     Tracing current = Tracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
   @Test public void defaultsToNull() {
