@@ -34,7 +34,9 @@ import org.junit.rules.TestName;
 public abstract class JmsTestRule extends ExternalResource {
 
   final TestName testName;
-  String destinationName, queueName, topicName;
+  String destinationName;
+String queueName;
+String topicName;
 
   Connection connection;
   Session session;

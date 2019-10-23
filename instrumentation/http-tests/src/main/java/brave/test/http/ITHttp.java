@@ -102,38 +102,11 @@ public abstract class ITHttp {
    * after a response is sent, we use a blocking queue to prevent race conditions in tests.
    */
   BlockingQueue<Span> spans = new LinkedBlockingQueue<>();
-
-  /** Call this to block until a span was reported */
-  protected Span takeSpan() throws InterruptedException {
-    Span result = spans.poll(3, TimeUnit.SECONDS);
-    assertThat(result)
-      .withFailMessage("Span was not reported")
-      .isNotNull();
-    assertThat(result.annotations())
-      .extracting(Annotation::value)
-      .doesNotContain(CONTEXT_LEAK);
-    return result;
-  }
-
-  protected CurrentTraceContext currentTraceContext = ThreadLocalCurrentTraceContext.newBuilder()
+protected CurrentTraceContext currentTraceContext = ThreadLocalCurrentTraceContext.newBuilder()
     .addScopeDecorator(StrictScopeDecorator.create())
     .build();
-  protected HttpTracing httpTracing;
-
-  protected Tracer tracer() {
-    return httpTracing.tracing().tracer();
-  }
-
-  /**
-   * This closes the current instance of tracing, to prevent it from being accidentally visible to
-   * other test classes which call {@link Tracing#current()}.
-   */
-  @After public void close() throws Exception {
-    Tracing current = Tracing.current();
-    if (current != null) current.close();
-  }
-
-  /**
+protected HttpTracing httpTracing;
+/**
    * On close, we check that all spans have been verified by the test. This ensures bad behavior
    * such as duplicate reporting doesn't occur. The impact is that every span must at least be
    * {@link #takeSpan()} taken} before the end of each method.
@@ -152,23 +125,49 @@ public abstract class ITHttp {
     }
   };
 
-  protected Tracing.Builder tracingBuilder(Sampler sampler) {
+/** Call this to block until a span was reported */
+  protected Span takeSpan() throws InterruptedException {
+    Span result = spans.poll(3, TimeUnit.SECONDS);
+    assertThat(result)
+      .withFailMessage("Span was not reported")
+      .isNotNull();
+    assertThat(result.annotations())
+      .extracting(Annotation::value)
+      .doesNotContain(CONTEXT_LEAK);
+    return result;
+  }
+
+protected Tracer tracer() {
+    return httpTracing.tracing().tracer();
+  }
+
+/**
+   * This closes the current instance of tracing, to prevent it from being accidentally visible to
+   * other test classes which call {@link Tracing#current()}.
+   */
+  @After public void close() throws Exception {
+    Tracing current = Tracing.current();
+    if (current != null) {
+		current.close();
+	}
+  }
+
+protected Tracing.Builder tracingBuilder(Sampler sampler) {
     return Tracing.newBuilder()
       .spanReporter(s -> {
         // make sure the context was cleared prior to finish.. no leaks!
         TraceContext current = httpTracing.tracing().currentTraceContext().get();
         boolean contextLeak = false;
-        if (current != null) {
-          // add annotation in addition to throwing, in case we are off the main thread
-          if (current.spanIdString().equals(s.id())) {
+        boolean condition = current != null && current.spanIdString().equals(s.id());
+		// add annotation in addition to throwing, in case we are off the main thread
+		if (condition) {
             s = s.toBuilder().addAnnotation(s.timestampAsLong(), CONTEXT_LEAK).build();
             contextLeak = true;
           }
-        }
         spans.add(s);
         // throw so that we can see the path to the code that leaked the context
         if (contextLeak) {
-          throw new AssertionError(CONTEXT_LEAK + " on " + Thread.currentThread().getName());
+          throw new AssertionError(new StringBuilder().append(CONTEXT_LEAK).append(" on ").append(Thread.currentThread().getName()).toString());
         }
       })
       .propagationFactory(ExtraFieldPropagation.newFactory(B3Propagation.FACTORY, EXTRA_KEY))

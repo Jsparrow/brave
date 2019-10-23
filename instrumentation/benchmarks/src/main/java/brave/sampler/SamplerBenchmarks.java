@@ -83,6 +83,53 @@ public class SamplerBenchmarks {
    */
   static final int SAMPLE_RATE = 1;
 
+static final Sampler SAMPLER_BOUNDARY = BoundarySampler.create(SAMPLE_PROBABILITY);
+
+// Use fixed-seed Random so performance of runs can be compared.
+  static final Sampler SAMPLER_RATE = new CountingSampler(SAMPLE_PROBABILITY, new Random(1000));
+
+static final Sampler SAMPLER_RATE_LIMITED = RateLimitingSampler.create(SAMPLE_RATE);
+
+static final Sampler SAMPLER_RATE_LIMITED_100 = RateLimitingSampler.create(100);
+
+static final Reservoir RESERVOIR_RATE_LIMITED = new Reservoir(SAMPLE_RATE);
+
+static final Reservoir RESERVOIR_RATE_LIMITED_100 = new Reservoir(100);
+
+@Benchmark public boolean sampler_boundary(Args args) {
+    return SAMPLER_BOUNDARY.isSampled(args.traceId);
+  }
+
+@Benchmark public boolean sampler_counting(Args args) {
+    return SAMPLER_RATE.isSampled(args.traceId);
+  }
+
+@Benchmark public boolean sampler_rateLimited_1(Args args) {
+    return SAMPLER_RATE_LIMITED.isSampled(args.traceId);
+  }
+
+@Benchmark public boolean sampler_rateLimited_100(Args args) {
+    return SAMPLER_RATE_LIMITED_100.isSampled(args.traceId);
+  }
+
+@Benchmark public boolean sampler_rateLimited_1_xray(Args args) {
+    return RESERVOIR_RATE_LIMITED.take();
+  }
+
+@Benchmark public boolean sampler_rateLimited_100_xray(Args args) {
+    return RESERVOIR_RATE_LIMITED_100.take();
+  }
+
+// Convenience main entry-point
+  public static void main(String[] args) throws RunnerException {
+    Options opt = new OptionsBuilder()
+      .addProfiler("gc")
+      .include(".*" + SamplerBenchmarks.class.getSimpleName())
+      .build();
+
+    new Runner(opt).run();
+  }
+
   @State(Scope.Benchmark)
   public static class Args {
 
@@ -92,52 +139,5 @@ public class SamplerBenchmarks {
     // JMH doesn't support Long.MIN_VALUE or hex references, hence the long form literals.
     @Param({"-9223372036854775808", "1234567890987654321"})
     long traceId;
-  }
-
-  @Benchmark public boolean sampler_boundary(Args args) {
-    return SAMPLER_BOUNDARY.isSampled(args.traceId);
-  }
-
-  static final Sampler SAMPLER_BOUNDARY = BoundarySampler.create(SAMPLE_PROBABILITY);
-
-  @Benchmark public boolean sampler_counting(Args args) {
-    return SAMPLER_RATE.isSampled(args.traceId);
-  }
-
-  // Use fixed-seed Random so performance of runs can be compared.
-  static final Sampler SAMPLER_RATE = new CountingSampler(SAMPLE_PROBABILITY, new Random(1000));
-
-  @Benchmark public boolean sampler_rateLimited_1(Args args) {
-    return SAMPLER_RATE_LIMITED.isSampled(args.traceId);
-  }
-
-  static final Sampler SAMPLER_RATE_LIMITED = RateLimitingSampler.create(SAMPLE_RATE);
-
-  @Benchmark public boolean sampler_rateLimited_100(Args args) {
-    return SAMPLER_RATE_LIMITED_100.isSampled(args.traceId);
-  }
-
-  static final Sampler SAMPLER_RATE_LIMITED_100 = RateLimitingSampler.create(100);
-
-  @Benchmark public boolean sampler_rateLimited_1_xray(Args args) {
-    return RESERVOIR_RATE_LIMITED.take();
-  }
-
-  static final Reservoir RESERVOIR_RATE_LIMITED = new Reservoir(SAMPLE_RATE);
-
-  @Benchmark public boolean sampler_rateLimited_100_xray(Args args) {
-    return RESERVOIR_RATE_LIMITED_100.take();
-  }
-
-  static final Reservoir RESERVOIR_RATE_LIMITED_100 = new Reservoir(100);
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-      .addProfiler("gc")
-      .include(".*" + SamplerBenchmarks.class.getSimpleName())
-      .build();
-
-    new Runner(opt).run();
   }
 }

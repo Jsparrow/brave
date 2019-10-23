@@ -17,7 +17,10 @@ public final class RecyclableBuffers {
 
   private static final ThreadLocal<char[]> ID_BUFFER = new ThreadLocal<>();
 
-  /**
+  private RecyclableBuffers() {
+  }
+
+/**
    * Returns a {@link ThreadLocal} reused {@code char[]} for use when decoding bytes into an ID hex
    * string. The buffer should be immediately copied into a {@link String} after decoding within the
    * same method.
@@ -29,8 +32,5 @@ public final class RecyclableBuffers {
       ID_BUFFER.set(idBuffer);
     }
     return idBuffer;
-  }
-
-  private RecyclableBuffers() {
   }
 }

@@ -23,6 +23,8 @@ import com.mysql.jdbc.StatementInterceptorV2;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.Properties;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * A MySQL statement interceptor that will report to Zipkin how long each statement takes.
@@ -32,7 +34,9 @@ import java.util.Properties;
  */
 public class TracingStatementInterceptor implements StatementInterceptorV2 {
 
-  /**
+  private static final Logger logger = LogManager.getLogger(TracingStatementInterceptor.class);
+
+/**
    * Uses {@link ThreadLocalSpan} as there's no attribute namespace shared between callbacks, but
    * all callbacks happen on the same thread.
    *
@@ -44,7 +48,9 @@ public class TracingStatementInterceptor implements StatementInterceptorV2 {
     Connection connection) {
     // Gets the next span (and places it in scope) so code between here and postProcess can read it
     Span span = ThreadLocalSpan.CURRENT_TRACER.next();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     // When running a prepared statement, sql will be null and we must fetch the sql from the statement itself
     if (interceptedStatement instanceof PreparedStatement) {
@@ -63,7 +69,9 @@ public class TracingStatementInterceptor implements StatementInterceptorV2 {
     ResultSetInternalMethods originalResultSet, Connection connection, int warningCount,
     boolean noIndexUsed, boolean noGoodIndexUsed, SQLException statementException) {
     Span span = ThreadLocalSpan.CURRENT_TRACER.remove();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     if (statementException != null) {
       span.tag("error", Integer.toString(statementException.getErrorCode()));
@@ -95,6 +103,7 @@ public class TracingStatementInterceptor implements StatementInterceptorV2 {
         span.remoteIpAndPort(host, url.getPort() == -1 ? 3306 : url.getPort());
       }
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // remote address is optional
     }
   }

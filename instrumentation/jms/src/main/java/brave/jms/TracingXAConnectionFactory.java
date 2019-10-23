@@ -29,80 +29,88 @@ import static brave.jms.TracingConnection.TYPE_XA_TOPIC;
 final class TracingXAConnectionFactory extends TracingConnectionFactory
   implements XAQueueConnectionFactory, XATopicConnectionFactory {
 
-  static XAConnectionFactory create(XAConnectionFactory delegate, JmsTracing jmsTracing) {
-    if (delegate == null) throw new NullPointerException("xaConnectionFactory == null");
-    if (delegate instanceof TracingXAConnectionFactory) return delegate;
-    return new TracingXAConnectionFactory(delegate, jmsTracing);
-  }
-
   TracingXAConnectionFactory(XAConnectionFactory delegate, JmsTracing jmsTracing) {
-    super(delegate, jmsTracing);
-  }
+	    super(delegate, jmsTracing);
+	  }
 
-  @Override public XAConnection createXAConnection() throws JMSException {
-    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
-    return TracingXAConnection.create(xacf.createXAConnection(), jmsTracing);
-  }
+	static XAConnectionFactory create(XAConnectionFactory delegate, JmsTracing jmsTracing) {
+	    if (delegate == null) {
+			throw new NullPointerException("xaConnectionFactory == null");
+		}
+	    if (delegate instanceof TracingXAConnectionFactory) {
+			return delegate;
+		}
+	    return new TracingXAConnectionFactory(delegate, jmsTracing);
+	  }
 
-  @Override public XAConnection createXAConnection(String userName, String password)
-    throws JMSException {
-    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
-    return TracingXAConnection.create(xacf.createXAConnection(userName, password), jmsTracing);
-  }
+	@Override public XAConnection createXAConnection() throws JMSException {
+	    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
+	    return TracingXAConnection.create(xacf.createXAConnection(), jmsTracing);
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public XAJMSContext createXAContext() {
-    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
-    return TracingXAJMSContext.create(xacf.createXAContext(), jmsTracing);
-  }
+	@Override public XAConnection createXAConnection(String userName, String password)
+	    throws JMSException {
+	    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
+	    return TracingXAConnection.create(xacf.createXAConnection(userName, password), jmsTracing);
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public XAJMSContext createXAContext(String userName, String password) {
-    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
-    return TracingXAJMSContext.create(xacf.createXAContext(userName, password), jmsTracing);
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public XAJMSContext createXAContext() {
+	    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
+	    return TracingXAJMSContext.create(xacf.createXAContext(), jmsTracing);
+	  }
 
-  // XAQueueConnectionFactory
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public XAJMSContext createXAContext(String userName, String password) {
+	    XAConnectionFactory xacf = (XAConnectionFactory) delegate;
+	    return TracingXAJMSContext.create(xacf.createXAContext(userName, password), jmsTracing);
+	  }
 
-  @Override public XAQueueConnection createXAQueueConnection() throws JMSException {
-    checkQueueConnectionFactory();
-    XAQueueConnectionFactory xaqcf = (XAQueueConnectionFactory) delegate;
-    return TracingXAConnection.create(xaqcf.createXAQueueConnection(), jmsTracing);
-  }
+	// XAQueueConnectionFactory
+	
+	  @Override public XAQueueConnection createXAQueueConnection() throws JMSException {
+	    checkQueueConnectionFactory();
+	    XAQueueConnectionFactory xaqcf = (XAQueueConnectionFactory) delegate;
+	    return TracingXAConnection.create(xaqcf.createXAQueueConnection(), jmsTracing);
+	  }
 
-  @Override public XAQueueConnection createXAQueueConnection(String userName, String password)
-    throws JMSException {
-    checkQueueConnectionFactory();
-    XAQueueConnectionFactory xaqcf = (XAQueueConnectionFactory) delegate;
-    return TracingXAConnection.create(xaqcf.createXAQueueConnection(userName, password),
-      jmsTracing);
-  }
+	@Override public XAQueueConnection createXAQueueConnection(String userName, String password)
+	    throws JMSException {
+	    checkQueueConnectionFactory();
+	    XAQueueConnectionFactory xaqcf = (XAQueueConnectionFactory) delegate;
+	    return TracingXAConnection.create(xaqcf.createXAQueueConnection(userName, password),
+	      jmsTracing);
+	  }
 
-  void checkQueueConnectionFactory() {
-    if ((types & TYPE_XA_QUEUE) != TYPE_XA_QUEUE) {
-      throw new IllegalStateException(delegate + " is not an XAQueueConnectionFactory");
-    }
-  }
+	@Override
+	void checkQueueConnectionFactory() {
+	    if ((types & TYPE_XA_QUEUE) != TYPE_XA_QUEUE) {
+	      throw new IllegalStateException(delegate + " is not an XAQueueConnectionFactory");
+	    }
+	  }
 
-  // XATopicConnectionFactory
+	// XATopicConnectionFactory
+	
+	  @Override public XATopicConnection createXATopicConnection() throws JMSException {
+	    checkTopicConnectionFactory();
+	    XATopicConnectionFactory xaqcf = (XATopicConnectionFactory) delegate;
+	    return TracingXAConnection.create(xaqcf.createXATopicConnection(), jmsTracing);
+	  }
 
-  @Override public XATopicConnection createXATopicConnection() throws JMSException {
-    checkTopicConnectionFactory();
-    XATopicConnectionFactory xaqcf = (XATopicConnectionFactory) delegate;
-    return TracingXAConnection.create(xaqcf.createXATopicConnection(), jmsTracing);
-  }
+	@Override public XATopicConnection createXATopicConnection(String userName, String password)
+	    throws JMSException {
+	    checkTopicConnectionFactory();
+	    XATopicConnectionFactory xaqcf = (XATopicConnectionFactory) delegate;
+	    return TracingXAConnection.create(xaqcf.createXATopicConnection(userName, password),
+	      jmsTracing);
+	  }
 
-  @Override public XATopicConnection createXATopicConnection(String userName, String password)
-    throws JMSException {
-    checkTopicConnectionFactory();
-    XATopicConnectionFactory xaqcf = (XATopicConnectionFactory) delegate;
-    return TracingXAConnection.create(xaqcf.createXATopicConnection(userName, password),
-      jmsTracing);
-  }
-
-  void checkTopicConnectionFactory() {
-    if ((types & TYPE_XA_TOPIC) != TYPE_XA_TOPIC) {
-      throw new IllegalStateException(delegate + " is not an XATopicConnectionFactory");
-    }
-  }
+	@Override
+	void checkTopicConnectionFactory() {
+	    if ((types & TYPE_XA_TOPIC) != TYPE_XA_TOPIC) {
+	      throw new IllegalStateException(delegate + " is not an XATopicConnectionFactory");
+	    }
+	  }
 }

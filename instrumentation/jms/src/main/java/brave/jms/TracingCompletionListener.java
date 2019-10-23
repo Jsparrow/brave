@@ -24,36 +24,39 @@ import javax.jms.Message;
  * for send and actual send.
  */
 @JMS2_0 final class TracingCompletionListener implements CompletionListener {
-  static CompletionListener create(CompletionListener delegate, Span span,
-    CurrentTraceContext current) {
-    if (span.isNoop()) return delegate; // save allocation overhead
-    return new TracingCompletionListener(delegate, span, current);
-  }
-
   final Span span;
-  final CompletionListener delegate;
-  final CurrentTraceContext current;
+	final CompletionListener delegate;
+	final CurrentTraceContext current;
 
-  TracingCompletionListener(CompletionListener delegate, Span span, CurrentTraceContext current) {
-    this.span = span;
-    this.delegate = delegate;
-    this.current = current;
-  }
+	TracingCompletionListener(CompletionListener delegate, Span span, CurrentTraceContext current) {
+	    this.span = span;
+	    this.delegate = delegate;
+	    this.current = current;
+	  }
 
-  @Override public void onCompletion(Message message) {
-    try (Scope ws = current.maybeScope(span.context())) {
-      delegate.onCompletion(message);
-    } finally {
-      span.finish();
-    }
-  }
+	static CompletionListener create(CompletionListener delegate, Span span,
+	    CurrentTraceContext current) {
+	    if (span.isNoop())
+		 {
+			return delegate; // save allocation overhead
+		}
+	    return new TracingCompletionListener(delegate, span, current);
+	  }
 
-  @Override public void onException(Message message, Exception exception) {
-    try (Scope ws = current.maybeScope(span.context())) {
-      delegate.onException(message, exception);
-    } finally {
-      span.error(exception);
-      span.finish();
-    }
-  }
+	@Override public void onCompletion(Message message) {
+	    try (Scope ws = current.maybeScope(span.context())) {
+	      delegate.onCompletion(message);
+	    } finally {
+	      span.finish();
+	    }
+	  }
+
+	@Override public void onException(Message message, Exception exception) {
+	    try (Scope ws = current.maybeScope(span.context())) {
+	      delegate.onException(message, exception);
+	    } finally {
+	      span.error(exception);
+	      span.finish();
+	    }
+	  }
 }

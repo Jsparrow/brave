@@ -93,49 +93,60 @@ public class ThreadLocalSpan {
    * connections, as they often initialize prior to the tracing component.
    */
   public static final ThreadLocalSpan CURRENT_TRACER = new ThreadLocalSpan(null);
+@Nullable final Tracer tracer;
+/**
+   * This keeps track of a stack with a normal array dequeue. Redundant stacking of the same span is
+   * not possible because there is no api to place an arbitrary span in scope using this api.
+   */
+  @SuppressWarnings("ThreadLocalUsage") // intentional: to support multiple Tracer instances
+  final ThreadLocal<ArrayDeque<Object[]>> currentSpanInScopeStack = new ThreadLocal<>();
 
-  public static ThreadLocalSpan create(Tracer tracer) {
-    if (tracer == null) throw new NullPointerException("tracer == null");
-    return new ThreadLocalSpan(tracer);
-  }
-
-  @Nullable final Tracer tracer;
-
-  ThreadLocalSpan(Tracer tracer) {
+ThreadLocalSpan(Tracer tracer) {
     this.tracer = tracer;
   }
 
-  Tracer tracer() {
+public static ThreadLocalSpan create(Tracer tracer) {
+    if (tracer == null) {
+		throw new NullPointerException("tracer == null");
+	}
+    return new ThreadLocalSpan(tracer);
+  }
+
+Tracer tracer() {
     return tracer != null ? tracer : Tracing.currentTracer();
   }
 
-  /**
+/**
    * Returns the {@link Tracer#nextSpan(TraceContextOrSamplingFlags)} or null if {@link
    * #CURRENT_TRACER} and tracing isn't available.
    */
   @Nullable public Span next(TraceContextOrSamplingFlags extracted) {
     Tracer tracer = tracer();
-    if (tracer == null) return null;
+    if (tracer == null) {
+		return null;
+	}
     Span next = tracer.nextSpan(extracted);
     Object[] spanAndScope = {next, tracer.withSpanInScope(next)};
     getCurrentSpanInScopeStack().addFirst(spanAndScope);
     return next;
   }
 
-  /**
+/**
    * Returns the {@link Tracer#nextSpan()} or null if {@link #CURRENT_TRACER} and tracing isn't
    * available.
    */
   @Nullable public Span next() {
     Tracer tracer = tracer();
-    if (tracer == null) return null;
+    if (tracer == null) {
+		return null;
+	}
     Span next = tracer.nextSpan();
     Object[] spanAndScope = {next, tracer.withSpanInScope(next)};
     getCurrentSpanInScopeStack().addFirst(spanAndScope);
     return next;
   }
 
-  /**
+/**
    * Returns the span set in scope via {@link #next()} or null if there was none.
    *
    * <p>When assertions are on, this will throw an assertion error if the span returned was not the
@@ -147,23 +158,18 @@ public class ThreadLocalSpan {
     Tracer tracer = tracer();
     Span currentSpan = tracer != null ? tracer.currentSpan() : null;
     Object[] spanAndScope = getCurrentSpanInScopeStack().pollFirst();
-    if (spanAndScope == null) return currentSpan;
+    if (spanAndScope == null) {
+		return currentSpan;
+	}
 
     Span span = (Span) spanAndScope[0];
     ((SpanInScope) spanAndScope[1]).close();
     assert span.equals(currentSpan) :
-      "Misalignment: scoped span " + span + " !=  current span " + currentSpan;
+      new StringBuilder().append("Misalignment: scoped span ").append(span).append(" !=  current span ").append(currentSpan).toString();
     return currentSpan;
   }
 
-  /**
-   * This keeps track of a stack with a normal array dequeue. Redundant stacking of the same span is
-   * not possible because there is no api to place an arbitrary span in scope using this api.
-   */
-  @SuppressWarnings("ThreadLocalUsage") // intentional: to support multiple Tracer instances
-  final ThreadLocal<ArrayDeque<Object[]>> currentSpanInScopeStack = new ThreadLocal<>();
-
-  ArrayDeque<Object[]> getCurrentSpanInScopeStack() {
+ArrayDeque<Object[]> getCurrentSpanInScopeStack() {
     ArrayDeque<Object[]> stack = currentSpanInScopeStack.get();
     if (stack == null) {
       stack = new ArrayDeque<>();

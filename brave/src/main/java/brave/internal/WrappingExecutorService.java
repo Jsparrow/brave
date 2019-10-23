@@ -105,9 +105,7 @@ public abstract class WrappingExecutorService implements ExecutorService {
 
   <T> Collection<? extends Callable<T>> wrap(Collection<? extends Callable<T>> tasks) {
     ArrayList<Callable<T>> result = new ArrayList<>(tasks.size());
-    for (Callable<T> task : tasks) {
-      result.add(wrap(task));
-    }
+    tasks.forEach(task -> result.add(wrap(task)));
     return result;
   }
 }

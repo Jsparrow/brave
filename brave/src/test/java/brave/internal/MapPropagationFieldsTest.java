@@ -76,7 +76,6 @@ public class MapPropagationFieldsTest extends PropagationFieldsFactoryTest<Strin
 
 final class Extra extends MapPropagationFields<String, String> {
   Extra() {
-    super();
   }
 
   Extra(Extra parent) {

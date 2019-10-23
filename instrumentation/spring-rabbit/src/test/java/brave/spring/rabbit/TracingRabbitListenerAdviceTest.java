@@ -31,10 +31,13 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static zipkin2.Span.Kind.CONSUMER;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TracingRabbitListenerAdviceTest {
 
-  static String TRACE_ID = "463ac35c9f6413ad";
+  private static final Logger logger = LoggerFactory.getLogger(TracingRabbitListenerAdviceTest.class);
+static String TRACE_ID = "463ac35c9f6413ad";
   static String PARENT_ID = "463ac35c9f6413ab";
   static String SPAN_ID = "48485a3953bb6124";
   static String SAMPLED = "1";
@@ -129,7 +132,7 @@ public class TracingRabbitListenerAdviceTest {
 
   @Test public void continues_parent_trace_single_header() throws Throwable {
     MessageProperties props = new MessageProperties();
-    props.setHeader("b3", TRACE_ID + "-" + SPAN_ID + "-" + SAMPLED);
+    props.setHeader("b3", new StringBuilder().append(TRACE_ID).append("-").append(SPAN_ID).append("-").append(SAMPLED).toString());
 
     Message message = MessageBuilder.withBody(new byte[0]).andProperties(props).build();
     onMessageConsumed(message);
@@ -194,6 +197,7 @@ public class TracingRabbitListenerAdviceTest {
       tracingRabbitListenerAdvice.invoke(methodInvocation);
       fail("should have thrown exception");
     } catch (RuntimeException ex) {
+		logger.error(ex.getMessage(), ex);
     }
   }
 }

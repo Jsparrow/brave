@@ -34,9 +34,13 @@ import org.junit.runner.Description;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public abstract class ITTracingFilter {
-  @Rule public Timeout globalTimeout = Timeout.seconds(5); // 5 seconds max per method
+  private static final Logger logger = LogManager.getLogger(ITTracingFilter.class);
+
+@Rule public Timeout globalTimeout = Timeout.seconds(5); // 5 seconds max per method
 
   /** See brave.http.ITHttp for rationale on using a concurrent blocking queue */
   BlockingQueue<Span> spans = new LinkedBlockingQueue<>();
@@ -47,14 +51,7 @@ public abstract class ITTracingFilter {
   TestServer server = new TestServer(application);
   ReferenceConfig<GreeterService> client;
 
-  @After public void stop() {
-    if (client != null) client.destroy();
-    server.stop();
-    Tracing current = Tracing.current();
-    if (current != null) current.close();
-  }
-
-  // See brave.http.ITHttp for rationale on polling after tests complete
+// See brave.http.ITHttp for rationale on polling after tests complete
   @Rule public TestRule assertSpansEmpty = new TestWatcher() {
     // only check success path to avoid masking assertion errors or exceptions
     @Override protected void succeeded(Description description) {
@@ -63,12 +60,23 @@ public abstract class ITTracingFilter {
           .withFailMessage("Span remaining in queue. Check for redundant reporting")
           .isNull();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage(), e);
       }
     }
   };
 
-  Tracing.Builder tracingBuilder(Sampler sampler) {
+@After public void stop() {
+    if (client != null) {
+		client.destroy();
+	}
+    server.stop();
+    Tracing current = Tracing.current();
+    if (current != null) {
+		current.close();
+	}
+  }
+
+Tracing.Builder tracingBuilder(Sampler sampler) {
     return Tracing.newBuilder()
       .spanReporter(spans::add)
       .currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder()
@@ -77,14 +85,14 @@ public abstract class ITTracingFilter {
       .sampler(sampler);
   }
 
-  void setTracing(Tracing tracing) {
+void setTracing(Tracing tracing) {
     ((TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
       .getExtension("tracing"))
       .setTracing(tracing);
     this.tracing = tracing;
   }
 
-  void setRpcTracing(RpcTracing rpcTracing) {
+void setRpcTracing(RpcTracing rpcTracing) {
     ((TracingFilter) ExtensionLoader.getExtensionLoader(Filter.class)
       .getExtension("tracing"))
       .setRpcTracing(rpcTracing);
@@ -92,7 +100,7 @@ public abstract class ITTracingFilter {
     this.rpcTracing = rpcTracing;
   }
 
-  /** Call this to block until a span was reported */
+/** Call this to block until a span was reported */
   Span takeSpan() throws InterruptedException {
     Span result = spans.poll(3, TimeUnit.SECONDS);
     assertThat(result)

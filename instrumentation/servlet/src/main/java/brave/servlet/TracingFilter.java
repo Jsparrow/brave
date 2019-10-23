@@ -33,73 +33,73 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public final class TracingFilter implements Filter {
-  public static Filter create(Tracing tracing) {
-    return new TracingFilter(HttpTracing.create(tracing));
-  }
-
-  public static Filter create(HttpTracing httpTracing) {
-    return new TracingFilter(httpTracing);
-  }
-
   final ServletRuntime servlet = ServletRuntime.get();
-  final CurrentTraceContext currentTraceContext;
-  final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
+	final CurrentTraceContext currentTraceContext;
+	final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
 
-  TracingFilter(HttpTracing httpTracing) {
-    currentTraceContext = httpTracing.tracing().currentTraceContext();
-    handler = HttpServerHandler.create(httpTracing);
-  }
+	TracingFilter(HttpTracing httpTracing) {
+	    currentTraceContext = httpTracing.tracing().currentTraceContext();
+	    handler = HttpServerHandler.create(httpTracing);
+	  }
 
-  @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-    throws IOException, ServletException {
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    HttpServletResponse httpResponse = servlet.httpServletResponse(response);
+	public static Filter create(Tracing tracing) {
+	    return new TracingFilter(HttpTracing.create(tracing));
+	  }
 
-    // Prevent duplicate spans for the same request
-    TraceContext context = (TraceContext) request.getAttribute(TraceContext.class.getName());
-    if (context != null) {
-      // A forwarded request might end up on another thread, so make sure it is scoped
-      Scope scope = currentTraceContext.maybeScope(context);
-      try {
-        chain.doFilter(request, response);
-      } finally {
-        scope.close();
-      }
-      return;
-    }
+	public static Filter create(HttpTracing httpTracing) {
+	    return new TracingFilter(httpTracing);
+	  }
 
-    Span span = handler.handleReceive(new HttpServerRequest(httpRequest));
+	@Override
+	  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+	    throws IOException, ServletException {
+	    HttpServletRequest httpRequest = (HttpServletRequest) request;
+	    HttpServletResponse httpResponse = servlet.httpServletResponse(response);
+	
+	    // Prevent duplicate spans for the same request
+	    TraceContext context = (TraceContext) request.getAttribute(TraceContext.class.getName());
+	    if (context != null) {
+	      // A forwarded request might end up on another thread, so make sure it is scoped
+	      Scope scope = currentTraceContext.maybeScope(context);
+	      try {
+	        chain.doFilter(request, response);
+	      } finally {
+	        scope.close();
+	      }
+	      return;
+	    }
+	
+	    Span span = handler.handleReceive(new HttpServerRequest(httpRequest));
+	
+	    // Add attributes for explicit access to customization or span context
+	    request.setAttribute(SpanCustomizer.class.getName(), span.customizer());
+	    request.setAttribute(TraceContext.class.getName(), span.context());
+	
+	    Throwable error = null;
+	    Scope scope = currentTraceContext.newScope(span.context());
+	    try {
+	      // any downstream code can see Tracer.currentSpan() or use Tracer.currentSpanCustomizer()
+	      chain.doFilter(httpRequest, httpResponse);
+	    } catch (IOException | ServletException | RuntimeException | Error e) {
+	      error = e;
+	      throw e;
+	    } finally {
+	      scope.close();
+	      if (servlet.isAsync(httpRequest)) { // we don't have the actual response, handle later
+	        servlet.handleAsync(handler, httpRequest, httpResponse, span);
+	      } else { // we have a synchronous response, so we can finish the span
+	        handler.handleSend(servlet.httpServerResponse(httpRequest, httpResponse), error, span);
+	      }
+	    }
+	  }
 
-    // Add attributes for explicit access to customization or span context
-    request.setAttribute(SpanCustomizer.class.getName(), span.customizer());
-    request.setAttribute(TraceContext.class.getName(), span.context());
+	@Override public void destroy() {
+	  }
 
-    Throwable error = null;
-    Scope scope = currentTraceContext.newScope(span.context());
-    try {
-      // any downstream code can see Tracer.currentSpan() or use Tracer.currentSpanCustomizer()
-      chain.doFilter(httpRequest, httpResponse);
-    } catch (IOException | ServletException | RuntimeException | Error e) {
-      error = e;
-      throw e;
-    } finally {
-      scope.close();
-      if (servlet.isAsync(httpRequest)) { // we don't have the actual response, handle later
-        servlet.handleAsync(handler, httpRequest, httpResponse, span);
-      } else { // we have a synchronous response, so we can finish the span
-        handler.handleSend(servlet.httpServerResponse(httpRequest, httpResponse), error, span);
-      }
-    }
-  }
+	@Override public void init(FilterConfig filterConfig) {
+	  }
 
-  @Override public void destroy() {
-  }
-
-  @Override public void init(FilterConfig filterConfig) {
-  }
-
-  static final class HttpServerRequest extends brave.http.HttpServerRequest {
+static final class HttpServerRequest extends brave.http.HttpServerRequest {
     final HttpServletRequest delegate;
 
     HttpServerRequest(HttpServletRequest delegate) {

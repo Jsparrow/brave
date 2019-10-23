@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 
 import static brave.test.util.ClassLoaders.assertRunIsUnloadable;
-import static java.util.Arrays.asList;
+import java.util.Collections;
 
 public class NoopAwareFinishedSpanHandlerClassLoaderTest {
 
@@ -28,10 +28,14 @@ public class NoopAwareFinishedSpanHandlerClassLoaderTest {
     assertRunIsUnloadable(Handle.class, getClass().getClassLoader());
   }
 
-  static class Handle implements Runnable {
+  @Test public void unloadable_afterErrorHandling() {
+    assertRunIsUnloadable(ErrorHandling.class, getClass().getClassLoader());
+  }
+
+static class Handle implements Runnable {
     @Override public void run() {
       FinishedSpanHandler handler =
-        NoopAwareFinishedSpanHandler.create(asList(new FinishedSpanHandler() {
+        NoopAwareFinishedSpanHandler.create(Collections.singletonList(new FinishedSpanHandler() {
           @Override public boolean handle(TraceContext context, MutableSpan span) {
             return true;
           }
@@ -42,14 +46,10 @@ public class NoopAwareFinishedSpanHandlerClassLoaderTest {
     }
   }
 
-  @Test public void unloadable_afterErrorHandling() {
-    assertRunIsUnloadable(ErrorHandling.class, getClass().getClassLoader());
-  }
-
   static class ErrorHandling implements Runnable {
     @Override public void run() {
       FinishedSpanHandler handler =
-        NoopAwareFinishedSpanHandler.create(asList(new FinishedSpanHandler() {
+        NoopAwareFinishedSpanHandler.create(Collections.singletonList(new FinishedSpanHandler() {
           @Override public boolean handle(TraceContext context, MutableSpan span) {
             throw new RuntimeException();
           }

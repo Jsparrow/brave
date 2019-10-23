@@ -14,18 +14,19 @@
 package brave.propagation;
 
 import brave.internal.HexCodec;
-import java.util.Arrays;
 import org.junit.Test;
 
 import static brave.internal.InternalPropagation.FLAG_SAMPLED_SET;
 import static brave.internal.InternalPropagation.FLAG_SHARED;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
 
 public class TraceContextTest {
   TraceContext base = TraceContext.newBuilder().traceId(1L).spanId(1L).build();
+TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(2L).build();
 
-  @Test public void compareUnequalIds() {
+@Test public void compareUnequalIds() {
     TraceContext context = TraceContext.newBuilder().traceId(333L).spanId(3L).build();
 
     assertThat(context)
@@ -34,17 +35,17 @@ public class TraceContextTest {
       .isNotEqualTo(TraceContext.newBuilder().traceId(333L).spanId(1L).build().hashCode());
   }
 
-  @Test public void contextWithShared_true() {
+@Test public void contextWithShared_true() {
     assertThat(base.toBuilder().sampled(false).shared(true).build().flags)
       .isEqualTo(FLAG_SAMPLED_SET | FLAG_SHARED);
   }
 
-  @Test public void contextWithShared_false() {
+@Test public void contextWithShared_false() {
     assertThat(base.toBuilder().sampled(false).shared(false).build().flags)
       .isEqualTo(FLAG_SAMPLED_SET);
   }
 
-  /**
+/**
    * Shared context is different than an unshared one, notably this keeps client/server loopback
    * separate.
    */
@@ -57,7 +58,7 @@ public class TraceContextTest {
       .isNotEqualTo(context.toBuilder().shared(true).build().hashCode());
   }
 
-  @Test public void compareEqualIds() {
+@Test public void compareEqualIds() {
     TraceContext context = TraceContext.newBuilder().traceId(333L).spanId(444L).build();
 
     assertThat(context)
@@ -66,7 +67,7 @@ public class TraceContextTest {
       .isEqualTo(TraceContext.newBuilder().traceId(333L).spanId(444L).build().hashCode());
   }
 
-  @Test public void equalOnSameTraceIdSpanId() {
+@Test public void equalOnSameTraceIdSpanId() {
     TraceContext context = TraceContext.newBuilder().traceId(333L).spanId(444L).build();
 
     assertThat(context)
@@ -75,7 +76,7 @@ public class TraceContextTest {
       .isEqualTo(context.toBuilder().parentId(1L).build().hashCode());
   }
 
-  @Test
+@Test
   public void testToString_lo() {
     TraceContext context = TraceContext.newBuilder().traceId(333L).spanId(3).parentId(2L).build();
 
@@ -83,7 +84,7 @@ public class TraceContextTest {
       .isEqualTo("000000000000014d/0000000000000003");
   }
 
-  @Test
+@Test
   public void testToString() {
     TraceContext context =
       TraceContext.newBuilder().traceIdHigh(333L).traceId(444L).spanId(3).parentId(2L).build();
@@ -92,7 +93,7 @@ public class TraceContextTest {
       .isEqualTo("000000000000014d00000000000001bc/0000000000000003");
   }
 
-  @Test public void canUsePrimitiveOverloads_true() {
+@Test public void canUsePrimitiveOverloads_true() {
     TraceContext primitives = base.toBuilder()
       .parentId(1L)
       .sampled(true)
@@ -113,7 +114,7 @@ public class TraceContextTest {
       .isTrue();
   }
 
-  @Test public void canUsePrimitiveOverloads_false() {
+@Test public void canUsePrimitiveOverloads_false() {
     base = base.toBuilder().debug(true).build();
 
     TraceContext primitives = base.toBuilder()
@@ -136,7 +137,7 @@ public class TraceContextTest {
       .isFalse();
   }
 
-  @Test public void canSetSampledNull() {
+@Test public void canSetSampledNull() {
     base = base.toBuilder().sampled(true).build();
 
     TraceContext objects = base.toBuilder().sampled(null).build();
@@ -147,7 +148,7 @@ public class TraceContextTest {
       .isNull();
   }
 
-  @Test public void nullToZero() {
+@Test public void nullToZero() {
     TraceContext nulls = base.toBuilder()
       .parentId(null)
       .build();
@@ -160,7 +161,7 @@ public class TraceContextTest {
       .isEqualToComparingFieldByField(zeros);
   }
 
-  @Test public void parseTraceId_128bit() {
+@Test public void parseTraceId_128bit() {
     String traceIdString = "463ac35c9f6413ad48485a3953bb6124";
 
     TraceContext.Builder builder = parseGoodTraceID(traceIdString);
@@ -171,7 +172,7 @@ public class TraceContextTest {
       .isEqualTo("48485a3953bb6124");
   }
 
-  @Test public void parseTraceId_64bit() {
+@Test public void parseTraceId_64bit() {
     String traceIdString = "48485a3953bb6124";
 
     TraceContext.Builder builder = parseGoodTraceID(traceIdString);
@@ -181,7 +182,7 @@ public class TraceContextTest {
       .isEqualTo(traceIdString);
   }
 
-  @Test public void parseTraceId_short128bit() {
+@Test public void parseTraceId_short128bit() {
     String traceIdString = "3ac35c9f6413ad48485a3953bb6124";
 
     TraceContext.Builder builder = parseGoodTraceID(traceIdString);
@@ -192,7 +193,7 @@ public class TraceContextTest {
       .isEqualTo("48485a3953bb6124");
   }
 
-  @Test public void parseTraceId_short64bit() {
+@Test public void parseTraceId_short64bit() {
     String traceIdString = "6124";
 
     TraceContext.Builder builder = parseGoodTraceID(traceIdString);
@@ -202,7 +203,7 @@ public class TraceContextTest {
       .isEqualTo("000000000000" + traceIdString);
   }
 
-  /**
+/**
    * Trace ID is a required parameter, so it cannot be null empty malformed or other nonsense.
    *
    * <p>Notably, this shouldn't throw exception or allocate anything
@@ -215,7 +216,7 @@ public class TraceContextTest {
     parseBadTraceId(null);
   }
 
-  @Test public void parseSpanId() {
+@Test public void parseSpanId() {
     String spanIdString = "48485a3953bb6124";
 
     TraceContext.Builder builder = parseGoodSpanId(spanIdString);
@@ -224,7 +225,7 @@ public class TraceContextTest {
       .isEqualTo(spanIdString);
   }
 
-  @Test public void parseSpanId_short64bit() {
+@Test public void parseSpanId_short64bit() {
     String spanIdString = "6124";
 
     TraceContext.Builder builder = parseGoodSpanId(spanIdString);
@@ -233,7 +234,7 @@ public class TraceContextTest {
       .isEqualTo("000000000000" + spanIdString);
   }
 
-  /**
+/**
    * Span ID is a required parameter, so it cannot be null empty malformed or other nonsense.
    *
    * <p>Notably, this shouldn't throw exception or allocate anything
@@ -246,7 +247,7 @@ public class TraceContextTest {
     parseBadSpanId(null);
   }
 
-  TraceContext.Builder parseGoodSpanId(String spanIdString) {
+TraceContext.Builder parseGoodSpanId(String spanIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     Propagation.Getter<String, String> getter = (c, k) -> c;
     assertThat(builder.parseSpanId(getter, spanIdString, "span-id"))
@@ -254,7 +255,7 @@ public class TraceContextTest {
     return builder;
   }
 
-  void parseBadSpanId(String spanIdString) {
+void parseBadSpanId(String spanIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     Propagation.Getter<String, String> getter = (c, k) -> c;
     assertThat(builder.parseSpanId(getter, spanIdString, "span-id"))
@@ -262,7 +263,7 @@ public class TraceContextTest {
     assertThat(builder.spanId).isZero();
   }
 
-  @Test public void parseParentId() {
+@Test public void parseParentId() {
     String parentIdString = "48485a3953bb6124";
 
     TraceContext.Builder builder = parseGoodParentId(parentIdString);
@@ -271,13 +272,13 @@ public class TraceContextTest {
       .isEqualTo(parentIdString);
   }
 
-  @Test public void parseParentId_null_is_ok() {
+@Test public void parseParentId_null_is_ok() {
     TraceContext.Builder builder = parseGoodParentId(null);
 
     assertThat(builder.parentId).isZero();
   }
 
-  @Test public void parseParentId_short64bit() {
+@Test public void parseParentId_short64bit() {
     String parentIdString = "6124";
 
     TraceContext.Builder builder = parseGoodParentId(parentIdString);
@@ -286,7 +287,7 @@ public class TraceContextTest {
       .isEqualTo("000000000000" + parentIdString);
   }
 
-  /**
+/**
    * Parent Span ID is an optional parameter, but it cannot be empty malformed or other nonsense.
    *
    * <p>Notably, this shouldn't throw exception or allocate anything
@@ -298,7 +299,7 @@ public class TraceContextTest {
     parseBadParentId("");
   }
 
-  TraceContext.Builder parseGoodParentId(String parentIdString) {
+TraceContext.Builder parseGoodParentId(String parentIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     Propagation.Getter<String, String> getter = (c, k) -> c;
     assertThat(builder.parseParentId(getter, parentIdString, "parent-id"))
@@ -306,7 +307,7 @@ public class TraceContextTest {
     return builder;
   }
 
-  void parseBadParentId(String parentIdString) {
+void parseBadParentId(String parentIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     Propagation.Getter<String, String> getter = (c, k) -> c;
     assertThat(builder.parseParentId(getter, parentIdString, "parent-id"))
@@ -314,14 +315,14 @@ public class TraceContextTest {
     assertThat(builder.parentId).isZero();
   }
 
-  TraceContext.Builder parseGoodTraceID(String traceIdString) {
+TraceContext.Builder parseGoodTraceID(String traceIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     assertThat(builder.parseTraceId(traceIdString, "trace-id"))
       .isTrue();
     return builder;
   }
 
-  void parseBadTraceId(String traceIdString) {
+void parseBadTraceId(String traceIdString) {
     TraceContext.Builder builder = TraceContext.newBuilder();
     assertThat(builder.parseTraceId(traceIdString, "trace-id"))
       .isFalse();
@@ -329,21 +330,19 @@ public class TraceContextTest {
     assertThat(builder.traceId).isZero();
   }
 
-  TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(2L).build();
-
-  @Test public void withExtra_notEmpty() {
-    assertThat(context.withExtra(Arrays.asList(1L)))
+@Test public void withExtra_notEmpty() {
+    assertThat(context.withExtra(Collections.singletonList(1L)))
       .extracting("extra")
-      .isEqualTo(Arrays.asList(1L));
+      .isEqualTo(Collections.singletonList(1L));
   }
 
-  @Test public void withExtra_empty() {
-    assertThat(context.toBuilder().extra(Arrays.asList(1L)).build().withExtra(emptyList()))
+@Test public void withExtra_empty() {
+    assertThat(context.toBuilder().extra(Collections.singletonList(1L)).build().withExtra(emptyList()))
       .extracting("extra")
       .isEqualTo(emptyList());
   }
 
-  @Test public void caches_hashCode() {
+@Test public void caches_hashCode() {
     TraceContext context = TraceContext.newBuilder().traceId(333L).spanId(3L).build();
 
     assertThat(context.hashCode).isZero();
@@ -352,7 +351,7 @@ public class TraceContextTest {
       .isEqualTo(TraceContext.newBuilder().traceId(333L).spanId(3L).build().hashCode());
   }
 
-  @Test public void traceIdString_caches() {
+@Test public void traceIdString_caches() {
     TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(2L).build();
 
     assertThat(context.traceIdString).isNull();
@@ -363,7 +362,7 @@ public class TraceContextTest {
       .isEqualTo("0000000000000001");
   }
 
-  @Test public void parentIdString_caches() {
+@Test public void parentIdString_caches() {
     TraceContext context = TraceContext.newBuilder().traceId(1L).parentId(2L).spanId(3L).build();
 
     assertThat(context.parentIdString).isNull();
@@ -374,7 +373,7 @@ public class TraceContextTest {
       .isEqualTo("0000000000000002");
   }
 
-  @Test public void parentIdString_doesNotCacheNull() {
+@Test public void parentIdString_doesNotCacheNull() {
     TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(3L).build();
 
     assertThat(context.parentIdString).isNull();
@@ -382,7 +381,7 @@ public class TraceContextTest {
     assertThat(context.parentIdString).isNull();
   }
 
-  @Test public void localRootIdString_caches() {
+@Test public void localRootIdString_caches() {
     TraceContext.Builder builder = TraceContext.newBuilder().traceId(1L);
     builder.localRootId = 2L;
     TraceContext context = builder.spanId(3L).build();
@@ -395,7 +394,7 @@ public class TraceContextTest {
       .isEqualTo("0000000000000002");
   }
 
-  @Test public void localRootIdString_doesNotCacheNull() {
+@Test public void localRootIdString_doesNotCacheNull() {
     TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(3L).build();
 
     assertThat(context.localRootIdString).isNull();
@@ -403,7 +402,7 @@ public class TraceContextTest {
     assertThat(context.localRootIdString).isNull();
   }
 
-  @Test public void spanIdString_caches() {
+@Test public void spanIdString_caches() {
     TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(2L).build();
 
     assertThat(context.spanIdString).isNull();

@@ -56,11 +56,15 @@ public class ITNettyHttpTracing extends ITHttpServer {
 
   @Override
   protected String url(String path) {
-    return "http://127.0.0.1:" + port + path;
+    return new StringBuilder().append("http://127.0.0.1:").append(port).append(path).toString();
   }
 
   @After public void stop() {
-    if (bossGroup != null) bossGroup.shutdownGracefully();
-    if (workerGroup != null) workerGroup.shutdownGracefully();
+    if (bossGroup != null) {
+		bossGroup.shutdownGracefully();
+	}
+    if (workerGroup != null) {
+		workerGroup.shutdownGracefully();
+	}
   }
 }

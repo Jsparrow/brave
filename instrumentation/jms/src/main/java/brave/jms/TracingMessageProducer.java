@@ -35,359 +35,373 @@ import static brave.jms.TracingConnection.TYPE_TOPIC;
 final class TracingMessageProducer extends TracingProducer<MessageProducer, Message>
   implements QueueSender, TopicPublisher {
 
-  static TracingMessageProducer create(MessageProducer delegate, JmsTracing jmsTracing) {
-    if (delegate instanceof TracingMessageProducer) return (TracingMessageProducer) delegate;
-    return new TracingMessageProducer(delegate, jmsTracing);
-  }
-
   final int types;
 
-  TracingMessageProducer(MessageProducer delegate, JmsTracing jmsTracing) {
-    super(delegate, jmsTracing);
-    int types = 0;
-    if (delegate instanceof QueueSender) types |= TYPE_QUEUE;
-    if (delegate instanceof TopicPublisher) types |= TYPE_TOPIC;
-    this.types = types;
-  }
+	TracingMessageProducer(MessageProducer delegate, JmsTracing jmsTracing) {
+	    super(delegate, jmsTracing);
+	    int types = 0;
+	    if (delegate instanceof QueueSender) {
+			types |= TYPE_QUEUE;
+		}
+	    if (delegate instanceof TopicPublisher) {
+			types |= TYPE_TOPIC;
+		}
+	    this.types = types;
+	  }
 
-  @Override void addB3SingleHeader(Message message, TraceContext context) {
-    JmsTracing.addB3SingleHeader(message, context);
-  }
+	static TracingMessageProducer create(MessageProducer delegate, JmsTracing jmsTracing) {
+	    if (delegate instanceof TracingMessageProducer) {
+			return (TracingMessageProducer) delegate;
+		}
+	    return new TracingMessageProducer(delegate, jmsTracing);
+	  }
 
-  @Override TraceContextOrSamplingFlags extract(Message message) {
-    return jmsTracing.extractor.extract(message);
-  }
+	@Override void addB3SingleHeader(Message message, TraceContext context) {
+	    JmsTracing.addB3SingleHeader(message, context);
+	  }
 
-  @Override Destination destination(Message message) {
-    Destination result = JmsTracing.destination(message);
-    if (result != null) return result;
+	@Override TraceContextOrSamplingFlags extract(Message message) {
+	    return jmsTracing.extractor.extract(message);
+	  }
 
-    try {
-      return delegate.getDestination();
-    } catch (JMSException e) {
-      log(e, "error getting destination of producer {0}", delegate, null);
-    }
-    return null;
-  }
+	@Override Destination destination(Message message) {
+	    Destination result = JmsTracing.destination(message);
+	    if (result != null) {
+			return result;
+		}
+	
+	    try {
+	      return delegate.getDestination();
+	    } catch (JMSException e) {
+	      log(e, "error getting destination of producer {0}", delegate, null);
+	    }
+	    return null;
+	  }
 
-  @Override public void setDisableMessageID(boolean value) throws JMSException {
-    delegate.setDisableMessageID(value);
-  }
+	@Override public void setDisableMessageID(boolean value) throws JMSException {
+	    delegate.setDisableMessageID(value);
+	  }
 
-  @Override public boolean getDisableMessageID() throws JMSException {
-    return delegate.getDisableMessageID();
-  }
+	@Override public boolean getDisableMessageID() throws JMSException {
+	    return delegate.getDisableMessageID();
+	  }
 
-  @Override public void setDisableMessageTimestamp(boolean value) throws JMSException {
-    delegate.setDisableMessageTimestamp(value);
-  }
+	@Override public void setDisableMessageTimestamp(boolean value) throws JMSException {
+	    delegate.setDisableMessageTimestamp(value);
+	  }
 
-  @Override public boolean getDisableMessageTimestamp() throws JMSException {
-    return delegate.getDisableMessageTimestamp();
-  }
+	@Override public boolean getDisableMessageTimestamp() throws JMSException {
+	    return delegate.getDisableMessageTimestamp();
+	  }
 
-  @Override public void setDeliveryMode(int deliveryMode) throws JMSException {
-    delegate.setDeliveryMode(deliveryMode);
-  }
+	@Override public void setDeliveryMode(int deliveryMode) throws JMSException {
+	    delegate.setDeliveryMode(deliveryMode);
+	  }
 
-  @Override public int getDeliveryMode() throws JMSException {
-    return delegate.getDeliveryMode();
-  }
+	@Override public int getDeliveryMode() throws JMSException {
+	    return delegate.getDeliveryMode();
+	  }
 
-  @Override public void setPriority(int defaultPriority) throws JMSException {
-    delegate.setPriority(defaultPriority);
-  }
+	@Override public void setPriority(int defaultPriority) throws JMSException {
+	    delegate.setPriority(defaultPriority);
+	  }
 
-  @Override public int getPriority() throws JMSException {
-    return delegate.getPriority();
-  }
+	@Override public int getPriority() throws JMSException {
+	    return delegate.getPriority();
+	  }
 
-  @Override public void setTimeToLive(long timeToLive) throws JMSException {
-    delegate.setTimeToLive(timeToLive);
-  }
+	@Override public void setTimeToLive(long timeToLive) throws JMSException {
+	    delegate.setTimeToLive(timeToLive);
+	  }
 
-  @Override public long getTimeToLive() throws JMSException {
-    return delegate.getTimeToLive();
-  }
+	@Override public long getTimeToLive() throws JMSException {
+	    return delegate.getTimeToLive();
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public void setDeliveryDelay(long deliveryDelay) throws JMSException {
-    delegate.setDeliveryDelay(deliveryDelay);
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public void setDeliveryDelay(long deliveryDelay) throws JMSException {
+	    delegate.setDeliveryDelay(deliveryDelay);
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public long getDeliveryDelay() throws JMSException {
-    return delegate.getDeliveryDelay();
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public long getDeliveryDelay() throws JMSException {
+	    return delegate.getDeliveryDelay();
+	  }
 
-  @Override public Destination getDestination() throws JMSException {
-    return delegate.getDestination();
-  }
+	@Override public Destination getDestination() throws JMSException {
+	    return delegate.getDestination();
+	  }
 
-  @Override public void close() throws JMSException {
-    delegate.close();
-  }
+	@Override public void close() throws JMSException {
+	    delegate.close();
+	  }
 
-  @Override public void send(Message message) throws JMSException {
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(message);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
+	@Override public void send(Message message) throws JMSException {
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(message);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  @Override public void send(Message message, int deliveryMode, int priority, long timeToLive)
-    throws JMSException {
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(message, deliveryMode, priority, timeToLive);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
+	@Override public void send(Message message, int deliveryMode, int priority, long timeToLive)
+	    throws JMSException {
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(message, deliveryMode, priority, timeToLive);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  enum SendDestination {
-    DESTINATION {
-      @Override void apply(MessageProducer producer, Destination destination, Message message)
-        throws JMSException {
-        producer.send(destination, message);
-      }
-    },
-    QUEUE {
-      @Override void apply(MessageProducer producer, Destination destination, Message message)
-        throws JMSException {
-        ((QueueSender) producer).send((Queue) destination, message);
-      }
-    },
-    TOPIC {
-      @Override void apply(MessageProducer producer, Destination destination, Message message)
-        throws JMSException {
-        ((TopicPublisher) producer).publish((Topic) destination, message);
-      }
-    };
+	@Override public void send(Destination destination, Message message) throws JMSException {
+	    send(SendDestination.DESTINATION, destination, message);
+	  }
 
-    abstract void apply(MessageProducer producer, Destination destination, Message message)
-      throws JMSException;
-  }
+	void send(SendDestination sendDestination, Destination destination, Message message)
+	    throws JMSException {
+	    Span span = createAndStartProducerSpan(destination, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      sendDestination.apply(delegate, destination, message);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  @Override public void send(Destination destination, Message message) throws JMSException {
-    send(SendDestination.DESTINATION, destination, message);
-  }
+	@Override
+	  public void send(Destination destination, Message message, int deliveryMode, int priority,
+	    long timeToLive) throws JMSException {
+	    Span span = createAndStartProducerSpan(destination, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(destination, message, deliveryMode, priority, timeToLive);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  void send(SendDestination sendDestination, Destination destination, Message message)
-    throws JMSException {
-    Span span = createAndStartProducerSpan(destination, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      sendDestination.apply(delegate, destination, message);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0
+	  public void send(Message message, CompletionListener completionListener) throws JMSException {
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(message, TracingCompletionListener.create(completionListener, span, current));
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      span.finish();
+	      throw e;
+	    } finally {
+	      ws.close();
+	    }
+	  }
 
-  @Override
-  public void send(Destination destination, Message message, int deliveryMode, int priority,
-    long timeToLive) throws JMSException {
-    Span span = createAndStartProducerSpan(destination, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(destination, message, deliveryMode, priority, timeToLive);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public void send(Message message, int deliveryMode, int priority, long timeToLive,
+	    CompletionListener completionListener) throws JMSException {
+	    Span span = createAndStartProducerSpan(null, message);
+	    completionListener = TracingCompletionListener.create(completionListener, span, current);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(message, deliveryMode, priority, timeToLive, completionListener);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      span.finish();
+	      throw e;
+	    } finally {
+	      ws.close();
+	    }
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0
-  public void send(Message message, CompletionListener completionListener) throws JMSException {
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(message, TracingCompletionListener.create(completionListener, span, current));
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      span.finish();
-      throw e;
-    } finally {
-      ws.close();
-    }
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public void send(Destination destination, Message message,
+	    CompletionListener completionListener) throws JMSException {
+	    Span span = createAndStartProducerSpan(destination, message);
+	    completionListener = TracingCompletionListener.create(completionListener, span, current);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(destination, message, completionListener);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      span.finish();
+	      throw e;
+	    } finally {
+	      ws.close();
+	    }
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public void send(Message message, int deliveryMode, int priority, long timeToLive,
-    CompletionListener completionListener) throws JMSException {
-    Span span = createAndStartProducerSpan(null, message);
-    completionListener = TracingCompletionListener.create(completionListener, span, current);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(message, deliveryMode, priority, timeToLive, completionListener);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      span.finish();
-      throw e;
-    } finally {
-      ws.close();
-    }
-  }
+	/* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
+	  @Override
+	@JMS2_0 public void send(Destination destination, Message message, int deliveryMode, int priority,
+	    long timeToLive, CompletionListener completionListener) throws JMSException {
+	    Span span = createAndStartProducerSpan(destination, message);
+	    completionListener = TracingCompletionListener.create(completionListener, span, current);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      delegate.send(destination, message, deliveryMode, priority, timeToLive, completionListener);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      span.finish();
+	      throw e;
+	    } finally {
+	      ws.close();
+	    }
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public void send(Destination destination, Message message,
-    CompletionListener completionListener) throws JMSException {
-    Span span = createAndStartProducerSpan(destination, message);
-    completionListener = TracingCompletionListener.create(completionListener, span, current);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(destination, message, completionListener);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      span.finish();
-      throw e;
-    } finally {
-      ws.close();
-    }
-  }
+	// QueueSender
+	
+	  @Override public Queue getQueue() throws JMSException {
+	    checkQueueSender();
+	    return ((QueueSender) delegate).getQueue();
+	  }
 
-  /* @Override JMS 2.0 method: Intentionally no override to ensure JMS 1.1 works! */
-  @JMS2_0 public void send(Destination destination, Message message, int deliveryMode, int priority,
-    long timeToLive, CompletionListener completionListener) throws JMSException {
-    Span span = createAndStartProducerSpan(destination, message);
-    completionListener = TracingCompletionListener.create(completionListener, span, current);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      delegate.send(destination, message, deliveryMode, priority, timeToLive, completionListener);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      span.finish();
-      throw e;
-    } finally {
-      ws.close();
-    }
-  }
+	@Override public void send(Queue queue, Message message) throws JMSException {
+	    checkQueueSender();
+	    send(SendDestination.QUEUE, queue, message);
+	  }
 
-  // QueueSender
+	@Override
+	  public void send(Queue queue, Message message, int deliveryMode, int priority, long timeToLive)
+	    throws JMSException {
+	    checkQueueSender();
+	    QueueSender qs = (QueueSender) delegate;
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      qs.send(queue, message, deliveryMode, priority, timeToLive);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  @Override public Queue getQueue() throws JMSException {
-    checkQueueSender();
-    return ((QueueSender) delegate).getQueue();
-  }
+	void checkQueueSender() {
+	    if ((types & TYPE_QUEUE) != TYPE_QUEUE) {
+	      throw new IllegalStateException(delegate + " is not a QueueSender");
+	    }
+	  }
 
-  @Override public void send(Queue queue, Message message) throws JMSException {
-    checkQueueSender();
-    send(SendDestination.QUEUE, queue, message);
-  }
+	// TopicPublisher
+	
+	  @Override public Topic getTopic() throws JMSException {
+	    checkTopicPublisher();
+	    return ((TopicPublisher) delegate).getTopic();
+	  }
 
-  @Override
-  public void send(Queue queue, Message message, int deliveryMode, int priority, long timeToLive)
-    throws JMSException {
-    checkQueueSender();
-    QueueSender qs = (QueueSender) delegate;
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      qs.send(queue, message, deliveryMode, priority, timeToLive);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
+	@Override public void publish(Message message) throws JMSException {
+	    checkTopicPublisher();
+	    TopicPublisher tp = (TopicPublisher) delegate;
+	
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      tp.publish(message);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  void checkQueueSender() {
-    if ((types & TYPE_QUEUE) != TYPE_QUEUE) {
-      throw new IllegalStateException(delegate + " is not a QueueSender");
-    }
-  }
+	@Override public void publish(Message message, int deliveryMode, int priority, long timeToLive)
+	    throws JMSException {
+	    checkTopicPublisher();
+	    TopicPublisher tp = (TopicPublisher) delegate;
+	
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      tp.publish(message, deliveryMode, priority, timeToLive);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  // TopicPublisher
+	@Override public void publish(Topic topic, Message message) throws JMSException {
+	    checkTopicPublisher();
+	    send(SendDestination.TOPIC, topic, message);
+	  }
 
-  @Override public Topic getTopic() throws JMSException {
-    checkTopicPublisher();
-    return ((TopicPublisher) delegate).getTopic();
-  }
+	@Override
+	  public void publish(Topic topic, Message message, int deliveryMode, int priority, long timeToLive)
+	    throws JMSException {
+	    checkTopicPublisher();
+	    TopicPublisher tp = (TopicPublisher) delegate;
+	
+	    Span span = createAndStartProducerSpan(null, message);
+	    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
+	    try {
+	      tp.publish(topic, message, deliveryMode, priority, timeToLive);
+	    } catch (RuntimeException | JMSException | Error e) {
+	      span.error(e);
+	      throw e;
+	    } finally {
+	      ws.close();
+	      span.finish();
+	    }
+	  }
 
-  @Override public void publish(Message message) throws JMSException {
-    checkTopicPublisher();
-    TopicPublisher tp = (TopicPublisher) delegate;
+	void checkTopicPublisher() {
+	    if ((types & TYPE_TOPIC) != TYPE_TOPIC) {
+	      throw new IllegalStateException(delegate + " is not a TopicPublisher");
+	    }
+	  }
 
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      tp.publish(message);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
-
-  @Override public void publish(Message message, int deliveryMode, int priority, long timeToLive)
-    throws JMSException {
-    checkTopicPublisher();
-    TopicPublisher tp = (TopicPublisher) delegate;
-
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      tp.publish(message, deliveryMode, priority, timeToLive);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
-
-  @Override public void publish(Topic topic, Message message) throws JMSException {
-    checkTopicPublisher();
-    send(SendDestination.TOPIC, topic, message);
-  }
-
-  @Override
-  public void publish(Topic topic, Message message, int deliveryMode, int priority, long timeToLive)
-    throws JMSException {
-    checkTopicPublisher();
-    TopicPublisher tp = (TopicPublisher) delegate;
-
-    Span span = createAndStartProducerSpan(null, message);
-    SpanInScope ws = tracer.withSpanInScope(span); // animal-sniffer mistakes this for AutoCloseable
-    try {
-      tp.publish(topic, message, deliveryMode, priority, timeToLive);
-    } catch (RuntimeException | JMSException | Error e) {
-      span.error(e);
-      throw e;
-    } finally {
-      ws.close();
-      span.finish();
-    }
-  }
-
-  void checkTopicPublisher() {
-    if ((types & TYPE_TOPIC) != TYPE_TOPIC) {
-      throw new IllegalStateException(delegate + " is not a TopicPublisher");
-    }
-  }
+	enum SendDestination {
+	    DESTINATION {
+	      @Override void apply(MessageProducer producer, Destination destination, Message message)
+	        throws JMSException {
+	        producer.send(destination, message);
+	      }
+	    },
+	    QUEUE {
+	      @Override void apply(MessageProducer producer, Destination destination, Message message)
+	        throws JMSException {
+	        ((QueueSender) producer).send((Queue) destination, message);
+	      }
+	    },
+	    TOPIC {
+	      @Override void apply(MessageProducer producer, Destination destination, Message message)
+	        throws JMSException {
+	        ((TopicPublisher) producer).publish((Topic) destination, message);
+	      }
+	    };
+	
+	    abstract void apply(MessageProducer producer, Destination destination, Message message)
+	      throws JMSException;
+	  }
 }

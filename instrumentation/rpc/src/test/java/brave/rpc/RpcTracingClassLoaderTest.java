@@ -25,16 +25,20 @@ public class RpcTracingClassLoaderTest {
     assertRunIsUnloadable(ClosesRpcTracing.class, getClass().getClassLoader());
   }
 
-  static class ClosesRpcTracing implements Runnable {
+  @Test public void unloadable_afterBasicUsage() {
+    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
+  }
+
+@Test public void unloadable_forgetClose() {
+    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
+  }
+
+static class ClosesRpcTracing implements Runnable {
     @Override public void run() {
       try (Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build();
            RpcTracing rpcTracing = RpcTracing.create(tracing)) {
       }
     }
-  }
-
-  @Test public void unloadable_afterBasicUsage() {
-    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
   }
 
   static class BasicUsage implements Runnable {
@@ -44,10 +48,6 @@ public class RpcTracingClassLoaderTest {
         rpcTracing.serverSampler().trySample(null);
       }
     }
-  }
-
-  @Test public void unloadable_forgetClose() {
-    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
   }
 
   static class ForgetClose implements Runnable {

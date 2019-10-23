@@ -40,7 +40,9 @@ public class PendingSpansTest {
   @Before public void init() {
     init(new FinishedSpanHandler() {
       @Override public boolean handle(TraceContext ctx, MutableSpan span) {
-        if (!Boolean.TRUE.equals(ctx.sampled())) return true;
+        if (!Boolean.TRUE.equals(ctx.sampled())) {
+			return true;
+		}
 
         Span.Builder b = Span.newBuilder().traceId(ctx.traceIdString()).id(ctx.traceIdString());
         b.name(span.name());
@@ -294,7 +296,7 @@ public class PendingSpansTest {
     pendingSpans.getOrCreate(context, false);
 
     assertThat(pendingSpans.toString())
-      .isEqualTo("PendingSpans[WeakReference(" + context + ")]");
+      .isEqualTo(new StringBuilder().append("PendingSpans[WeakReference(").append(context).append(")]").toString());
 
     pretendGCHappened();
 

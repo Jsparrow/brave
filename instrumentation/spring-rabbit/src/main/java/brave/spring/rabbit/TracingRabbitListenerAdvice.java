@@ -98,10 +98,14 @@ final class TracingRabbitListenerAdvice implements MethodInterceptor {
     maybeTag(span, RABBIT_EXCHANGE, properties.getReceivedExchange());
     maybeTag(span, RABBIT_ROUTING_KEY, properties.getReceivedRoutingKey());
     maybeTag(span, RABBIT_QUEUE, properties.getConsumerQueue());
-    if (remoteServiceName != null) span.remoteServiceName(remoteServiceName);
+    if (remoteServiceName != null) {
+		span.remoteServiceName(remoteServiceName);
+	}
   }
 
   static void maybeTag(Span span, String tag, String value) {
-    if (value != null) span.tag(tag, value);
+    if (value != null) {
+		span.tag(tag, value);
+	}
   }
 }

@@ -36,7 +36,8 @@ public abstract class ExtraFactory<E> {
   protected abstract void consolidate(E existing, E consolidated);
 
   public final TraceContext decorate(TraceContext context) {
-    long traceId = context.traceId(), spanId = context.spanId();
+    long traceId = context.traceId();
+	long spanId = context.spanId();
     Class<E> type = type();
 
     List<Object> extra = context.extra();
@@ -65,7 +66,9 @@ public abstract class ExtraFactory<E> {
     // * the existing extra was not a fields object, so we need to make a new list
     if (extraSize == 1) {
       if (consolidated != null) {
-        if (consolidated == first) return context;
+        if (consolidated == first) {
+			return context;
+		}
         // otherwise we copied the fields of an existing object
         return contextWithExtra(context, Collections.singletonList(consolidated));
       }
@@ -81,7 +84,9 @@ public abstract class ExtraFactory<E> {
     // avoid creating a new list.
     for (int i = 1; i < extraSize; i++) {
       Object next = extra.get(i);
-      if (!type.isInstance(next)) continue;
+      if (!type.isInstance(next)) {
+		continue;
+	}
       E existing = (E) next;
       if (consolidated == null) {
         if (tryToClaim(existing, traceId, spanId)) {
@@ -104,7 +109,9 @@ public abstract class ExtraFactory<E> {
       extra = ensureMutable(extra);
       extra.add(consolidated);
     }
-    if (extra == context.extra()) return context;
+    if (extra == context.extra()) {
+		return context;
+	}
     return contextWithExtra(context, Collections.unmodifiableList(extra));
   }
 

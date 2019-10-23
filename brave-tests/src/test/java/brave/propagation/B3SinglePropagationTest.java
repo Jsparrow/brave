@@ -26,40 +26,48 @@ public class B3SinglePropagationTest extends PropagationTest<String> {
     return PropagationSupplier.class;
   }
 
-  static class PropagationSupplier implements Supplier<Propagation<String>> {
-    @Override public Propagation<String> get() {
-      return Propagation.B3_SINGLE_STRING;
-    }
-  }
-
   @Override protected void inject(Map<String, String> map, @Nullable String traceId,
     @Nullable String parentId, @Nullable String spanId, @Nullable Boolean sampled,
     @Nullable Boolean debug) {
     StringBuilder builder = new StringBuilder();
     char sampledChar = sampledChar(sampled, debug);
     if (traceId == null) {
-      if (sampledChar != 0) builder.append(sampledChar);
+      if (sampledChar != 0) {
+		builder.append(sampledChar);
+	}
     } else {
       builder.append(traceId).append('-').append(spanId);
-      if (sampledChar != 0) builder.append('-').append(sampledChar);
-      if (parentId != null) builder.append('-').append(parentId);
+      if (sampledChar != 0) {
+		builder.append('-').append(sampledChar);
+	}
+      if (parentId != null) {
+		builder.append('-').append(parentId);
+	}
     }
-    if (builder.length() != 0) map.put("b3", builder.toString());
+    if (builder.length() != 0) {
+		map.put("b3", builder.toString());
+	}
   }
 
-  /** returns 0 if there's no sampling status */
+/** returns 0 if there's no sampling status */
   static char sampledChar(@Nullable Boolean sampled, @Nullable Boolean debug) {
-    if (Boolean.TRUE.equals(debug)) return 'd';
-    if (sampled != null) return sampled ? '1' : '0';
+    if (Boolean.TRUE.equals(debug)) {
+		return 'd';
+	}
+    if (sampled != null) {
+		return sampled ? '1' : '0';
+	}
     return 0;
   }
 
-  @Override protected void inject(Map<String, String> carrier, SamplingFlags flags) {
+@Override protected void inject(Map<String, String> carrier, SamplingFlags flags) {
     char sampledChar = sampledChar(flags.sampled(), flags.debug());
-    if (sampledChar != 0) carrier.put("b3", String.valueOf(sampledChar));
+    if (sampledChar != 0) {
+		carrier.put("b3", String.valueOf(sampledChar));
+	}
   }
 
-  @Test public void extractTraceContext_sampledFalse() {
+@Test public void extractTraceContext_sampledFalse() {
     MapEntry<String> mapEntry = new MapEntry<>();
     map.put("b3", "0");
 
@@ -69,7 +77,7 @@ public class B3SinglePropagationTest extends PropagationTest<String> {
       .isEqualTo(SamplingFlags.NOT_SAMPLED);
   }
 
-  @Test public void extractTraceContext_malformed() {
+@Test public void extractTraceContext_malformed() {
     MapEntry<String> mapEntry = new MapEntry<>();
     map.put("b3", "not-a-tumor");
 
@@ -79,7 +87,7 @@ public class B3SinglePropagationTest extends PropagationTest<String> {
       .isEqualTo(SamplingFlags.EMPTY);
   }
 
-  @Test public void extractTraceContext_malformed_uuid() {
+@Test public void extractTraceContext_malformed_uuid() {
     MapEntry<String> mapEntry = new MapEntry<>();
     map.put("b3", "b970dafd-0d95-40aa-95d8-1d8725aebe40");
 
@@ -89,7 +97,7 @@ public class B3SinglePropagationTest extends PropagationTest<String> {
       .isEqualTo(SamplingFlags.EMPTY);
   }
 
-  @Test public void extractTraceContext_debug_with_ids() {
+@Test public void extractTraceContext_debug_with_ids() {
     MapEntry<String> mapEntry = new MapEntry<>();
 
     map.put("b3", "4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-d");
@@ -98,5 +106,11 @@ public class B3SinglePropagationTest extends PropagationTest<String> {
 
     assertThat(result.debug())
       .isTrue();
+  }
+
+static class PropagationSupplier implements Supplier<Propagation<String>> {
+    @Override public Propagation<String> get() {
+      return Propagation.B3_SINGLE_STRING;
+    }
   }
 }

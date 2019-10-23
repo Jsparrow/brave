@@ -24,11 +24,19 @@ public class PredefinedPropagationFields extends PropagationFields<String, Strin
   volatile String[] values; // guarded by this, copy on write
 
   protected PredefinedPropagationFields(String... fieldNames) {
-    if (fieldNames == null) throw new NullPointerException("fieldNames == null");
-    if (fieldNames.length == 0) throw new NullPointerException("fieldNames is empty");
+    if (fieldNames == null) {
+		throw new NullPointerException("fieldNames == null");
+	}
+    if (fieldNames.length == 0) {
+		throw new NullPointerException("fieldNames is empty");
+	}
     for (int i = 0; i < fieldNames.length; i++) {
-      if (fieldNames[i] == null) throw new NullPointerException("fieldNames[" + i + "] == null");
-      if (fieldNames[i].isEmpty()) throw new NullPointerException("fieldNames[" + i + "] is empty");
+      if (fieldNames[i] == null) {
+		throw new NullPointerException(new StringBuilder().append("fieldNames[").append(i).append("] == null").toString());
+	}
+      if (fieldNames[i].isEmpty()) {
+		throw new NullPointerException(new StringBuilder().append("fieldNames[").append(i).append("] is empty").toString());
+	}
     }
     this.fieldNames = fieldNames;
   }
@@ -45,7 +53,9 @@ public class PredefinedPropagationFields extends PropagationFields<String, Strin
   }
 
   public String get(int index) {
-    if (index >= fieldNames.length) return null;
+    if (index >= fieldNames.length) {
+		return null;
+	}
 
     String[] elements = values;
     return elements != null ? elements[index] : null;
@@ -53,32 +63,44 @@ public class PredefinedPropagationFields extends PropagationFields<String, Strin
 
   @Override public void forEach(FieldConsumer<String, String> fieldConsumer) {
     String[] elements = values;
-    if (elements == null) return;
+    if (elements == null) {
+		return;
+	}
 
     for (int i = 0, length = fieldNames.length; i < length; i++) {
       String value = elements[i];
-      if (value == null) continue;
+      if (value == null) {
+		continue;
+	}
       fieldConsumer.accept(fieldNames[i], value);
     }
   }
 
   @Override public final void put(String name, String value) {
     int index = indexOf(name);
-    if (index == -1) return;
+    if (index == -1) {
+		return;
+	}
     put(index, value);
   }
 
   @Override public boolean isEmpty() {
     String[] elements = values;
-    if (elements == null) return true;
+    if (elements == null) {
+		return true;
+	}
     for (String value : elements) {
-      if (value != null) return false;
+      if (value != null) {
+		return false;
+	}
     }
     return true;
   }
 
   public final void put(int index, String value) {
-    if (index >= fieldNames.length) return;
+    if (index >= fieldNames.length) {
+		return;
+	}
 
     synchronized (this) {
       String[] elements = values;
@@ -96,11 +118,15 @@ public class PredefinedPropagationFields extends PropagationFields<String, Strin
   }
 
   @Override protected final void putAllIfAbsent(PropagationFields parent) {
-    if (!(parent instanceof PredefinedPropagationFields)) return;
+    if (!(parent instanceof PredefinedPropagationFields)) {
+		return;
+	}
     PredefinedPropagationFields predefinedParent = (PredefinedPropagationFields) parent;
     checkSameFields(predefinedParent);
     String[] parentValues = predefinedParent.values;
-    if (parentValues == null) return;
+    if (parentValues == null) {
+		return;
+	}
     for (int i = 0; i < parentValues.length; i++) {
       if (parentValues[i] != null && get(i) == null) { // extracted wins vs parent
         put(i, parentValues[i]);
@@ -119,41 +145,50 @@ public class PredefinedPropagationFields extends PropagationFields<String, Strin
 
   @Override public final Map<String, String> toMap() {
     String[] elements = values;
-    if (elements == null) return Collections.emptyMap();
+    if (elements == null) {
+		return Collections.emptyMap();
+	}
 
     MapFieldConsumer result = new MapFieldConsumer();
     forEach(result);
     return result;
   }
 
-  static final class MapFieldConsumer extends LinkedHashMap<String, String>
-    implements FieldConsumer<String, String> {
-    @Override public void accept(String key, String value) {
-      put(key, value);
-    }
-  }
-
   int indexOf(String name) {
     for (int i = 0, length = fieldNames.length; i < length; i++) {
-      if (fieldNames[i].equals(name)) return i;
+      if (fieldNames[i].equals(name)) {
+		return i;
+	}
     }
     return -1;
   }
 
-  @Override public String toString() {
+@Override public String toString() {
     return getClass().getSimpleName() + toMap();
   }
 
-  @Override public int hashCode() { // for unit tests
+@Override public int hashCode() { // for unit tests
     String[] values = this.values;
     return values == null ? 0 : Arrays.hashCode(values);
   }
 
-  @Override public boolean equals(Object o) { // for unit tests
-    if (o == this) return true;
-    if (!(o instanceof PredefinedPropagationFields)) return false;
+@Override public boolean equals(Object o) { // for unit tests
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof PredefinedPropagationFields)) {
+		return false;
+	}
     PredefinedPropagationFields that = (PredefinedPropagationFields) o;
-    String[] values = this.values, thatValues = that.values;
+    String[] values = this.values;
+	String[] thatValues = that.values;
     return values == null ? thatValues == null : Arrays.equals(values, thatValues);
+  }
+
+static final class MapFieldConsumer extends LinkedHashMap<String, String>
+    implements FieldConsumer<String, String> {
+    @Override public void accept(String key, String value) {
+      put(key, value);
+    }
   }
 }

@@ -31,7 +31,8 @@ import zipkin2.reporter.Reporter;
 public class TracingFactoryBean extends AbstractFactoryBean {
 
   String localServiceName;
-  Endpoint localEndpoint, endpoint;
+  Endpoint localEndpoint;
+Endpoint endpoint;
   Reporter<Span> spanReporter;
   List<FinishedSpanHandler> finishedSpanHandlers;
   Clock clock;
@@ -45,24 +46,44 @@ public class TracingFactoryBean extends AbstractFactoryBean {
 
   @Override protected Tracing createInstance() {
     Tracing.Builder builder = Tracing.newBuilder();
-    if (localServiceName != null) builder.localServiceName(localServiceName);
-    if (localEndpoint != null) builder.endpoint(localEndpoint);
-    if (endpoint != null) builder.endpoint(endpoint);
-    if (spanReporter != null) builder.spanReporter(spanReporter);
+    if (localServiceName != null) {
+		builder.localServiceName(localServiceName);
+	}
+    if (localEndpoint != null) {
+		builder.endpoint(localEndpoint);
+	}
+    if (endpoint != null) {
+		builder.endpoint(endpoint);
+	}
+    if (spanReporter != null) {
+		builder.spanReporter(spanReporter);
+	}
     if (finishedSpanHandlers != null) {
-      for (FinishedSpanHandler finishedSpanHandler : finishedSpanHandlers) {
-        builder.addFinishedSpanHandler(finishedSpanHandler);
-      }
+      finishedSpanHandlers.forEach(builder::addFinishedSpanHandler);
     }
-    if (errorParser != null) builder.errorParser(errorParser);
-    if (clock != null) builder.clock(clock);
-    if (sampler != null) builder.sampler(sampler);
-    if (currentTraceContext != null) builder.currentTraceContext(currentTraceContext);
-    if (propagationFactory != null) builder.propagationFactory(propagationFactory);
-    if (traceId128Bit != null) builder.traceId128Bit(traceId128Bit);
-    if (supportsJoin != null) builder.supportsJoin(supportsJoin);
+    if (errorParser != null) {
+		builder.errorParser(errorParser);
+	}
+    if (clock != null) {
+		builder.clock(clock);
+	}
+    if (sampler != null) {
+		builder.sampler(sampler);
+	}
+    if (currentTraceContext != null) {
+		builder.currentTraceContext(currentTraceContext);
+	}
+    if (propagationFactory != null) {
+		builder.propagationFactory(propagationFactory);
+	}
+    if (traceId128Bit != null) {
+		builder.traceId128Bit(traceId128Bit);
+	}
+    if (supportsJoin != null) {
+		builder.supportsJoin(supportsJoin);
+	}
     if (customizers != null) {
-      for (TracingCustomizer customizer : customizers) customizer.customize(builder);
+      customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
   }

@@ -25,15 +25,19 @@ public class TracingClassLoaderTest {
     assertRunIsUnloadable(ClosesTracing.class, getClass().getClassLoader());
   }
 
-  static class ClosesTracing implements Runnable {
+  @Test public void unloadable_afterBasicUsage() {
+    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
+  }
+
+@Test public void unloadable_forgetClose() {
+    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
+  }
+
+static class ClosesTracing implements Runnable {
     @Override public void run() {
       try (Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build()) {
       }
     }
-  }
-
-  @Test public void unloadable_afterBasicUsage() {
-    assertRunIsUnloadable(BasicUsage.class, getClass().getClassLoader());
   }
 
   static class BasicUsage implements Runnable {
@@ -42,10 +46,6 @@ public class TracingClassLoaderTest {
         tracing.tracer().newTrace().start().finish();
       }
     }
-  }
-
-  @Test public void unloadable_forgetClose() {
-    assertRunIsUnloadable(ForgetClose.class, getClass().getClassLoader());
   }
 
   static class ForgetClose implements Runnable {

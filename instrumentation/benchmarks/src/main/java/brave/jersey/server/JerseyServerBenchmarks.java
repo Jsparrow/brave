@@ -39,7 +39,41 @@ import static io.undertow.servlet.Servlets.servlet;
 import static java.util.Arrays.asList;
 
 public class JerseyServerBenchmarks extends HttpServerBenchmarks {
-  @Path("")
+  @Override protected void init(DeploymentInfo servletBuilder) {
+	    servletBuilder.addServlets(
+	      servlet("Unsampled", ServletContainer.class)
+	        .setLoadOnStartup(1)
+	        .addInitParam("javax.ws.rs.Application", Unsampled.class.getName())
+	        .addMapping("/unsampled"),
+	      servlet("Traced", ServletContainer.class)
+	        .setLoadOnStartup(1)
+	        .addInitParam("javax.ws.rs.Application", TracedApp.class.getName())
+	        .addMapping("/traced"),
+	      servlet("TracedExtra", ServletContainer.class)
+	        .setLoadOnStartup(1)
+	        .addInitParam("javax.ws.rs.Application", TracedExtraApp.class.getName())
+	        .addMapping("/tracedextra"),
+	      servlet("Traced128", ServletContainer.class)
+	        .setLoadOnStartup(1)
+	        .addInitParam("javax.ws.rs.Application", Traced128App.class.getName())
+	        .addMapping("/traced128"),
+	      servlet("App", ServletContainer.class)
+	        .setLoadOnStartup(1)
+	        .addInitParam("javax.ws.rs.Application", App.class.getName())
+	        .addMapping("/*")
+	    );
+	  }
+
+	// Convenience main entry-point
+	  public static void main(String[] args) throws RunnerException {
+	    Options opt = new OptionsBuilder()
+	      .include(new StringBuilder().append(".*").append(JerseyServerBenchmarks.class.getSimpleName()).append(".*").toString())
+	      .build();
+	
+	    new Runner(opt).run();
+	  }
+
+@Path("")
   public static class Resource {
     @GET @Produces("text/plain; charset=UTF-8") public String get() {
       // noop if not configured
@@ -102,39 +136,5 @@ public class JerseyServerBenchmarks extends HttpServerBenchmarks {
           .build())
       )));
     }
-  }
-
-  @Override protected void init(DeploymentInfo servletBuilder) {
-    servletBuilder.addServlets(
-      servlet("Unsampled", ServletContainer.class)
-        .setLoadOnStartup(1)
-        .addInitParam("javax.ws.rs.Application", Unsampled.class.getName())
-        .addMapping("/unsampled"),
-      servlet("Traced", ServletContainer.class)
-        .setLoadOnStartup(1)
-        .addInitParam("javax.ws.rs.Application", TracedApp.class.getName())
-        .addMapping("/traced"),
-      servlet("TracedExtra", ServletContainer.class)
-        .setLoadOnStartup(1)
-        .addInitParam("javax.ws.rs.Application", TracedExtraApp.class.getName())
-        .addMapping("/tracedextra"),
-      servlet("Traced128", ServletContainer.class)
-        .setLoadOnStartup(1)
-        .addInitParam("javax.ws.rs.Application", Traced128App.class.getName())
-        .addMapping("/traced128"),
-      servlet("App", ServletContainer.class)
-        .setLoadOnStartup(1)
-        .addInitParam("javax.ws.rs.Application", App.class.getName())
-        .addMapping("/*")
-    );
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-      .include(".*" + JerseyServerBenchmarks.class.getSimpleName() + ".*")
-      .build();
-
-    new Runner(opt).run();
   }
 }

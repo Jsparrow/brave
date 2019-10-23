@@ -31,17 +31,20 @@ import brave.propagation.CurrentTraceContext.ScopeDecorator;
  * }</pre>
  */
 public final class StrictScopeDecorator implements ScopeDecorator {
-  public static ScopeDecorator create() {
-    return new StrictScopeDecorator();
-  }
+  StrictScopeDecorator() {
+	  }
 
-  /** Identifies problems by throwing assertion errors when a scope is closed on a different thread. */
-  @Override public Scope decorateScope(@Nullable TraceContext currentSpan, Scope scope) {
-    return new StrictScope(scope, new Error(String.format("Thread %s opened scope for %s here:",
-      Thread.currentThread().getName(), currentSpan)));
-  }
+	public static ScopeDecorator create() {
+	    return new StrictScopeDecorator();
+	  }
 
-  static final class StrictScope implements Scope {
+	/** Identifies problems by throwing assertion errors when a scope is closed on a different thread. */
+	  @Override public Scope decorateScope(@Nullable TraceContext currentSpan, Scope scope) {
+	    return new StrictScope(scope, new Error(String.format("Thread %s opened scope for %s here:",
+	      Thread.currentThread().getName(), currentSpan)));
+	  }
+
+static final class StrictScope implements Scope {
     final Scope delegate;
     final Throwable caller;
     final long threadId = Thread.currentThread().getId();
@@ -63,8 +66,5 @@ public final class StrictScopeDecorator implements ScopeDecorator {
     @Override public String toString() {
       return caller.toString();
     }
-  }
-
-  StrictScopeDecorator() {
   }
 }

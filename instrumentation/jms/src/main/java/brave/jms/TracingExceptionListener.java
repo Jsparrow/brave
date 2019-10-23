@@ -25,8 +25,12 @@ final class TracingExceptionListener {
   }
 
   static ExceptionListener create(ExceptionListener delegate, JmsTracing jmsTracing) {
-    if (delegate == null) throw new NullPointerException("exceptionListener == null");
-    if (delegate instanceof TagError) return delegate;
+    if (delegate == null) {
+		throw new NullPointerException("exceptionListener == null");
+	}
+    if (delegate instanceof TagError) {
+		return delegate;
+	}
     return new DelegateAndTagError(delegate, jmsTracing.tracing.tracer());
   }
 
@@ -39,7 +43,9 @@ final class TracingExceptionListener {
 
     @Override public void onException(JMSException exception) {
       Span span = tracer.currentSpan();
-      if (span != null) span.error(exception);
+      if (span != null) {
+		span.error(exception);
+	}
     }
   }
 

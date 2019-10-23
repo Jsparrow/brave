@@ -37,15 +37,21 @@ abstract class TracingConsumer<C> {
   }
 
   void handleReceive(Message message) {
-    if (message == null || tracing.isNoop()) return;
+    if (message == null || tracing.isNoop()) {
+		return;
+	}
     // remove prior propagation headers from the message
     TraceContextOrSamplingFlags extracted = jmsTracing.extractAndClearMessage(message);
     Span span = tracer.nextSpan(extracted);
     if (!span.isNoop()) {
       span.name("receive").kind(Span.Kind.CONSUMER);
       Destination destination = destination(message);
-      if (destination != null) jmsTracing.tagQueueOrTopic(destination, span);
-      if (remoteServiceName != null) span.remoteServiceName(remoteServiceName);
+      if (destination != null) {
+		jmsTracing.tagQueueOrTopic(destination, span);
+	}
+      if (remoteServiceName != null) {
+		span.remoteServiceName(remoteServiceName);
+	}
 
       // incur timestamp overhead only once
       long timestamp = tracing.clock(span.context()).currentTimeMicroseconds();

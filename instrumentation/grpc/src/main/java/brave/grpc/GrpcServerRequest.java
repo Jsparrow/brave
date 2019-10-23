@@ -36,9 +36,13 @@ final class GrpcServerRequest extends RpcServerRequest {
   final Metadata metadata;
 
   GrpcServerRequest(MethodDescriptor<?, ?> methodDescriptor, Metadata metadata) {
-    if (methodDescriptor == null) throw new NullPointerException("methodDescriptor == null");
+    if (methodDescriptor == null) {
+		throw new NullPointerException("methodDescriptor == null");
+	}
     this.fullMethodName = methodDescriptor.getFullMethodName();
-    if (metadata == null) throw new NullPointerException("metadata == null");
+    if (metadata == null) {
+		throw new NullPointerException("metadata == null");
+	}
     this.metadata = metadata;
   }
 

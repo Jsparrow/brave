@@ -43,7 +43,8 @@ import zipkin2.reporter.Reporter;
 @State(Scope.Thread)
 public class TracingMessagePostProcessorBenchmarks {
   Message message = MessageBuilder.withBody(new byte[0]).build();
-  TracingMessagePostProcessor tracingPostProcessor, tracingB3SinglePostProcessor;
+  TracingMessagePostProcessor tracingPostProcessor;
+TracingMessagePostProcessor tracingB3SinglePostProcessor;
 
   @Setup(Level.Trial) public void init() {
     Tracing tracing = Tracing.newBuilder().spanReporter(Reporter.NOOP).build();

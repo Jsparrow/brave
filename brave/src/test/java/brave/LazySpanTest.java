@@ -38,7 +38,8 @@ public class LazySpanTest {
   }
 
   @Test public void equals_sameContext() {
-    Span current1, current2;
+    Span current1;
+	Span current2;
     try (Scope ws = tracing.currentTraceContext().newScope(context)) {
       current1 = tracing.tracer().currentSpan();
       current2 = tracing.tracer().currentSpan();
@@ -51,7 +52,8 @@ public class LazySpanTest {
   }
 
   @Test public void equals_notSameContext() {
-    Span current1, current2;
+    Span current1;
+	Span current2;
     try (Scope ws = tracing.currentTraceContext().newScope(context)) {
       current1 = tracing.tracer().currentSpan();
     }

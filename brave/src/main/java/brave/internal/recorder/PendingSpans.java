@@ -58,29 +58,40 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
   }
 
   public PendingSpan getOrCreate(TraceContext context, boolean start) {
-    if (context == null) throw new NullPointerException("context == null");
+    if (context == null) {
+		throw new NullPointerException("context == null");
+	}
     reportOrphanedSpans();
     PendingSpan result = delegate.get(context);
-    if (result != null) return result;
+    if (result != null) {
+		return result;
+	}
 
     MutableSpan data = new MutableSpan();
-    if (context.shared()) data.setShared();
+    if (context.shared()) {
+		data.setShared();
+	}
 
     // save overhead calculating time if the parent is in-progress (usually is)
     TickClock clock = getClockFromParent(context);
     if (clock == null) {
       clock = new TickClock(this.clock.currentTimeMicroseconds(), System.nanoTime());
-      if (start) data.startTimestamp(clock.baseEpochMicros);
+      if (start) {
+		data.startTimestamp(clock.baseEpochMicros);
+	}
     } else if (start) {
       data.startTimestamp(clock.currentTimeMicroseconds());
     }
     PendingSpan newSpan = new PendingSpan(data, clock);
     PendingSpan previousSpan = delegate.putIfAbsent(new RealKey(context, this), newSpan);
-    if (previousSpan != null) return previousSpan; // lost race
+    if (previousSpan != null)
+	 {
+		return previousSpan; // lost race
+	}
 
     if (trackOrphans) {
       newSpan.caller =
-        new Throwable("Thread " + Thread.currentThread().getName() + " allocated span here");
+        new Throwable(new StringBuilder().append("Thread ").append(Thread.currentThread().getName()).append(" allocated span here").toString());
     }
     return newSpan;
   }
@@ -108,7 +119,9 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
 
   /** @see brave.Span#abandon() */
   public boolean remove(TraceContext context) {
-    if (context == null) throw new NullPointerException("context == null");
+    if (context == null) {
+		throw new NullPointerException("context == null");
+	}
     PendingSpan last = delegate.remove(context);
     reportOrphanedSpans(); // also clears the reference relating to the recent remove
     return last != null;
@@ -125,8 +138,12 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
     boolean noop = orphanedSpanHandler == FinishedSpanHandler.NOOP || this.noop.get();
     while ((contextKey = (RealKey) poll()) != null) {
       PendingSpan value = delegate.remove(contextKey);
-      if (noop || value == null) continue;
-      if (flushTime == 0L) flushTime = clock.currentTimeMicroseconds();
+      if (noop || value == null) {
+		continue;
+	}
+      if (flushTime == 0L) {
+		flushTime = clock.currentTimeMicroseconds();
+	}
 
       boolean isEmpty = value.state.isEmpty();
       Throwable caller = value.caller;
@@ -140,18 +157,24 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
 
       if (caller != null) {
         String message = isEmpty
-          ? "Span " + context + " was allocated but never used"
-          : "Span " + context + " neither finished nor flushed before GC";
+          ? new StringBuilder().append("Span ").append(context).append(" was allocated but never used").toString()
+          : new StringBuilder().append("Span ").append(context).append(" neither finished nor flushed before GC").toString();
         Platform.get().log(message, caller);
       }
-      if (isEmpty) continue;
+      if (isEmpty) {
+		continue;
+	}
 
       value.state.annotate(flushTime, "brave.flush");
       orphanedSpanHandler.handle(context, value.state);
     }
   }
 
-  /**
+  @Override public String toString() {
+    return "PendingSpans" + delegate.keySet();
+  }
+
+/**
    * Real keys contain a reference to the real context associated with a span. This is a weak
    * reference, so that we get notified on GC pressure.
    *
@@ -162,7 +185,13 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
     final int hashCode;
 
     // Copy the identity fields from the trace context, so we can use them when the reference clears
-    final long traceIdHigh, traceId, localRootId, spanId;
+    final long traceIdHigh;
+
+	final long traceId;
+
+	final long localRootId;
+
+	final long spanId;
     final int flags;
 
     RealKey(TraceContext context, ReferenceQueue<TraceContext> queue) {
@@ -177,7 +206,7 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
 
     @Override public String toString() {
       TraceContext context = get();
-      return context != null ? "WeakReference(" + context + ")" : "ClearedReference()";
+      return context != null ? new StringBuilder().append("WeakReference(").append(context).append(")").toString() : "ClearedReference()";
     }
 
     @Override public int hashCode() {
@@ -186,7 +215,8 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
 
     /** Resolves hash code collisions */
     @Override public boolean equals(Object other) {
-      TraceContext thisContext = get(), thatContext = ((RealKey) other).get();
+      TraceContext thisContext = get();
+	TraceContext thatContext = ((RealKey) other).get();
       if (thisContext == null) {
         return thatContext == null;
       } else {
@@ -201,7 +231,9 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
    * the real key, it would fail in equals comparison.
    */
   static final class LookupKey {
-    long traceIdHigh, traceId, spanId;
+    long traceIdHigh;
+	long traceId;
+	long spanId;
     boolean shared;
     int hashCode;
 
@@ -238,15 +270,13 @@ public final class PendingSpans extends ReferenceQueue<TraceContext> {
     @Override public boolean equals(Object other) {
       RealKey that = (RealKey) other;
       TraceContext thatContext = that.get();
-      if (thatContext == null) return false;
+      if (thatContext == null) {
+		return false;
+	}
       return traceIdHigh == thatContext.traceIdHigh()
         && traceId == thatContext.traceId()
         && spanId == thatContext.spanId()
         && shared == thatContext.shared();
     }
-  }
-
-  @Override public String toString() {
-    return "PendingSpans" + delegate.keySet();
   }
 }

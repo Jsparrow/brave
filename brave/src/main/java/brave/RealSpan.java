@@ -144,7 +144,9 @@ final class RealSpan extends Span {
   }
 
   @Override public void finish(long timestamp) {
-    if (!pendingSpans.remove(context)) return;
+    if (!pendingSpans.remove(context)) {
+		return;
+	}
     synchronized (state) {
       state.finishTimestamp(timestamp);
     }
@@ -161,7 +163,7 @@ final class RealSpan extends Span {
   }
 
   @Override public String toString() {
-    return "RealSpan(" + context + ")";
+    return new StringBuilder().append("RealSpan(").append(context).append(")").toString();
   }
 
   /**
@@ -169,7 +171,9 @@ final class RealSpan extends Span {
    * code should not act differently given an instance of lazy or {@link RealSpan}.
    */
   @Override public boolean equals(Object o) {
-    if (o == this) return true;
+    if (o == this) {
+		return true;
+	}
     return isEqualToRealOrLazySpan(context, o);
   }
 

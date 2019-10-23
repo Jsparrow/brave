@@ -37,7 +37,9 @@ public class CurrentHttpTracingTest {
 
   @After public void close() {
     HttpTracing current = HttpTracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
   @Test public void defaultsToNull() {

@@ -36,22 +36,22 @@ import org.apache.logging.log4j.ThreadContext;
  */
 public final class ThreadContextScopeDecorator extends CorrelationFieldScopeDecorator {
 
-  public static ScopeDecorator create() {
-    return new ThreadContextScopeDecorator();
-  }
-
-  @Override protected String get(String key) {
-    return ThreadContext.get(key);
-  }
-
-  @Override protected void put(String key, String value) {
-    ThreadContext.put(key, value);
-  }
-
-  @Override protected void remove(String key) {
-    ThreadContext.remove(key);
-  }
-
   ThreadContextScopeDecorator() {
-  }
+	  }
+
+	public static ScopeDecorator create() {
+	    return new ThreadContextScopeDecorator();
+	  }
+
+	@Override protected String get(String key) {
+	    return ThreadContext.get(key);
+	  }
+
+	@Override protected void put(String key, String value) {
+	    ThreadContext.put(key, value);
+	  }
+
+	@Override protected void remove(String key) {
+	    ThreadContext.remove(key);
+	  }
 }

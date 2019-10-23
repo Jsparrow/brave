@@ -36,7 +36,35 @@ import static javax.servlet.DispatcherType.REQUEST;
 
 public class SparkBenchmarks extends HttpServerBenchmarks {
 
-  public static class NotTraced implements SparkApplication {
+  @Override protected void init(DeploymentInfo servletBuilder) {
+	    servletBuilder
+	      .addFilter(new FilterInfo("NotTraced", SparkFilter.class)
+	        .addInitParam("applicationClass", NotTraced.class.getName()))
+	      .addFilterUrlMapping("NotTraced", "/*", REQUEST)
+	      .addFilter(new FilterInfo("Unsampled", SparkFilter.class)
+	        .addInitParam("applicationClass", Unsampled.class.getName()))
+	      .addFilterUrlMapping("Unsampled", "/unsampled", REQUEST)
+	      .addFilter(new FilterInfo("Traced", SparkFilter.class)
+	        .addInitParam("applicationClass", Traced.class.getName()))
+	      .addFilterUrlMapping("Traced", "/traced", REQUEST)
+	      .addFilter(new FilterInfo("TracedExtra", SparkFilter.class)
+	        .addInitParam("applicationClass", TracedExtra.class.getName()))
+	      .addFilterUrlMapping("TracedExtra", "/tracedextra", REQUEST)
+	      .addFilter(new FilterInfo("Traced128", SparkFilter.class)
+	        .addInitParam("applicationClass", Traced128.class.getName()))
+	      .addFilterUrlMapping("Traced128", "/traced128", REQUEST);
+	  }
+
+	// Convenience main entry-point
+	  public static void main(String[] args) throws RunnerException {
+	    Options opt = new OptionsBuilder()
+	      .include(new StringBuilder().append(".*").append(SparkBenchmarks.class.getSimpleName()).append(".*").toString())
+	      .build();
+	
+	    new Runner(opt).run();
+	  }
+
+public static class NotTraced implements SparkApplication {
     @Override
     public void init() {
       Spark.get("/nottraced", (Request request, Response response) -> "hello world");
@@ -101,33 +129,5 @@ public class SparkBenchmarks extends HttpServerBenchmarks {
       Spark.get("/traced128", (Request request, Response response) -> "hello world");
       Spark.afterAfter(sparkTracing.afterAfter());
     }
-  }
-
-  @Override protected void init(DeploymentInfo servletBuilder) {
-    servletBuilder
-      .addFilter(new FilterInfo("NotTraced", SparkFilter.class)
-        .addInitParam("applicationClass", NotTraced.class.getName()))
-      .addFilterUrlMapping("NotTraced", "/*", REQUEST)
-      .addFilter(new FilterInfo("Unsampled", SparkFilter.class)
-        .addInitParam("applicationClass", Unsampled.class.getName()))
-      .addFilterUrlMapping("Unsampled", "/unsampled", REQUEST)
-      .addFilter(new FilterInfo("Traced", SparkFilter.class)
-        .addInitParam("applicationClass", Traced.class.getName()))
-      .addFilterUrlMapping("Traced", "/traced", REQUEST)
-      .addFilter(new FilterInfo("TracedExtra", SparkFilter.class)
-        .addInitParam("applicationClass", TracedExtra.class.getName()))
-      .addFilterUrlMapping("TracedExtra", "/tracedextra", REQUEST)
-      .addFilter(new FilterInfo("Traced128", SparkFilter.class)
-        .addInitParam("applicationClass", Traced128.class.getName()))
-      .addFilterUrlMapping("Traced128", "/traced128", REQUEST);
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-      .include(".*" + SparkBenchmarks.class.getSimpleName() + ".*")
-      .build();
-
-    new Runner(opt).run();
   }
 }

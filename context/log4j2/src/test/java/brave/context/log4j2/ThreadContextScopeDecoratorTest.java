@@ -29,14 +29,6 @@ public class ThreadContextScopeDecoratorTest extends CurrentTraceContextTest {
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return ThreadLocalCurrentTraceContext.newBuilder()
-        .addScopeDecorator(ThreadContextScopeDecorator.create())
-        .build();
-    }
-  }
-
   @Override protected void verifyImplicitContext(@Nullable TraceContext context) {
     if (context != null) {
       assertThat(ThreadContext.get("traceId"))
@@ -56,6 +48,14 @@ public class ThreadContextScopeDecoratorTest extends CurrentTraceContextTest {
         .isNull();
       assertThat(ThreadContext.get("sampled"))
         .isNull();
+    }
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return ThreadLocalCurrentTraceContext.newBuilder()
+        .addScopeDecorator(ThreadContextScopeDecorator.create())
+        .build();
     }
   }
 }

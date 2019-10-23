@@ -65,7 +65,9 @@ public class AspectJSamplerTest {
 
   @After public void close() {
     Tracing currentTracing = tracing.get();
-    if (currentTracing != null) currentTracing.close();
+    if (currentTracing != null) {
+		currentTracing.close();
+	}
   }
 
   @Test public void traced() {
@@ -80,7 +82,15 @@ public class AspectJSamplerTest {
     assertThat(spans).isEmpty();
   }
 
-  @Configuration
+  static String spanName(ProceedingJoinPoint pjp) {
+    return pjp.getSignature().getName();
+  }
+
+@Retention(RetentionPolicy.RUNTIME) public @interface Traced {
+    int sampleRate() default 10;
+  }
+
+@Configuration
   @EnableAspectJAutoProxy
   @Import({Service.class, TracingAspect.class})
   static class Config {
@@ -114,13 +124,5 @@ public class AspectJSamplerTest {
 
     @Traced(sampleRate = 0) public void notTraced() {
     }
-  }
-
-  @Retention(RetentionPolicy.RUNTIME) public @interface Traced {
-    int sampleRate() default 10;
-  }
-
-  static String spanName(ProceedingJoinPoint pjp) {
-    return pjp.getSignature().getName();
   }
 }

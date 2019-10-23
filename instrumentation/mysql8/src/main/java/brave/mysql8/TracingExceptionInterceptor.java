@@ -52,7 +52,9 @@ public class TracingExceptionInterceptor implements ExceptionInterceptor {
    */
   @Override public Exception interceptException(Exception e) {
     Span span = ThreadLocalSpan.CURRENT_TRACER.remove();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     if (e instanceof SQLException) {
       span.tag("error", Integer.toString(((SQLException) e).getErrorCode()));

@@ -42,12 +42,12 @@ public final class Util {
       RxJavaPlugins.onError(new NullPointerException("next is null"));
       return false;
     }
-    if (current != null) {
-      next.dispose();
-      RxJavaPlugins.onError(new ProtocolViolationException("Disposable already set!"));
-      return false;
-    }
-    return true;
+    if (current == null) {
+		return true;
+	}
+	next.dispose();
+	RxJavaPlugins.onError(new ProtocolViolationException("Disposable already set!"));
+	return false;
   }
 
   // io.reactivex.internal.subscriptions.SubscriptionHelper.validate(Subscription, Subscription)
@@ -56,11 +56,11 @@ public final class Util {
       RxJavaPlugins.onError(new NullPointerException("next is null"));
       return false;
     }
-    if (current != null) {
-      next.cancel();
-      RxJavaPlugins.onError(new ProtocolViolationException("Subscription already set!"));
-      return false;
-    }
-    return true;
+    if (current == null) {
+		return true;
+	}
+	next.cancel();
+	RxJavaPlugins.onError(new ProtocolViolationException("Subscription already set!"));
+	return false;
   }
 }

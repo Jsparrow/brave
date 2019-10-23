@@ -103,7 +103,9 @@ final class TracingProducer<K, V> implements Producer<K, V> {
 
     if (!span.isNoop()) {
       span.kind(Span.Kind.PRODUCER).name("send");
-      if (remoteServiceName != null) span.remoteServiceName(remoteServiceName);
+      if (remoteServiceName != null) {
+		span.remoteServiceName(remoteServiceName);
+	}
       if (record.key() instanceof String && !"".equals(record.key())) {
         span.tag(KafkaTags.KAFKA_KEY_TAG, record.key().toString());
       }
@@ -138,12 +140,14 @@ final class TracingProducer<K, V> implements Producer<K, V> {
   }
 
   // Do not use @Override annotation to avoid compatibility on deprecated methods
-  public void close(long timeout, TimeUnit unit) {
+  @Override
+public void close(long timeout, TimeUnit unit) {
     delegate.close(timeout, unit);
   }
 
   // Do not use @Override annotation to avoid compatibility issue version < 2.0
-  public void close(Duration duration) {
+  @Override
+public void close(Duration duration) {
     delegate.close(duration);
   }
 

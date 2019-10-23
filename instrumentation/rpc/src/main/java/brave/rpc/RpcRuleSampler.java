@@ -44,27 +44,42 @@ import brave.sampler.SamplerFunction;
 // Not parameterized for client-server types as the generic complexity isn't worth it and properties
 // specific to client and server side are not used in sampling.
 public final class RpcRuleSampler implements SamplerFunction<RpcRequest> {
-  /** @since 5.8 */
-  public static Builder newBuilder() {
-    return new Builder();
-  }
+  final ParameterizedSampler<RpcRequest> delegate;
 
-  /** @since 5.8 */
+	RpcRuleSampler(ParameterizedSampler delegate) {
+	    this.delegate = delegate;
+	  }
+
+	/** @since 5.8 */
+	  public static Builder newBuilder() {
+	    return new Builder();
+	  }
+
+	@Override public Boolean trySample(RpcRequest request) {
+	    return delegate.trySample(request);
+	  }
+
+/** @since 5.8 */
   public static final class Builder {
     final ParameterizedSampler.Builder<RpcRequest> delegate = ParameterizedSampler.newBuilder();
 
-    /**
+    Builder() {
+    }
+
+	/**
      * Adds or replaces all rules in this sampler with those of the input.
      *
      * @since 5.8
      */
     public Builder putAllRules(RpcRuleSampler sampler) {
-      if (sampler == null) throw new NullPointerException("sampler == null");
+      if (sampler == null) {
+		throw new NullPointerException("sampler == null");
+	}
       delegate.putAllRules(sampler.delegate);
       return this;
     }
 
-    /**
+	/**
      * Adds or replaces the sampler for the matcher.
      *
      * <p>Ex.
@@ -81,21 +96,8 @@ public final class RpcRuleSampler implements SamplerFunction<RpcRequest> {
       return this;
     }
 
-    public RpcRuleSampler build() {
+	public RpcRuleSampler build() {
       return new RpcRuleSampler(delegate.build());
     }
-
-    Builder() {
-    }
-  }
-
-  final ParameterizedSampler<RpcRequest> delegate;
-
-  RpcRuleSampler(ParameterizedSampler delegate) {
-    this.delegate = delegate;
-  }
-
-  @Override public Boolean trySample(RpcRequest request) {
-    return delegate.trySample(request);
   }
 }

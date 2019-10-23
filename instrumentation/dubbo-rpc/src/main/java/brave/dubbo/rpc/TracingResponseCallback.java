@@ -28,7 +28,9 @@ import static brave.dubbo.rpc.TracingFilter.onError;
 final class TracingResponseCallback {
   static ResponseCallback create(@Nullable ResponseCallback delegate, Span span,
     CurrentTraceContext current) {
-    if (delegate == null) return new FinishSpan(span);
+    if (delegate == null) {
+		return new FinishSpan(span);
+	}
     return new DelegateAndFinishSpan(delegate, span, current);
   }
 

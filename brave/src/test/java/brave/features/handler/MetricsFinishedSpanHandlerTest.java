@@ -24,9 +24,12 @@ import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class MetricsFinishedSpanHandlerTest {
-  SimpleMeterRegistry registry = new SimpleMeterRegistry();
+  private static final Logger logger = LogManager.getLogger(MetricsFinishedSpanHandlerTest.class);
+SimpleMeterRegistry registry = new SimpleMeterRegistry();
   List<Span> spans = new ArrayList<>();
   Tracing tracing = Tracing.newBuilder()
     .spanReporter(spans::add)
@@ -52,6 +55,7 @@ public class MetricsFinishedSpanHandlerTest {
 
       failBecauseExceptionWasNotThrown(MeterNotFoundException.class);
     } catch (MeterNotFoundException expected) {
+		logger.error(expected.getMessage(), expected);
     }
   }
 

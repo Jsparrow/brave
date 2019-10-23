@@ -142,7 +142,7 @@ public class ServletRuntimeBenchmarks {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + ServletRuntimeBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(ServletRuntimeBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

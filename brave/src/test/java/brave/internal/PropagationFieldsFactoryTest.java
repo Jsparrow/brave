@@ -26,8 +26,11 @@ import static org.assertj.core.api.Assertions.entry;
 
 public abstract class PropagationFieldsFactoryTest<K, V, P extends PropagationFields<K, V>>
   extends ExtraFactoryTest<P, PropagationFieldsFactory<K, V, P>> {
-  protected final K keyOne, keyTwo;
-  protected final V valueOne, valueTwo, valueThree;
+  protected final K keyOne;
+protected final K keyTwo;
+  protected final V valueOne;
+protected final V valueTwo;
+protected final V valueThree;
 
   protected PropagationFieldsFactoryTest(K keyOne, K keyTwo, V valueOne, V valueTwo, V valueThree) {
     this.keyOne = keyOne;
@@ -250,7 +253,7 @@ public abstract class PropagationFieldsFactoryTest<K, V, P extends PropagationFi
     fields.put(keyTwo, valueThree);
 
     assertThat(fields.toString())
-      .contains("{" + keyTwo + "=" + valueThree + "}");
+      .contains(new StringBuilder().append("{").append(keyTwo).append("=").append(valueThree).append("}").toString());
   }
 
   @Test public void toString_two() {
@@ -259,6 +262,7 @@ public abstract class PropagationFieldsFactoryTest<K, V, P extends PropagationFi
     fields.put(keyTwo, valueThree);
 
     assertThat(fields.toString())
-      .contains("{" + keyOne + "=" + valueOne + ", " + keyTwo + "=" + valueThree + "}");
+      .contains(new StringBuilder().append("{").append(keyOne).append("=").append(valueOne).append(", ").append(keyTwo).append("=")
+			.append(valueThree).append("}").toString());
   }
 }

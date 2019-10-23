@@ -46,11 +46,20 @@ public final class B3SinglePropagation<K> implements Propagation<K> {
   }
 
   @Override public <C> TraceContext.Injector<C> injector(Setter<C, K> setter) {
-    if (setter == null) throw new NullPointerException("setter == null");
+    if (setter == null) {
+		throw new NullPointerException("setter == null");
+	}
     return new B3SingleInjector<>(this, setter);
   }
 
-  static final class B3SingleInjector<C, K> implements TraceContext.Injector<C> {
+  @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
+    if (getter == null) {
+		throw new NullPointerException("getter == null");
+	}
+    return new B3SingleExtractor<>(b3Key, getter);
+  }
+
+static final class B3SingleInjector<C, K> implements TraceContext.Injector<C> {
     final B3SinglePropagation<K> propagation;
     final Setter<C, K> setter;
 
@@ -64,11 +73,6 @@ public final class B3SinglePropagation<K> implements Propagation<K> {
     }
   }
 
-  @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
-    if (getter == null) throw new NullPointerException("getter == null");
-    return new B3SingleExtractor<>(b3Key, getter);
-  }
-
   static final class B3SingleExtractor<C, K> implements TraceContext.Extractor<C> {
     final K b3Key;
     final Getter<C, K> getter;
@@ -79,13 +83,19 @@ public final class B3SinglePropagation<K> implements Propagation<K> {
     }
 
     @Override public TraceContextOrSamplingFlags extract(C carrier) {
-      if (carrier == null) throw new NullPointerException("carrier == null");
+      if (carrier == null) {
+		throw new NullPointerException("carrier == null");
+	}
       String b3 = getter.get(carrier, b3Key);
-      if (b3 == null) return TraceContextOrSamplingFlags.EMPTY;
+      if (b3 == null) {
+		return TraceContextOrSamplingFlags.EMPTY;
+	}
 
       TraceContextOrSamplingFlags extracted = B3SingleFormat.parseB3SingleFormat(b3);
       // if null, the trace context is malformed so return empty
-      if (extracted == null) return TraceContextOrSamplingFlags.EMPTY;
+      if (extracted == null) {
+		return TraceContextOrSamplingFlags.EMPTY;
+	}
       return extracted;
     }
   }

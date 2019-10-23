@@ -29,9 +29,13 @@ import static brave.sampler.Sampler.NEVER_SAMPLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ITTracingFilter_Provider extends ITTracingFilter {
-  @Before public void setup() throws Exception {
+  private static final Logger logger = LogManager.getLogger(ITTracingFilter_Provider.class);
+
+@Before public void setup() throws Exception {
     server.service.setFilter("tracing");
     server.service.setInterface(GreeterService.class);
     server.service.setRef((method, parameterTypes, args) -> {
@@ -51,7 +55,7 @@ public class ITTracingFilter_Provider extends ITTracingFilter {
     client = new ReferenceConfig<>();
     client.setApplication(application);
     client.setInterface(GreeterService.class);
-    client.setUrl("dubbo://" + server.ip() + ":" + server.port() + "?scope=remote&generic=bean");
+    client.setUrl(new StringBuilder().append("dubbo://").append(server.ip()).append(":").append(server.port()).append("?scope=remote&generic=bean").toString());
 
     // perform a warmup request to allow CI to fail quicker
     client.get().sayHello("jorge");
@@ -135,7 +139,8 @@ public class ITTracingFilter_Provider extends ITTracingFilter {
 
       failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
     } catch (IllegalArgumentException e) {
-      Span span = takeSpan();
+      logger.error(e.getMessage(), e);
+	Span span = takeSpan();
       assertThat(span.tags()).containsExactly(
         entry("error", "IllegalArgumentException")
       );

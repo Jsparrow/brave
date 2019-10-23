@@ -200,7 +200,7 @@ public class MutableSpanConverterTest {
     MutableSpan flushed = new MutableSpan();
     flushed.finishTimestamp(0L);
 
-    assertThat(convert(flushed)).extracting(s -> s.timestampAsLong(), s -> s.durationAsLong())
+    assertThat(convert(flushed)).extracting(Span::timestampAsLong, Span::durationAsLong)
       .allSatisfy(u -> assertThat(u).isEqualTo(0L));
   }
 

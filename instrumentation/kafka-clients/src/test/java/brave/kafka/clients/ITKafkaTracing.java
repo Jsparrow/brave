@@ -53,43 +53,41 @@ import zipkin2.internal.DependencyLinker;
 import static brave.kafka.clients.KafkaTags.KAFKA_TOPIC_TAG;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ITKafkaTracing {
 
-  String TEST_KEY = "foo";
-  String TEST_VALUE = "bar";
-
-  /**
+  private static final Logger logger = LoggerFactory.getLogger(ITKafkaTracing.class);
+@ClassRule
+  public static KafkaJunitRule kafkaRule = new KafkaJunitRule(EphemeralKafkaBroker.create());
+String TEST_KEY = "foo";
+String TEST_VALUE = "bar";
+/**
    * See brave.http.ITHttp for rationale on using a concurrent blocking queue eventhough some calls,
    * like consumer operations, happen on the main thread.
    */
   BlockingQueue<Span> consumerSpans = new LinkedBlockingQueue<>();
-  BlockingQueue<Span> producerSpans = new LinkedBlockingQueue<>();
-
-  KafkaTracing consumerTracing = KafkaTracing.create(Tracing.newBuilder()
+BlockingQueue<Span> producerSpans = new LinkedBlockingQueue<>();
+KafkaTracing consumerTracing = KafkaTracing.create(Tracing.newBuilder()
     .localServiceName("consumer")
     .currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder()
       .addScopeDecorator(StrictScopeDecorator.create())
       .build())
     .spanReporter(consumerSpans::add)
     .build());
-  KafkaTracing producerTracing = KafkaTracing.create(Tracing.newBuilder()
+KafkaTracing producerTracing = KafkaTracing.create(Tracing.newBuilder()
     .localServiceName("producer")
     .currentTraceContext(ThreadLocalCurrentTraceContext.newBuilder()
       .addScopeDecorator(StrictScopeDecorator.create())
       .build())
     .spanReporter(producerSpans::add)
     .build());
-
-  @ClassRule
-  public static KafkaJunitRule kafkaRule = new KafkaJunitRule(EphemeralKafkaBroker.create());
-  @Rule
+@Rule
   public TestName testName = new TestName();
-
-  Producer<String, String> producer;
-  Consumer<String, String> consumer;
-
-  // See brave.http.ITHttp for rationale on polling after tests complete
+Producer<String, String> producer;
+Consumer<String, String> consumer;
+// See brave.http.ITHttp for rationale on polling after tests complete
   @Rule public TestRule assertSpansEmpty = new TestWatcher() {
     // only check success path to avoid masking assertion errors or exceptions
     @Override protected void succeeded(Description description) {
@@ -101,20 +99,26 @@ public class ITKafkaTracing {
           .withFailMessage("Consumer span remaining in queue. Check for redundant reporting")
           .isNull();
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        logger.error(e.getMessage(), e);
       }
     }
   };
 
-  @After
+@After
   public void close() {
-    if (producer != null) producer.close();
-    if (consumer != null) consumer.close();
+    if (producer != null) {
+		producer.close();
+	}
+    if (consumer != null) {
+		consumer.close();
+	}
     Tracing current = Tracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
-  @Test
+@Test
   public void poll_creates_one_consumer_span_per_extracted_context() throws Exception {
     String topic1 = testName.getMethodName() + "1";
     String topic2 = testName.getMethodName() + "2";
@@ -128,8 +132,10 @@ public class ITKafkaTracing {
     ConsumerRecords<String, String> records = consumer.poll(10000);
 
     assertThat(records).hasSize(2);
-    Span producerSpan1 = takeProducerSpan(), producerSpan2 = takeProducerSpan();
-    Span consumerSpan1 = takeConsumerSpan(), consumerSpan2 = takeConsumerSpan();
+    Span producerSpan1 = takeProducerSpan();
+	Span producerSpan2 = takeProducerSpan();
+    Span consumerSpan1 = takeConsumerSpan();
+	Span consumerSpan2 = takeConsumerSpan();
 
     // Check to see the trace is continued between the producer and the consumer
     // we don't know the order the spans will come in. Correlate with the tag instead.
@@ -147,7 +153,7 @@ public class ITKafkaTracing {
     }
   }
 
-  @Test
+@Test
   public void poll_creates_one_consumer_span_per_topic() throws Exception {
     String topic1 = testName.getMethodName() + "1";
     String topic2 = testName.getMethodName() + "2";
@@ -168,7 +174,7 @@ public class ITKafkaTracing {
     // producerSpans empty as not traced
   }
 
-  @Test
+@Test
   public void creates_dependency_links() throws Exception {
     producer = createTracingProducer();
     consumer = createTracingConsumer();
@@ -188,7 +194,7 @@ public class ITKafkaTracing {
     );
   }
 
-  @Test
+@Test
   public void nextSpan_makes_child() throws Exception {
     producer = createTracingProducer();
     consumer = createTracingConsumer();
@@ -219,33 +225,7 @@ public class ITKafkaTracing {
     }
   }
 
-  static class TraceIdOnlyPropagation<K> implements Propagation<K> {
-    final K key;
-
-    TraceIdOnlyPropagation(Propagation.KeyFactory<K> keyFactory) {
-      key = keyFactory.create("x-b3-traceid");
-    }
-
-    @Override public List<K> keys() {
-      return Collections.singletonList(key);
-    }
-
-    @Override public <C> TraceContext.Injector<C> injector(Setter<C, K> setter) {
-      return (traceContext, carrier) -> setter.put(carrier, key, traceContext.traceIdString());
-    }
-
-    @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
-      return carrier -> {
-        String result = getter.get(carrier, key);
-        if (result == null) return TraceContextOrSamplingFlags.create(SamplingFlags.EMPTY);
-        return TraceContextOrSamplingFlags.create(TraceIdContext.newBuilder()
-          .traceId(HexCodec.lowerHexToUnsignedLong(result))
-          .build());
-      };
-    }
-  }
-
-  @Test
+@Test
   public void continues_a_trace_when_only_trace_id_propagated() throws Exception {
     consumerTracing = KafkaTracing.create(Tracing.newBuilder()
       .spanReporter(consumerSpans::add)
@@ -287,8 +267,10 @@ public class ITKafkaTracing {
     }
   }
 
-  Consumer<String, String> createTracingConsumer(String... topics) {
-    if (topics.length == 0) topics = new String[] {testName.getMethodName()};
+Consumer<String, String> createTracingConsumer(String... topics) {
+    if (topics.length == 0) {
+		topics = new String[] {testName.getMethodName()};
+	}
     KafkaConsumer<String, String> consumer = kafkaRule.helper().createStringConsumer();
     List<TopicPartition> assignments = new ArrayList<>();
     for (String topic : topics) {
@@ -298,12 +280,12 @@ public class ITKafkaTracing {
     return consumerTracing.consumer(consumer);
   }
 
-  Producer<String, String> createTracingProducer() {
+Producer<String, String> createTracingProducer() {
     KafkaProducer<String, String> producer = kafkaRule.helper().createStringProducer();
     return producerTracing.producer(producer);
   }
 
-  /** Call this to block until a span was reported */
+/** Call this to block until a span was reported */
   Span takeProducerSpan() throws InterruptedException {
     Span result = producerSpans.poll(3, TimeUnit.SECONDS);
     assertThat(result)
@@ -314,7 +296,7 @@ public class ITKafkaTracing {
     return result;
   }
 
-  /** Call this to block until a span was reported */
+/** Call this to block until a span was reported */
   Span takeConsumerSpan() throws InterruptedException {
     Span result = consumerSpans.poll(3, TimeUnit.SECONDS);
     assertThat(result)
@@ -323,5 +305,32 @@ public class ITKafkaTracing {
     // ensure the span finished
     assertThat(result.durationAsLong()).isPositive();
     return result;
+  }
+static class TraceIdOnlyPropagation<K> implements Propagation<K> {
+    final K key;
+
+    TraceIdOnlyPropagation(Propagation.KeyFactory<K> keyFactory) {
+      key = keyFactory.create("x-b3-traceid");
+    }
+
+    @Override public List<K> keys() {
+      return Collections.singletonList(key);
+    }
+
+    @Override public <C> TraceContext.Injector<C> injector(Setter<C, K> setter) {
+      return (traceContext, carrier) -> setter.put(carrier, key, traceContext.traceIdString());
+    }
+
+    @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
+      return carrier -> {
+        String result = getter.get(carrier, key);
+        if (result == null) {
+			return TraceContextOrSamplingFlags.create(SamplingFlags.EMPTY);
+		}
+        return TraceContextOrSamplingFlags.create(TraceIdContext.newBuilder()
+          .traceId(HexCodec.lowerHexToUnsignedLong(result))
+          .build());
+      };
+    }
   }
 }

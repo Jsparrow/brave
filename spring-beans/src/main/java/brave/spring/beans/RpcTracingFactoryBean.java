@@ -25,15 +25,20 @@ import org.springframework.beans.factory.FactoryBean;
 public class RpcTracingFactoryBean implements FactoryBean {
 
   Tracing tracing;
-  SamplerFunction<RpcRequest> clientSampler, serverSampler;
+  SamplerFunction<RpcRequest> clientSampler;
+SamplerFunction<RpcRequest> serverSampler;
   List<RpcTracingCustomizer> customizers;
 
   @Override public RpcTracing getObject() {
     RpcTracing.Builder builder = RpcTracing.newBuilder(tracing);
-    if (clientSampler != null) builder.clientSampler(clientSampler);
-    if (serverSampler != null) builder.serverSampler(serverSampler);
+    if (clientSampler != null) {
+		builder.clientSampler(clientSampler);
+	}
+    if (serverSampler != null) {
+		builder.serverSampler(serverSampler);
+	}
     if (customizers != null) {
-      for (RpcTracingCustomizer customizer : customizers) customizer.customize(builder);
+      customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
   }

@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.Collections;
 
 public abstract class ExtraFactoryTest<E, F extends ExtraFactory<E>> {
 
@@ -52,11 +53,11 @@ public abstract class ExtraFactoryTest<E, F extends ExtraFactory<E>> {
   }
 
   @Test public void decorate_empty() {
-    assertThat(factory.decorate(contextWithExtra(context, asList(1L))).extra())
+    assertThat(factory.decorate(contextWithExtra(context, Collections.singletonList(1L))).extra())
       .containsExactly(1L, factory.create());
     assertThat(factory.decorate(contextWithExtra(context, asList(1L, 2L))).extra())
       .containsExactly(1L, 2L, factory.create());
-    assertThat(factory.decorate(contextWithExtra(context, asList(factory.create()))).extra())
+    assertThat(factory.decorate(contextWithExtra(context, Collections.singletonList(factory.create()))).extra())
       .containsExactly(factory.create());
     assertThat(factory.decorate(contextWithExtra(context, asList(factory.create(), 1L))).extra())
       .containsExactly(factory.create(), 1L);
@@ -65,7 +66,7 @@ public abstract class ExtraFactoryTest<E, F extends ExtraFactory<E>> {
 
     E claimedBySelf = factory.create();
     factory.tryToClaim(claimedBySelf, context.traceId(), context.spanId());
-    assertThat(factory.decorate(contextWithExtra(context, asList(claimedBySelf))).extra())
+    assertThat(factory.decorate(contextWithExtra(context, Collections.singletonList(claimedBySelf))).extra())
       .containsExactly(factory.create());
     assertThat(factory.decorate(contextWithExtra(context, asList(claimedBySelf, 1L))).extra())
       .containsExactly(factory.create(), 1L);
@@ -74,7 +75,7 @@ public abstract class ExtraFactoryTest<E, F extends ExtraFactory<E>> {
 
     E claimedByOther = factory.create();
     factory.tryToClaim(claimedBySelf, 99L, 99L);
-    assertThat(factory.decorate(contextWithExtra(context, asList(claimedByOther))).extra())
+    assertThat(factory.decorate(contextWithExtra(context, Collections.singletonList(claimedByOther))).extra())
       .containsExactly(factory.create());
     assertThat(factory.decorate(contextWithExtra(context, asList(claimedByOther, 1L))).extra())
       .containsExactly(factory.create(), 1L);

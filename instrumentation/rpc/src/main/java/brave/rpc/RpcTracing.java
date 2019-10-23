@@ -30,23 +30,34 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RpcTracing implements Closeable {
   // AtomicReference<Object> instead of AtomicReference<RpcTracing> to ensure unloadable
   static final AtomicReference<Object> CURRENT = new AtomicReference<>();
+final Tracing tracing;
+final SamplerFunction<RpcRequest> clientSampler;
+final SamplerFunction<RpcRequest> serverSampler;
 
-  /** @since 5.8 */
+RpcTracing(Builder builder) {
+    this.tracing = builder.tracing;
+    this.clientSampler = builder.clientSampler;
+    this.serverSampler = builder.serverSampler;
+    // assign current IFF there's no instance already current
+    CURRENT.compareAndSet(null, this);
+  }
+
+/** @since 5.8 */
   public static RpcTracing create(Tracing tracing) {
     return newBuilder(tracing).build();
   }
 
-  /** @since 5.8 */
+/** @since 5.8 */
   public static Builder newBuilder(Tracing tracing) {
     return new Builder(tracing);
   }
 
-  /** @since 5.8 */
+/** @since 5.8 */
   public Tracing tracing() {
     return tracing;
   }
 
-  /**
+/**
    * Returns an overriding sampling decision for a new trace. Defaults to ignore the request and use
    * the {@link SamplerFunctions#deferDecision() trace ID instead}.
    *
@@ -62,7 +73,7 @@ public class RpcTracing implements Closeable {
     return clientSampler;
   }
 
-  /**
+/**
    * Returns an overriding sampling decision for a new trace. Defaults to ignore the request and use
    * the {@link SamplerFunctions#deferDecision() trace ID instead}.
    *
@@ -78,20 +89,23 @@ public class RpcTracing implements Closeable {
     return serverSampler;
   }
 
-  public Builder toBuilder() {
+public Builder toBuilder() {
     return new Builder(this);
   }
 
-  final Tracing tracing;
-  final SamplerFunction<RpcRequest> clientSampler;
-  final SamplerFunction<RpcRequest> serverSampler;
+/**
+   * Returns the most recently created tracing component iff it hasn't been closed. null otherwise.
+   *
+   * <p>This object should not be cached.
+   */
+  @Nullable public static RpcTracing current() {
+    return (RpcTracing) CURRENT.get();
+  }
 
-  RpcTracing(Builder builder) {
-    this.tracing = builder.tracing;
-    this.clientSampler = builder.clientSampler;
-    this.serverSampler = builder.serverSampler;
-    // assign current IFF there's no instance already current
-    CURRENT.compareAndSet(null, this);
+/** @since 5.9 */
+  @Override public void close() {
+    // only set null if we are the outer-most instance
+    CURRENT.compareAndSet(this, null);
   }
 
   public static final class Builder {
@@ -100,7 +114,9 @@ public class RpcTracing implements Closeable {
     SamplerFunction<RpcRequest> serverSampler;
 
     Builder(Tracing tracing) {
-      if (tracing == null) throw new NullPointerException("tracing == null");
+      if (tracing == null) {
+		throw new NullPointerException("tracing == null");
+	}
       this.tracing = tracing;
       this.clientSampler = SamplerFunctions.deferDecision();
       this.serverSampler = SamplerFunctions.deferDecision();
@@ -114,21 +130,27 @@ public class RpcTracing implements Closeable {
 
     /** @see RpcTracing#tracing() */
     public Builder tracing(Tracing tracing) {
-      if (tracing == null) throw new NullPointerException("tracing == null");
+      if (tracing == null) {
+		throw new NullPointerException("tracing == null");
+	}
       this.tracing = tracing;
       return this;
     }
 
     /** @see RpcTracing#clientSampler() */
     public Builder clientSampler(SamplerFunction<RpcRequest> clientSampler) {
-      if (clientSampler == null) throw new NullPointerException("clientSampler == null");
+      if (clientSampler == null) {
+		throw new NullPointerException("clientSampler == null");
+	}
       this.clientSampler = clientSampler;
       return this;
     }
 
     /** @see RpcTracing#serverSampler() */
     public Builder serverSampler(SamplerFunction<RpcRequest> serverSampler) {
-      if (serverSampler == null) throw new NullPointerException("serverSampler == null");
+      if (serverSampler == null) {
+		throw new NullPointerException("serverSampler == null");
+	}
       this.serverSampler = serverSampler;
       return this;
     }
@@ -136,20 +158,5 @@ public class RpcTracing implements Closeable {
     public RpcTracing build() {
       return new RpcTracing(this);
     }
-  }
-
-  /**
-   * Returns the most recently created tracing component iff it hasn't been closed. null otherwise.
-   *
-   * <p>This object should not be cached.
-   */
-  @Nullable public static RpcTracing current() {
-    return (RpcTracing) CURRENT.get();
-  }
-
-  /** @since 5.9 */
-  @Override public void close() {
-    // only set null if we are the outer-most instance
-    CURRENT.compareAndSet(this, null);
   }
 }

@@ -30,10 +30,10 @@ public class ExtraFieldPropagationFactoryBean implements FactoryBean {
     ExtraFieldPropagation.FactoryBuilder builder =
       ExtraFieldPropagation.newFactoryBuilder(propagationFactory);
     if (fields != null) {
-      for (String field : fields) builder.addField(field);
+      fields.forEach(builder::addField);
     }
     if (customizers != null) {
-      for (ExtraFieldCustomizer customizer : customizers) customizer.customize(builder);
+      customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
   }

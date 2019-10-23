@@ -22,30 +22,66 @@ import io.grpc.Metadata;
 import io.grpc.ServerInterceptor;
 
 public final class GrpcTracing {
-  public static GrpcTracing create(Tracing tracing) {
-    return newBuilder(tracing).build();
-  }
+  final RpcTracing rpcTracing;
+	final Propagation<Metadata.Key<String>> propagation;
+	final GrpcClientParser clientParser;
+	final GrpcServerParser serverParser;
+	final boolean grpcPropagationFormatEnabled;
 
-  public static GrpcTracing create(RpcTracing rpcTracing) {
-    return newBuilder(rpcTracing).build();
-  }
+	GrpcTracing(Builder builder) { // intentionally hidden constructor
+	    rpcTracing = builder.rpcTracing;
+	    grpcPropagationFormatEnabled = builder.grpcPropagationFormatEnabled;
+	    Propagation.Factory propagationFactory = rpcTracing.tracing().propagationFactory();
+	    if (grpcPropagationFormatEnabled) {
+	      propagationFactory = GrpcPropagation.newFactory(propagationFactory);
+	    }
+	    propagation = propagationFactory.create(AsciiMetadataKeyFactory.INSTANCE);
+	    clientParser = builder.clientParser;
+	    serverParser = builder.serverParser;
+	  }
 
-  public static Builder newBuilder(Tracing tracing) {
-    return newBuilder(RpcTracing.create(tracing));
-  }
+	public static GrpcTracing create(Tracing tracing) {
+	    return newBuilder(tracing).build();
+	  }
 
-  public static Builder newBuilder(RpcTracing rpcTracing) {
-    return new Builder(rpcTracing);
-  }
+	public static GrpcTracing create(RpcTracing rpcTracing) {
+	    return newBuilder(rpcTracing).build();
+	  }
 
-  public static final class Builder {
+	public static Builder newBuilder(Tracing tracing) {
+	    return newBuilder(RpcTracing.create(tracing));
+	  }
+
+	public static Builder newBuilder(RpcTracing rpcTracing) {
+	    return new Builder(rpcTracing);
+	  }
+
+	public Builder toBuilder() {
+	    return new Builder(rpcTracing)
+	      .clientParser(clientParser)
+	      .serverParser(serverParser);
+	  }
+
+	/** This interceptor traces outbound calls */
+	  public final ClientInterceptor newClientInterceptor() {
+	    return new TracingClientInterceptor(this);
+	  }
+
+	/** This interceptor traces inbound calls */
+	  public ServerInterceptor newServerInterceptor() {
+	    return new TracingServerInterceptor(this);
+	  }
+
+public static final class Builder {
     final RpcTracing rpcTracing;
     GrpcClientParser clientParser;
     GrpcServerParser serverParser;
     boolean grpcPropagationFormatEnabled = false;
 
     Builder(RpcTracing rpcTracing) {
-      if (rpcTracing == null) throw new NullPointerException("rpcTracing == null");
+      if (rpcTracing == null) {
+		throw new NullPointerException("rpcTracing == null");
+	}
       this.rpcTracing = rpcTracing;
       // override to re-use any custom error parser from the tracing component
       ErrorParser errorParser = rpcTracing.tracing().errorParser();
@@ -62,13 +98,17 @@ public final class GrpcTracing {
     }
 
     public Builder clientParser(GrpcClientParser clientParser) {
-      if (clientParser == null) throw new NullPointerException("clientParser == null");
+      if (clientParser == null) {
+		throw new NullPointerException("clientParser == null");
+	}
       this.clientParser = clientParser;
       return this;
     }
 
     public Builder serverParser(GrpcServerParser serverParser) {
-      if (serverParser == null) throw new NullPointerException("serverParser == null");
+      if (serverParser == null) {
+		throw new NullPointerException("serverParser == null");
+	}
       this.serverParser = serverParser;
       return this;
     }
@@ -95,39 +135,5 @@ public final class GrpcTracing {
     public GrpcTracing build() {
       return new GrpcTracing(this);
     }
-  }
-
-  final RpcTracing rpcTracing;
-  final Propagation<Metadata.Key<String>> propagation;
-  final GrpcClientParser clientParser;
-  final GrpcServerParser serverParser;
-  final boolean grpcPropagationFormatEnabled;
-
-  GrpcTracing(Builder builder) { // intentionally hidden constructor
-    rpcTracing = builder.rpcTracing;
-    grpcPropagationFormatEnabled = builder.grpcPropagationFormatEnabled;
-    Propagation.Factory propagationFactory = rpcTracing.tracing().propagationFactory();
-    if (grpcPropagationFormatEnabled) {
-      propagationFactory = GrpcPropagation.newFactory(propagationFactory);
-    }
-    propagation = propagationFactory.create(AsciiMetadataKeyFactory.INSTANCE);
-    clientParser = builder.clientParser;
-    serverParser = builder.serverParser;
-  }
-
-  public Builder toBuilder() {
-    return new Builder(rpcTracing)
-      .clientParser(clientParser)
-      .serverParser(serverParser);
-  }
-
-  /** This interceptor traces outbound calls */
-  public final ClientInterceptor newClientInterceptor() {
-    return new TracingClientInterceptor(this);
-  }
-
-  /** This interceptor traces inbound calls */
-  public ServerInterceptor newServerInterceptor() {
-    return new TracingServerInterceptor(this);
   }
 }

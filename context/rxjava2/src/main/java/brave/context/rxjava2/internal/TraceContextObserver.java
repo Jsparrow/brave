@@ -35,7 +35,9 @@ final class TraceContextObserver<T> implements Observer<T>, Disposable {
   }
 
   @Override public final void onSubscribe(Disposable d) {
-    if (!Util.validate(upstream, d)) return;
+    if (!Util.validate(upstream, d)) {
+		return;
+	}
     upstream = d;
 
     // Operators need to detect the fuseable feature of their immediate upstream. We pass "this"
@@ -68,7 +70,9 @@ final class TraceContextObserver<T> implements Observer<T>, Disposable {
   }
 
   @Override public void onComplete() {
-    if (done) return;
+    if (done) {
+		return;
+	}
     done = true;
 
     Scope scope = contextScoper.maybeScope(assembled);

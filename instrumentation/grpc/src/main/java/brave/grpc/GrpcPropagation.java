@@ -42,9 +42,41 @@ final class GrpcPropagation<K> implements Propagation<K> {
   /** The census tag key corresponding to the {@link MethodDescriptor#getFullMethodName()}. */
   static final String RPC_METHOD = "method";
 
-  static Propagation.Factory newFactory(Propagation.Factory delegate) {
-    if (delegate == null) throw new NullPointerException("delegate == null");
+final Propagation<K> delegate;
+
+final TagsFactory extraFactory;
+
+GrpcPropagation(Factory factory, KeyFactory<K> keyFactory) {
+    this.delegate = factory.delegate.create(keyFactory);
+    this.extraFactory = factory.tagsFactory;
+  }
+
+static Propagation.Factory newFactory(Propagation.Factory delegate) {
+    if (delegate == null) {
+		throw new NullPointerException("delegate == null");
+	}
     return new Factory(delegate);
+  }
+
+@Override public List<K> keys() {
+    return delegate.keys();
+  }
+
+@Override public <C> Injector<C> injector(Setter<C, K> setter) {
+    return new GrpcInjector<>(this, setter);
+  }
+
+@Override public <C> Extractor<C> extractor(Getter<C, K> getter) {
+    return new GrpcExtractor<>(this, getter);
+  }
+
+static Tags extractTags(Map<String, String> extracted) {
+    if (extracted == null) {
+		return null;
+	}
+    // Remove the incoming RPC method as we should replace it with our current server method.
+    String parentMethod = extracted.remove(RPC_METHOD);
+    return new Tags(extracted, parentMethod);
   }
 
   static final class Factory extends Propagation.Factory {
@@ -73,26 +105,6 @@ final class GrpcPropagation<K> implements Propagation<K> {
     }
   }
 
-  final Propagation<K> delegate;
-  final TagsFactory extraFactory;
-
-  GrpcPropagation(Factory factory, KeyFactory<K> keyFactory) {
-    this.delegate = factory.delegate.create(keyFactory);
-    this.extraFactory = factory.tagsFactory;
-  }
-
-  @Override public List<K> keys() {
-    return delegate.keys();
-  }
-
-  @Override public <C> Injector<C> injector(Setter<C, K> setter) {
-    return new GrpcInjector<>(this, setter);
-  }
-
-  @Override public <C> Extractor<C> extractor(Getter<C, K> getter) {
-    return new GrpcExtractor<>(this, getter);
-  }
-
   static final class GrpcInjector<C, K> implements Injector<C> {
     final Injector<C> delegate;
     final Propagation.Setter<C, K> setter;
@@ -107,7 +119,9 @@ final class GrpcPropagation<K> implements Propagation<K> {
         byte[] serialized = TraceContextBinaryFormat.toBytes(traceContext);
         ((GrpcClientRequest) carrier).setMetadata(GRPC_TRACE_BIN, serialized);
         Tags tags = traceContext.findExtra(Tags.class);
-        if (tags != null) ((GrpcClientRequest) carrier).setMetadata(GRPC_TAGS_BIN, tags.toMap());
+        if (tags != null) {
+			((GrpcClientRequest) carrier).setMetadata(GRPC_TAGS_BIN, tags.toMap());
+		}
       }
       delegate.inject(traceContext, carrier);
     }
@@ -129,11 +143,15 @@ final class GrpcPropagation<K> implements Propagation<K> {
         byte[] bytes = ((GrpcServerRequest) carrier).getMetadata(GRPC_TRACE_BIN);
         if (bytes != null) {
           TraceContext maybeContext = TraceContextBinaryFormat.parseBytes(bytes, tags);
-          if (maybeContext != null) return TraceContextOrSamplingFlags.create(maybeContext);
+          if (maybeContext != null) {
+			return TraceContextOrSamplingFlags.create(maybeContext);
+		}
         }
       }
       TraceContextOrSamplingFlags result = delegate.extract(carrier);
-      if (tags == null) return result;
+      if (tags == null) {
+		return result;
+	}
       return result.toBuilder().addExtra(tags).build();
     }
   }
@@ -150,13 +168,6 @@ final class GrpcPropagation<K> implements Propagation<K> {
     @Override protected Tags create(Tags parent) {
       return new Tags(parent);
     }
-  }
-
-  static Tags extractTags(Map<String, String> extracted) {
-    if (extracted == null) return null;
-    // Remove the incoming RPC method as we should replace it with our current server method.
-    String parentMethod = extracted.remove(RPC_METHOD);
-    return new Tags(extracted, parentMethod);
   }
 
   static final class Tags extends MapPropagationFields<String, String> {

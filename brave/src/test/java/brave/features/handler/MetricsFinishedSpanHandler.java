@@ -52,7 +52,10 @@ public class MetricsFinishedSpanHandler extends FinishedSpanHandler {
 
   @Override public boolean handle(TraceContext context, MutableSpan span) {
     Tag nameTag = nameToTag.get(span.name());
-    if (nameTag == null) return true; // no tag
+    if (nameTag == null)
+	 {
+		return true; // no tag
+	}
 
     // Example of adding a correlated tag. Note that in spans, we don't add a negative one (None)
     Tag errorTag = exception(span.error());
@@ -68,7 +71,9 @@ public class MetricsFinishedSpanHandler extends FinishedSpanHandler {
   }
 
   static Tag exception(Throwable exception) {
-    if (exception == null) return EXCEPTION_NONE;
+    if (exception == null) {
+		return EXCEPTION_NONE;
+	}
     String simpleName = exception.getClass().getSimpleName();
     return Tag.of("exception",
       // check hasText as the class could be anonymous

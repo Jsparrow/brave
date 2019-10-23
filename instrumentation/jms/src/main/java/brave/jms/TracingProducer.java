@@ -53,9 +53,15 @@ abstract class TracingProducer<P, M> {
 
     if (!span.isNoop()) {
       span.kind(Span.Kind.PRODUCER).name("send");
-      if (destination == null) destination = destination(message);
-      if (destination != null) jmsTracing.tagQueueOrTopic(destination, span);
-      if (remoteServiceName != null) span.remoteServiceName(remoteServiceName);
+      if (destination == null) {
+		destination = destination(message);
+	}
+      if (destination != null) {
+		jmsTracing.tagQueueOrTopic(destination, span);
+	}
+      if (remoteServiceName != null) {
+		span.remoteServiceName(remoteServiceName);
+	}
       span.start();
     }
 

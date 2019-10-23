@@ -51,16 +51,24 @@ public class RateLimitingSamplerSoakTest {
     AtomicLong passed = new AtomicLong();
     Runnable sample = () -> {
       long tick = System.nanoTime();
-      if (tick > deadline) return;
-      if (tick >= lastDecisecond) hitLastDecisecond.set(true);
+      if (tick > deadline) {
+		return;
+	}
+      if (tick >= lastDecisecond) {
+		hitLastDecisecond.set(true);
+	}
 
-      if (sampler.isSampled(0L)) passed.incrementAndGet();
+      if (sampler.isSampled(0L)) {
+		passed.incrementAndGet();
+	}
     };
 
     Runnable loopAndSample = () -> {
       do {
         if (rate > 10) {  // execute one tenth of our rate
-          for (int j = 0; j < rate / 10; j++) sample.run();
+          for (int j = 0; j < rate / 10; j++) {
+			sample.run();
+		}
         } else {// don't divide by 10!
           sample.run();
         }

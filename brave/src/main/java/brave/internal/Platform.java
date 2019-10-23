@@ -42,7 +42,9 @@ public abstract class Platform {
 
   @Nullable public String linkLocalIp() {
     // uses synchronized variant of double-checked locking as getting the endpoint can be expensive
-    if (linkLocalIp != null) return linkLocalIp;
+    if (linkLocalIp != null) {
+		return linkLocalIp;
+	}
     synchronized (this) {
       if (linkLocalIp == null) {
         linkLocalIp = produceLinkLocalIp();
@@ -59,7 +61,9 @@ public abstract class Platform {
         Enumeration<InetAddress> addresses = nic.getInetAddresses();
         while (addresses.hasMoreElements()) {
           InetAddress address = addresses.nextElement();
-          if (address.isSiteLocalAddress()) return address.getHostAddress();
+          if (address.isSiteLocalAddress()) {
+			return address.getHostAddress();
+		}
         }
       }
     } catch (Exception e) {
@@ -73,39 +77,41 @@ public abstract class Platform {
     return PLATFORM;
   }
 
-  // Use nested class to ensure logger isn't initialized unless it is accessed once.
-  private static final class LoggerHolder {
-    static final Logger LOG = Logger.getLogger(brave.Tracer.class.getName());
-  }
-
   /** Like {@link Logger#log(Level, String) */
   public void log(String msg, @Nullable Throwable thrown) {
     Logger logger = LoggerHolder.LOG;
-    if (!logger.isLoggable(Level.FINE)) return; // fine level to not fill logs
+    if (!logger.isLoggable(Level.FINE))
+	 {
+		return; // fine level to not fill logs
+	}
     logger.log(Level.FINE, msg, thrown);
   }
 
-  /** Like {@link Logger#log(Level, String, Object)}, except with a throwable arg */
+/** Like {@link Logger#log(Level, String, Object)}, except with a throwable arg */
   public void log(String msg, Object param1, @Nullable Throwable thrown) {
     Logger logger = LoggerHolder.LOG;
-    if (!logger.isLoggable(Level.FINE)) return; // fine level to not fill logs
+    if (!logger.isLoggable(Level.FINE))
+	 {
+		return; // fine level to not fill logs
+	}
     LogRecord lr = new LogRecord(Level.FINE, msg);
     Object[] params = {param1};
     lr.setParameters(params);
-    if (thrown != null) lr.setThrown(thrown);
+    if (thrown != null) {
+		lr.setThrown(thrown);
+	}
     logger.log(lr);
   }
 
-  /** Attempt to match the host runtime to a capable Platform implementation. */
+/** Attempt to match the host runtime to a capable Platform implementation. */
   static Platform findPlatform() {
     // Find JRE 9 new methods
     try {
       Class zoneId = Class.forName("java.time.ZoneId");
       Class.forName("java.time.Clock").getMethod("tickMillis", zoneId);
       return new Jre9(); // intentionally doesn't not access the type prior to the above guard
-    } catch (ClassNotFoundException e) {
-      // pre JRE 8
-    } catch (NoSuchMethodException e) {
+    } catch (NoSuchMethodException | ClassNotFoundException e) {
+		// pre JRE 8
       // pre JRE 9
     }
 
@@ -121,7 +127,7 @@ public abstract class Platform {
     return new Jre6();
   }
 
-  /**
+/**
    * This class uses pseudo-random number generators to provision IDs.
    *
    * <p>This optimizes speed over full coverage of 64-bits, which is why it doesn't share a {@link
@@ -130,7 +136,7 @@ public abstract class Platform {
    */
   public abstract long randomLong();
 
-  /**
+/**
    * Returns the high 8-bytes for {@link brave.Tracing.Builder#traceId128Bit(boolean) 128-bit trace
    * IDs}.
    *
@@ -140,7 +146,7 @@ public abstract class Platform {
    */
   public abstract long nextTraceIdHigh();
 
-  public Clock clock() {
+public Clock clock() {
     return new Clock() {
       @Override public long currentTimeMicroseconds() {
         return System.currentTimeMillis() * 1000;
@@ -150,6 +156,17 @@ public abstract class Platform {
         return "System.currentTimeMillis()";
       }
     };
+  }
+
+static long nextTraceIdHigh(int random) {
+    long epochSeconds = System.currentTimeMillis() / 1000;
+    return (epochSeconds & 0xffffffffL) << 32
+      | (random & 0xffffffffL);
+  }
+
+// Use nested class to ensure logger isn't initialized unless it is accessed once.
+  private static final class LoggerHolder {
+    static final Logger LOG = Logger.getLogger(brave.Tracer.class.getName());
   }
 
   static class Jre9 extends Jre7 {
@@ -190,33 +207,27 @@ public abstract class Platform {
     }
   }
 
-  static long nextTraceIdHigh(int random) {
-    long epochSeconds = System.currentTimeMillis() / 1000;
-    return (epochSeconds & 0xffffffffL) << 32
-      | (random & 0xffffffffL);
-  }
-
   static class Jre6 extends Platform {
-
-    @Override public String getHostString(InetSocketAddress socket) {
-      return socket.getAddress().getHostAddress();
-    }
-
-    @Override public long randomLong() {
-      return prng.nextLong();
-    }
-
-    @Override public long nextTraceIdHigh() {
-      return nextTraceIdHigh(prng.nextInt());
-    }
 
     final Random prng;
 
-    Jre6() {
+	Jre6() {
       this.prng = new Random(System.nanoTime());
     }
 
-    @Override public String toString() {
+	@Override public String getHostString(InetSocketAddress socket) {
+      return socket.getAddress().getHostAddress();
+    }
+
+	@Override public long randomLong() {
+      return prng.nextLong();
+    }
+
+	@Override public long nextTraceIdHigh() {
+      return nextTraceIdHigh(prng.nextInt());
+    }
+
+	@Override public String toString() {
       return "Jre6{}";
     }
   }

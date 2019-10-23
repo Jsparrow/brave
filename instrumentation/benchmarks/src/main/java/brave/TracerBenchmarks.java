@@ -239,7 +239,9 @@ public class TracerBenchmarks {
   void currentSpan(Tracer tracer, TraceContext context, boolean tag) {
     try (CurrentTraceContext.Scope scope = tracer.currentTraceContext.newScope(context)) {
       Span span = tracer.currentSpan();
-      if (tag) span.tag("customer.id", "1234");
+      if (tag) {
+		span.tag("customer.id", "1234");
+	}
     }
   }
 

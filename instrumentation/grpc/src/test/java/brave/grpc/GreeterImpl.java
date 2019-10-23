@@ -40,11 +40,11 @@ class GreeterImpl extends GreeterGrpc.GreeterImplBase {
   @Override
   public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
     TraceContext currentTraceContext = tracing != null ? tracing.currentTraceContext().get() : null;
-    if (req.getName().equals("bad")) {
+    if ("bad".equals(req.getName())) {
       responseObserver.onError(new IllegalArgumentException());
       return;
     }
-    if (req.getName().equals("testerror")) {
+    if ("testerror".equals(req.getName())) {
       throw new RuntimeException("testerror");
     }
     String message = currentTraceContext != null ? currentTraceContext.traceIdString() : "";

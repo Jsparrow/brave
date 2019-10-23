@@ -34,16 +34,8 @@ class XmlBeans {
   }
 
   static String beans(String bean) {
-    return "<beans xmlns=\"http://www.springframework.org/schema/beans\"\n"
-      + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-      + "    xmlns:util=\"http://www.springframework.org/schema/util\"\n"
-      + "    xsi:schemaLocation=\"\n"
-      + "        http://www.springframework.org/schema/beans\n"
-      + "        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd\n"
-      + "        http://www.springframework.org/schema/util\n"
-      + "        http://www.springframework.org/schema/util/spring-util-2.5.xsd\">\n"
-      + bean
-      + "</beans>";
+    return new StringBuilder().append("<beans xmlns=\"http://www.springframework.org/schema/beans\"\n").append("    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n").append("    xmlns:util=\"http://www.springframework.org/schema/util\"\n").append("    xsi:schemaLocation=\"\n").append("        http://www.springframework.org/schema/beans\n").append("        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd\n").append("        http://www.springframework.org/schema/util\n").append("        http://www.springframework.org/schema/util/spring-util-2.5.xsd\">\n")
+			.append(bean).append("</beans>").toString();
   }
 
   <T> T getBean(String name, Class<T> requiredType) {

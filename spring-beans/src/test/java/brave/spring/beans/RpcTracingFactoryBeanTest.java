@@ -29,19 +29,21 @@ public class RpcTracingFactoryBeanTest {
 
   public static Tracing TRACING = mock(Tracing.class);
 
-  XmlBeans context;
+public static final RpcTracingCustomizer CUSTOMIZER_ONE = mock(RpcTracingCustomizer.class);
 
-  @After public void close() {
-    if (context != null) context.close();
+public static final RpcTracingCustomizer CUSTOMIZER_TWO = mock(RpcTracingCustomizer.class);
+
+XmlBeans context;
+
+@After public void close() {
+    if (context != null) {
+		context.close();
+	}
   }
 
-  @Test public void tracing() {
-    context = new XmlBeans(""
-      + "<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void tracing() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("</bean>")
+			.toString()
     );
 
     assertThat(context.getBean("rpcTracing", RpcTracing.class))
@@ -49,54 +51,28 @@ public class RpcTracingFactoryBeanTest {
       .isEqualTo(TRACING);
   }
 
-  @Test public void clientSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"clientSampler\">\n"
-      + "    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void clientSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"clientSampler\">\n")
+			.append("    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("rpcTracing", RpcTracing.class).clientSampler())
       .isEqualTo(SamplerFunctions.neverSample());
   }
 
-  @Test public void serverSampler() {
-    context = new XmlBeans(""
-      + "<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"serverSampler\">\n"
-      + "    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
+@Test public void serverSampler() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"serverSampler\">\n")
+			.append("    <bean class=\"brave.sampler.SamplerFunctions\" factory-method=\"neverSample\"/>\n").append("  </property>\n").append("</bean>").toString()
     );
 
     assertThat(context.getBean("rpcTracing", RpcTracing.class).serverSampler())
       .isEqualTo(SamplerFunctions.neverSample());
   }
 
-  public static final RpcTracingCustomizer CUSTOMIZER_ONE = mock(RpcTracingCustomizer.class);
-  public static final RpcTracingCustomizer CUSTOMIZER_TWO = mock(RpcTracingCustomizer.class);
-
-  @Test public void customizers() {
-    context = new XmlBeans(""
-      + "<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n"
-      + "  <property name=\"tracing\">\n"
-      + "    <util:constant static-field=\"" + getClass().getName() + ".TRACING\"/>\n"
-      + "  </property>\n"
-      + "  <property name=\"customizers\">\n"
-      + "    <list>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_ONE\"/>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_TWO\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
+@Test public void customizers() {
+    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"rpcTracing\" class=\"brave.spring.beans.RpcTracingFactoryBean\">\n").append("  <property name=\"tracing\">\n").append("    <util:constant static-field=\"").append(getClass().getName()).append(".TRACING\"/>\n").append("  </property>\n").append("  <property name=\"customizers\">\n")
+			.append("    <list>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_ONE\"/>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_TWO\"/>\n").append("    </list>\n")
+			.append("  </property>").append("</bean>").toString()
     );
 
     context.getBean("rpcTracing", RpcTracing.class);

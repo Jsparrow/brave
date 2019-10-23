@@ -83,7 +83,9 @@ public class NoopAwareFinishedSpanHandlerBenchmarks {
 
     @Override public boolean handle(TraceContext context, MutableSpan span) {
       for (int i = 0, length = delegates.size(); i < length; i++) {
-        if (!delegates.get(i).handle(context, span)) return false;
+        if (!delegates.get(i).handle(context, span)) {
+			return false;
+		}
       }
       return true;
     }
@@ -92,10 +94,7 @@ public class NoopAwareFinishedSpanHandlerBenchmarks {
     List<FinishedSpanHandler> delegates = asList(one, two, three);
 
     @Override public boolean handle(TraceContext context, MutableSpan span) {
-      for (FinishedSpanHandler delegate : delegates) {
-        if (!delegate.handle(context, span)) return false;
-      }
-      return true;
+      return delegates.stream().allMatch(delegate -> delegate.handle(context, span));
     }
   };
   TraceContext context = TraceContext.newBuilder().traceId(1L).spanId(2L).sampled(true).build();
@@ -116,7 +115,7 @@ public class NoopAwareFinishedSpanHandlerBenchmarks {
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
       .addProfiler("gc")
-      .include(".*" + NoopAwareFinishedSpanHandlerBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(NoopAwareFinishedSpanHandlerBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

@@ -51,7 +51,7 @@ public class OkHttpClientBenchmarks extends HttpClientBenchmarks<Call.Factory> {
   // Convenience main entry-point
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-      .include(".*" + OkHttpClientBenchmarks.class.getSimpleName() + ".*")
+      .include(new StringBuilder().append(".*").append(OkHttpClientBenchmarks.class.getSimpleName()).append(".*").toString())
       .build();
 
     new Runner(opt).run();

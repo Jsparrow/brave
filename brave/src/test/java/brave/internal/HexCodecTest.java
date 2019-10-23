@@ -19,11 +19,15 @@ import static brave.internal.HexCodec.lowerHexToUnsignedLong;
 import static brave.internal.HexCodec.toLowerHex;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 // code originally imported from zipkin.UtilTest
 public class HexCodecTest {
 
-  @Test
+  private static final Logger logger = LogManager.getLogger(HexCodecTest.class);
+
+@Test
   public void lowerHexToUnsignedLong_downgrades128bitIdsByDroppingHighBits() {
     assertThat(lowerHexToUnsignedLong("463ac35c9f6413ad48485a3953bb6124"))
       .isEqualTo(lowerHexToUnsignedLong("48485a3953bb6124"));
@@ -38,36 +42,42 @@ public class HexCodecTest {
       lowerHexToUnsignedLong("0"); // invalid
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
     }
 
     try {
       lowerHexToUnsignedLong(Character.toString((char) ('9' + 1))); // invalid
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
     }
 
     try {
       lowerHexToUnsignedLong(Character.toString((char) ('0' - 1))); // invalid
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
     }
 
     try {
       lowerHexToUnsignedLong(Character.toString((char) ('f' + 1))); // invalid
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
     }
 
     try {
       lowerHexToUnsignedLong(Character.toString((char) ('a' - 1))); // invalid
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
     }
 
     try {
       lowerHexToUnsignedLong("fffffffffffffffffffffffffffffffff"); // too long
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
 
     }
 
@@ -75,6 +85,7 @@ public class HexCodecTest {
       lowerHexToUnsignedLong(""); // too short
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
 
     }
 
@@ -82,6 +93,7 @@ public class HexCodecTest {
       lowerHexToUnsignedLong("rs"); // bad charset
       failBecauseExceptionWasNotThrown(NumberFormatException.class);
     } catch (NumberFormatException e) {
+		logger.error(e.getMessage(), e);
 
     }
   }

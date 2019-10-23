@@ -70,14 +70,21 @@ final class RealScopedSpan extends ScopedSpan {
 
   @Override public void finish() {
     scope.close();
-    if (!pendingSpans.remove(context)) return; // don't double-report
+    if (!pendingSpans.remove(context))
+	 {
+		return; // don't double-report
+	}
     state.finishTimestamp(clock.currentTimeMicroseconds());
     finishedSpanHandler.handle(context, state);
   }
 
   @Override public boolean equals(Object o) {
-    if (o == this) return true;
-    if (!(o instanceof RealScopedSpan)) return false;
+    if (o == this) {
+		return true;
+	}
+    if (!(o instanceof RealScopedSpan)) {
+		return false;
+	}
     RealScopedSpan that = (RealScopedSpan) o;
     return context.equals(that.context) && scope.equals(that.scope);
   }

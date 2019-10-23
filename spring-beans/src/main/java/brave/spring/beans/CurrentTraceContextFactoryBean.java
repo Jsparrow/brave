@@ -29,12 +29,10 @@ public class CurrentTraceContextFactoryBean implements FactoryBean {
   @Override public CurrentTraceContext getObject() {
     CurrentTraceContext.Builder builder = ThreadLocalCurrentTraceContext.newBuilder();
     if (scopeDecorators != null) {
-      for (ScopeDecorator scopeDecorator : scopeDecorators) {
-        builder.addScopeDecorator(scopeDecorator);
-      }
+      scopeDecorators.forEach(builder::addScopeDecorator);
     }
     if (customizers != null) {
-      for (CurrentTraceContextCustomizer customizer : customizers) customizer.customize(builder);
+      customizers.forEach(customizer -> customizer.customize(builder));
     }
     return builder.build();
   }

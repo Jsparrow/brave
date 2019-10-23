@@ -63,22 +63,27 @@ public class GrpcParser {
    * By default, this tags "grpc.status_code" and "error" when it is not OK.
    */
   protected void onClose(Status status, Metadata trailers, SpanCustomizer span) {
-    if (status != null && status.getCode() != Status.Code.OK) {
-      String code = String.valueOf(status.getCode());
-      span.tag("grpc.status_code", code);
-      span.tag("error", code);
-    }
+    if (!(status != null && status.getCode() != Status.Code.OK)) {
+		return;
+	}
+	String code = String.valueOf(status.getCode());
+	span.tag("grpc.status_code", code);
+	span.tag("error", code);
   }
 
   static @Nullable String method(String fullMethodName) {
     int index = fullMethodName.lastIndexOf('/');
-    if (index == -1 || index == 0) return null;
+    if (index == -1 || index == 0) {
+		return null;
+	}
     return fullMethodName.substring(index + 1);
   }
 
   static @Nullable String service(String fullMethodName) {
     int index = fullMethodName.lastIndexOf('/');
-    if (index == -1 || index == 0) return null;
+    if (index == -1 || index == 0) {
+		return null;
+	}
     return fullMethodName.substring(0, index);
   }
 }

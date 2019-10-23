@@ -84,15 +84,29 @@ public class ITTracingServerInterceptor {
   Server server;
   ManagedChannel client;
 
-  @Before public void setup() throws Exception {
+// See brave.http.ITHttp for rationale on polling after tests complete
+  @Rule public TestRule assertSpansEmpty = new TestWatcher() {
+    // only check success path to avoid masking assertion errors or exceptions
+    @Override protected void succeeded(Description description) {
+      try {
+        assertThat(spans.poll(100, TimeUnit.MILLISECONDS))
+          .withFailMessage("Span remaining in queue. Check for redundant reporting")
+          .isNull();
+      } catch (InterruptedException e) {
+        testLogger.error(e.getMessage(), e);
+      }
+    }
+  };
+
+@Before public void setup() throws Exception {
     init();
   }
 
-  void init() throws Exception {
+void init() throws Exception {
     init(null);
   }
 
-  void init(@Nullable ServerInterceptor userInterceptor) throws Exception {
+void init(@Nullable ServerInterceptor userInterceptor) throws Exception {
     stop();
 
     // tracing interceptor needs to go last
@@ -110,7 +124,7 @@ public class ITTracingServerInterceptor {
       .build();
   }
 
-  @After public void stop() throws Exception {
+@After public void stop() throws Exception {
     if (client != null) {
       client.shutdown();
       client.awaitTermination(1, TimeUnit.SECONDS);
@@ -120,24 +134,12 @@ public class ITTracingServerInterceptor {
       server.awaitTermination();
     }
     Tracing current = Tracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
-  // See brave.http.ITHttp for rationale on polling after tests complete
-  @Rule public TestRule assertSpansEmpty = new TestWatcher() {
-    // only check success path to avoid masking assertion errors or exceptions
-    @Override protected void succeeded(Description description) {
-      try {
-        assertThat(spans.poll(100, TimeUnit.MILLISECONDS))
-          .withFailMessage("Span remaining in queue. Check for redundant reporting")
-          .isNull();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-  };
-
-  @Test public void usesExistingTraceId() throws Exception {
+@Test public void usesExistingTraceId() throws Exception {
     final String traceId = "463ac35c9f6413ad";
     final String parentId = traceId;
     final String spanId = "48485a3953bb6124";
@@ -168,7 +170,7 @@ public class ITTracingServerInterceptor {
     assertThat(span.shared()).isTrue();
   }
 
-  @Test public void createsChildWhenJoinDisabled() throws Exception {
+@Test public void createsChildWhenJoinDisabled() throws Exception {
     grpcTracing = GrpcTracing.create(tracingBuilder(NEVER_SAMPLE).supportsJoin(false).build());
     init();
 
@@ -202,7 +204,7 @@ public class ITTracingServerInterceptor {
     assertThat(span.shared()).isNull();
   }
 
-  @Test public void samplingDisabled() throws Exception {
+@Test public void samplingDisabled() throws Exception {
     grpcTracing = GrpcTracing.create(tracingBuilder(NEVER_SAMPLE).build());
     init();
 
@@ -211,7 +213,7 @@ public class ITTracingServerInterceptor {
     // @After will check that nothing is reported
   }
 
-  /**
+/**
    * NOTE: for this to work, the tracing interceptor must be last (so that it executes first)
    *
    * <p>Also notice that we are only making the current context available in the request side.
@@ -236,14 +238,14 @@ public class ITTracingServerInterceptor {
     takeSpan();
   }
 
-  @Test public void currentSpanVisibleToImpl() throws Exception {
+@Test public void currentSpanVisibleToImpl() throws Exception {
     assertThat(GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST).getMessage())
       .isNotEmpty();
 
     takeSpan();
   }
 
-  @Test public void reportsServerKindToZipkin() throws Exception {
+@Test public void reportsServerKindToZipkin() throws Exception {
     GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
 
     Span span = takeSpan();
@@ -251,7 +253,7 @@ public class ITTracingServerInterceptor {
       .isEqualTo(Span.Kind.SERVER);
   }
 
-  @Test public void defaultSpanNameIsMethodName() throws Exception {
+@Test public void defaultSpanNameIsMethodName() throws Exception {
     GreeterGrpc.newBlockingStub(client).sayHello(HELLO_REQUEST);
 
     Span span = takeSpan();
@@ -259,13 +261,14 @@ public class ITTracingServerInterceptor {
       .isEqualTo("helloworld.greeter/sayhello");
   }
 
-  @Test public void addsErrorTagOnException() throws Exception {
+@Test public void addsErrorTagOnException() throws Exception {
     try {
       GreeterGrpc.newBlockingStub(client)
         .sayHello(HelloRequest.newBuilder().setName("bad").build());
       failBecauseExceptionWasNotThrown(StatusRuntimeException.class);
     } catch (StatusRuntimeException e) {
-      Span span = takeSpan();
+      testLogger.error(e.getMessage(), e);
+	Span span = takeSpan();
       assertThat(span.tags()).containsExactly(
         entry("error", "UNKNOWN"),
         entry("grpc.status_code", "UNKNOWN")
@@ -273,20 +276,21 @@ public class ITTracingServerInterceptor {
     }
   }
 
-  @Test public void addsErrorTagOnRuntimeException() throws Exception {
+@Test public void addsErrorTagOnRuntimeException() throws Exception {
     try {
       GreeterGrpc.newBlockingStub(client)
         .sayHello(HelloRequest.newBuilder().setName("testerror").build());
       failBecauseExceptionWasNotThrown(StatusRuntimeException.class);
     } catch (StatusRuntimeException e) {
-      Span span = takeSpan();
+      testLogger.error(e.getMessage(), e);
+	Span span = takeSpan();
       assertThat(span.tags()).containsExactly(
         entry("error", "testerror")
       );
     }
   }
 
-  @Test
+@Test
   public void serverParserTest() throws Exception {
     grpcTracing = grpcTracing.toBuilder().serverParser(new GrpcServerParser() {
       @Override protected <M> void onMessageSent(M message, SpanCustomizer span) {
@@ -320,7 +324,7 @@ public class ITTracingServerInterceptor {
     );
   }
 
-  @Test public void serverParserTestWithStreamingResponse() throws Exception {
+@Test public void serverParserTestWithStreamingResponse() throws Exception {
     grpcTracing = grpcTracing.toBuilder().serverParser(new GrpcServerParser() {
       int responsesSent = 0;
 
@@ -338,7 +342,7 @@ public class ITTracingServerInterceptor {
     assertThat(span.tags()).hasSize(10);
   }
 
-  @Test public void customSampler() throws Exception {
+@Test public void customSampler() throws Exception {
     RpcTracing rpcTracing = RpcTracing.newBuilder(tracing).serverSampler(RpcRuleSampler.newBuilder()
       .putRule(methodEquals("SayHelloWithManyReplies"), NEVER_SAMPLE)
       .putRule(serviceEquals("helloworld.greeter"), ALWAYS_SAMPLE)
@@ -357,7 +361,7 @@ public class ITTracingServerInterceptor {
     // @After will also check that sayHelloWithManyReplies was not sampled
   }
 
-  Tracing.Builder tracingBuilder(Sampler sampler) {
+Tracing.Builder tracingBuilder(Sampler sampler) {
     return Tracing.newBuilder()
       .spanReporter(spans::add)
       .currentTraceContext( // connect to log4j
@@ -368,7 +372,7 @@ public class ITTracingServerInterceptor {
       .sampler(sampler);
   }
 
-  /** Call this to block until a span was reported */
+/** Call this to block until a span was reported */
   Span takeSpan() throws InterruptedException {
     Span result = spans.poll(3, TimeUnit.SECONDS);
     assertThat(result)

@@ -49,32 +49,34 @@ class TestHandler extends ChannelInboundHandlerAdapter {
   }
 
   @Override public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
-    if (msg instanceof HttpRequest) {
-      req = (HttpRequest) msg;
-      String path = req.uri();
-      int queryIndex = path.indexOf('?');
-      if (queryIndex != -1) path = path.substring(0, queryIndex);
-      String content = null;
-      HttpResponseStatus status = OK;
-      if (path.equals("/") && req.method().equals(HttpMethod.OPTIONS)) {
+    if (!(msg instanceof HttpRequest)) {
+		return;
+	}
+	req = (HttpRequest) msg;
+	String path = req.uri();
+	int queryIndex = path.indexOf('?');
+	if (queryIndex != -1) {
+		path = path.substring(0, queryIndex);
+	}
+	String content = null;
+	HttpResponseStatus status = OK;
+	if ("/".equals(path) && req.method().equals(HttpMethod.OPTIONS)) {
         content = null;
-      } else if (path.equals("/foo")) {
+      } else if ("/foo".equals(path)) {
         content = "bar";
-      } else if (path.equals("/extra")) {
+      } else if ("/extra".equals(path)) {
         content = ExtraFieldPropagation.get(EXTRA_KEY);
-      } else if (path.equals("/child")) {
+      } else if ("/child".equals(path)) {
         httpTracing.tracing().tracer().nextSpan().name("child").start().finish();
         content = "happy";
-      } else if (path.equals("/exception")) {
+      } else if ("/exception".equals(path)) {
         throw new IOException("exception");
-      } else if (path.equals("/badrequest")) {
+      } else if ("/badrequest".equals(path)) {
         status = BAD_REQUEST;
       } else {
         status = NOT_FOUND;
       }
-
-      writeResponse(ctx, status, content);
-    }
+	writeResponse(ctx, status, content);
   }
 
   @Override public void channelReadComplete(ChannelHandlerContext ctx) {

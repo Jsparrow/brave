@@ -24,42 +24,44 @@ import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public final class TracingClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
-  public static ClientHttpRequestInterceptor create(Tracing tracing) {
-    return create(HttpTracing.create(tracing));
-  }
-
-  public static ClientHttpRequestInterceptor create(HttpTracing httpTracing) {
-    return new TracingClientHttpRequestInterceptor(httpTracing);
-  }
-
   final Tracer tracer;
-  final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
+	final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
 
-  @Autowired TracingClientHttpRequestInterceptor(HttpTracing httpTracing) {
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpClientHandler.create(httpTracing);
-  }
+	@Autowired TracingClientHttpRequestInterceptor(HttpTracing httpTracing) {
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpClientHandler.create(httpTracing);
+	  }
 
-  @Override public ClientHttpResponse intercept(HttpRequest request, byte[] body,
-    ClientHttpRequestExecution execution) throws IOException {
-    Span span = handler.handleSend(new HttpClientRequest(request));
-    HttpClientResponse response = null;
-    Throwable error = null;
-    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
-      ClientHttpResponse result = execution.execute(request, body);
-      response = new HttpClientResponse(result);
-      return result;
-    } catch (IOException | RuntimeException | Error e) {
-      error = e;
-      throw e;
-    } finally {
-      handler.handleReceive(response, error, span);
-    }
-  }
+	public static ClientHttpRequestInterceptor create(Tracing tracing) {
+	    return create(HttpTracing.create(tracing));
+	  }
 
-  static final class HttpClientRequest extends brave.http.HttpClientRequest {
+	public static ClientHttpRequestInterceptor create(HttpTracing httpTracing) {
+	    return new TracingClientHttpRequestInterceptor(httpTracing);
+	  }
+
+	@Override public ClientHttpResponse intercept(HttpRequest request, byte[] body,
+	    ClientHttpRequestExecution execution) throws IOException {
+	    Span span = handler.handleSend(new HttpClientRequest(request));
+	    HttpClientResponse response = null;
+	    Throwable error = null;
+	    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+	      ClientHttpResponse result = execution.execute(request, body);
+	      response = new HttpClientResponse(result);
+	      return result;
+	    } catch (IOException | RuntimeException | Error e) {
+	      error = e;
+	      throw e;
+	    } finally {
+	      handler.handleReceive(response, error, span);
+	    }
+	  }
+
+static final class HttpClientRequest extends brave.http.HttpClientRequest {
     final HttpRequest delegate;
 
     HttpClientRequest(HttpRequest delegate) {
@@ -93,7 +95,8 @@ public final class TracingClientHttpRequestInterceptor implements ClientHttpRequ
   }
 
   static final class HttpClientResponse extends brave.http.HttpClientResponse {
-    final ClientHttpResponse delegate;
+    private final Logger logger = LogManager.getLogger(HttpClientResponse.class);
+	final ClientHttpResponse delegate;
 
     HttpClientResponse(ClientHttpResponse delegate) {
       this.delegate = delegate;
@@ -107,7 +110,8 @@ public final class TracingClientHttpRequestInterceptor implements ClientHttpRequ
       try {
         return delegate.getRawStatusCode();
       } catch (IllegalArgumentException | IOException e) {
-        return 0;
+        logger.error(e.getMessage(), e);
+		return 0;
       }
     }
   }

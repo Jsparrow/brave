@@ -37,7 +37,9 @@ public class CurrentRpcTracingTest {
 
   @After public void close() {
     RpcTracing current = RpcTracing.current();
-    if (current != null) current.close();
+    if (current != null) {
+		current.close();
+	}
   }
 
   @Test public void defaultsToNull() {

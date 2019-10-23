@@ -31,14 +31,23 @@ import java.util.Random;
  */
 public final class BoundarySampler extends Sampler {
   static final long SALT = new Random().nextLong();
+private final long boundary;
 
-  /**
+BoundarySampler(long boundary) {
+    this.boundary = boundary;
+  }
+
+/**
    * @param probability 0 means never sample, 1 means always sample. Otherwise minimum probability
    * is 0.0001, or 0.01% of traces
    */
   public static Sampler create(float probability) {
-    if (probability == 0) return Sampler.NEVER_SAMPLE;
-    if (probability == 1.0) return ALWAYS_SAMPLE;
+    if (probability == 0) {
+		return Sampler.NEVER_SAMPLE;
+	}
+    if (probability == 1.0) {
+		return ALWAYS_SAMPLE;
+	}
     if (probability < 0.0001f || probability > 1) {
       throw new IllegalArgumentException(
         "probability should be between 0.0001 and 1: was " + probability);
@@ -47,21 +56,15 @@ public final class BoundarySampler extends Sampler {
     return new BoundarySampler(boundary);
   }
 
-  private final long boundary;
-
-  BoundarySampler(long boundary) {
-    this.boundary = boundary;
-  }
-
-  /** Returns true when {@code abs(traceId) <= boundary} */
+/** Returns true when {@code abs(traceId) <= boundary} */
   @Override
   public boolean isSampled(long traceId) {
     long t = Math.abs(traceId ^ SALT);
     return t % 10000 <= boundary;
   }
 
-  @Override
+@Override
   public String toString() {
-    return "BoundaryTraceIdSampler(" + boundary + ")";
+    return new StringBuilder().append("BoundaryTraceIdSampler(").append(boundary).append(")").toString();
   }
 }

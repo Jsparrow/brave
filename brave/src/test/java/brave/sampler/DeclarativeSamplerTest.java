@@ -127,14 +127,6 @@ public class DeclarativeSamplerTest {
       .hasSize(1);
   }
 
-  @Retention(RetentionPolicy.RUNTIME) public @interface Traced {
-    float sampleProbability() default 1.0f;
-
-    int sampleRate() default 0;
-
-    boolean enabled() default true;
-  }
-
   static Traced traced(float sampleProbability, int sampleRate, boolean enabled) {
     return new Traced() {
       @Override public Class<? extends Annotation> annotationType() {
@@ -153,5 +145,13 @@ public class DeclarativeSamplerTest {
         return enabled;
       }
     };
+  }
+
+@Retention(RetentionPolicy.RUNTIME) public @interface Traced {
+    float sampleProbability() default 1.0f;
+
+    int sampleRate() default 0;
+
+    boolean enabled() default true;
   }
 }

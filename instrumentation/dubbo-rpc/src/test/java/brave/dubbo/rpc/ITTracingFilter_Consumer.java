@@ -37,10 +37,14 @@ import static brave.sampler.Sampler.ALWAYS_SAMPLE;
 import static brave.sampler.Sampler.NEVER_SAMPLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ITTracingFilter_Consumer extends ITTracingFilter {
 
-  @Before public void setup() {
+  private static final Logger logger = LogManager.getLogger(ITTracingFilter_Consumer.class);
+
+@Before public void setup() {
     setTracing(tracingBuilder(Sampler.ALWAYS_SAMPLE).build());
     server.start();
 
@@ -48,7 +52,7 @@ public class ITTracingFilter_Consumer extends ITTracingFilter {
     client.setApplication(new ApplicationConfig("bean-consumer"));
     client.setFilter("tracing");
     client.setInterface(GreeterService.class);
-    client.setUrl("dubbo://" + server.ip() + ":" + server.port() + "?scope=remote&generic=bean");
+    client.setUrl(new StringBuilder().append("dubbo://").append(server.ip()).append(":").append(server.port()).append("?scope=remote&generic=bean").toString());
   }
 
   @Test public void propagatesSpan() throws Exception {
@@ -149,6 +153,7 @@ public class ITTracingFilter_Consumer extends ITTracingFilter {
       client.get().sayHello("jorge");
       failBecauseExceptionWasNotThrown(RpcException.class);
     } catch (RpcException e) {
+		logger.error(e.getMessage(), e);
     }
 
     Span span = takeSpan();
@@ -186,6 +191,7 @@ public class ITTracingFilter_Consumer extends ITTracingFilter {
       client.get().sayHello("jorge");
       failBecauseExceptionWasNotThrown(RpcException.class);
     } catch (RpcException e) {
+		logger.error(e.getMessage(), e);
     }
 
     Span span = takeSpan();

@@ -26,10 +26,13 @@ import org.junit.After;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /** This class is in a separate test to ensure the trace context is not inheritable. */
 public class CurrentTraceContextExecutorTest {
-  // Ensures one at-a-time, but also on a different thread
+  private static final Logger logger = LogManager.getLogger(CurrentTraceContextExecutorTest.class);
+// Ensures one at-a-time, but also on a different thread
   ExecutorService wrappedExecutor = Executors.newSingleThreadExecutor();
   // override default so that it isn't inheritable
   CurrentTraceContext currentTraceContext = ThreadLocalCurrentTraceContext.newBuilder()
@@ -60,7 +63,7 @@ public class CurrentTraceContextExecutorTest {
           latch.await();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          e.printStackTrace();
+          logger.error(e.getMessage(), e);
         }
       });
       // this won't run immediately because the other is blocked

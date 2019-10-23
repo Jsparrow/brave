@@ -27,10 +27,13 @@ import javax.ws.rs.core.Response;
 import org.glassfish.jersey.server.ManagedAsync;
 
 import static brave.test.http.ITHttp.EXTRA_KEY;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 @Path("")
 public class TestResource {
-  final Tracer tracer;
+  private static final Logger logger = LogManager.getLogger(TestResource.class);
+final Tracer tracer;
 
   TestResource(HttpTracing httpTracing) {
     this.tracer = httpTracing.tracing().tracer();
@@ -111,6 +114,7 @@ public class TestResource {
     try {
       thread.join();
     } catch (InterruptedException e) {
+		logger.error(e.getMessage(), e);
     }
   }
 
@@ -122,19 +126,20 @@ public class TestResource {
     try {
       thread.join();
     } catch (InterruptedException e) {
-    }
-  }
-
-  public static class NestedResource {
-    @GET
-    @Path("items/{itemId}")
-    public String item(@PathParam("itemId") String itemId) {
-      return itemId;
+		logger.error(e.getMessage(), e);
     }
   }
 
   @Path("nested")
   public NestedResource nestedResource() {
     return new NestedResource();
+  }
+
+public static class NestedResource {
+    @GET
+    @Path("items/{itemId}")
+    public String item(@PathParam("itemId") String itemId) {
+      return itemId;
+    }
   }
 }

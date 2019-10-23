@@ -60,7 +60,17 @@ public final class B3Propagation<K> implements Propagation<K> {
    * "1" implies sampled and is a request to override collection-tier sampling policy.
    */
   static final String FLAGS_NAME = "X-B3-Flags";
-  final K b3Key, traceIdKey, spanIdKey, parentSpanIdKey, sampledKey, debugKey;
+  final K b3Key;
+
+final K traceIdKey;
+
+final K spanIdKey;
+
+final K parentSpanIdKey;
+
+final K sampledKey;
+
+final K debugKey;
   final List<K> fields;
 
   B3Propagation(KeyFactory<K> keyFactory) {
@@ -80,11 +90,20 @@ public final class B3Propagation<K> implements Propagation<K> {
   }
 
   @Override public <C> TraceContext.Injector<C> injector(Setter<C, K> setter) {
-    if (setter == null) throw new NullPointerException("setter == null");
+    if (setter == null) {
+		throw new NullPointerException("setter == null");
+	}
     return new B3Injector<>(this, setter);
   }
 
-  static final class B3Injector<C, K> implements TraceContext.Injector<C> {
+  @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
+    if (getter == null) {
+		throw new NullPointerException("getter == null");
+	}
+    return new B3Extractor<>(this, getter);
+  }
+
+static final class B3Injector<C, K> implements TraceContext.Injector<C> {
     final B3Propagation<K> propagation;
     final Setter<C, K> setter;
 
@@ -108,11 +127,6 @@ public final class B3Propagation<K> implements Propagation<K> {
     }
   }
 
-  @Override public <C> TraceContext.Extractor<C> extractor(Getter<C, K> getter) {
-    if (getter == null) throw new NullPointerException("getter == null");
-    return new B3Extractor<>(this, getter);
-  }
-
   static final class B3Extractor<C, K> implements TraceContext.Extractor<C> {
     final B3Propagation<K> propagation;
     final B3SingleExtractor<C, K> singleExtractor;
@@ -125,34 +139,44 @@ public final class B3Propagation<K> implements Propagation<K> {
     }
 
     @Override public TraceContextOrSamplingFlags extract(C carrier) {
-      if (carrier == null) throw new NullPointerException("carrier == null");
+      if (carrier == null) {
+		throw new NullPointerException("carrier == null");
+	}
 
       // try to extract single-header format
       TraceContextOrSamplingFlags extracted = singleExtractor.extract(carrier);
-      if (!extracted.equals(TraceContextOrSamplingFlags.EMPTY)) return extracted;
+      if (!extracted.equals(TraceContextOrSamplingFlags.EMPTY)) {
+		return extracted;
+	}
 
       // Start by looking at the sampled state as this is used regardless
       // Official sampled value is 1, though some old instrumentation send true
       String sampled = getter.get(carrier, propagation.sampledKey);
       Boolean sampledV = sampled != null
-        ? sampled.equals("1") || sampled.equalsIgnoreCase("true")
+        ? "1".equals(sampled) || "true".equalsIgnoreCase(sampled)
         : null;
       boolean debug = "1".equals(getter.get(carrier, propagation.debugKey));
 
       String traceIdString = getter.get(carrier, propagation.traceIdKey);
       // It is ok to go without a trace ID, if sampling or debug is set
-      if (traceIdString == null) return TraceContextOrSamplingFlags.create(sampledV, debug);
+      if (traceIdString == null) {
+		return TraceContextOrSamplingFlags.create(sampledV, debug);
+	}
 
       // Try to parse the trace IDs into the context
       TraceContext.Builder result = TraceContext.newBuilder();
-      if (result.parseTraceId(traceIdString, propagation.traceIdKey)
+      if (!(result.parseTraceId(traceIdString, propagation.traceIdKey)
         && result.parseSpanId(getter, carrier, propagation.spanIdKey)
-        && result.parseParentId(getter, carrier, propagation.parentSpanIdKey)) {
-        if (sampledV != null) result.sampled(sampledV.booleanValue());
-        if (debug) result.debug(true);
-        return TraceContextOrSamplingFlags.create(result.build());
-      }
-      return TraceContextOrSamplingFlags.EMPTY; // trace context is malformed so return empty
+        && result.parseParentId(getter, carrier, propagation.parentSpanIdKey))) {
+		return TraceContextOrSamplingFlags.EMPTY; // trace context is malformed so return empty
+	}
+	if (sampledV != null) {
+		result.sampled(sampledV.booleanValue());
+	}
+	if (debug) {
+		result.debug(true);
+	}
+	return TraceContextOrSamplingFlags.create(result.build());
     }
   }
 }

@@ -100,7 +100,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void completable_assembleInScope_subscribeNoScope() {
-    Completable source, errorSource;
+    Completable source;
+	Completable errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Completable.complete()
         .doOnComplete(this::assertInAssemblyContext);
@@ -113,7 +114,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void completable_assembleInScope_subscribeInScope() {
-    Completable source, errorSource;
+    Completable source;
+	Completable errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Completable.complete()
         .doOnComplete(this::assertInAssemblyContext);
@@ -140,7 +142,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void flowable_assembleInScope_subscribeNoScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -155,7 +158,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void flowable_assembleInScope_subscribeInScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -186,7 +190,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void flowable_conditional_assembleInScope_subscribeNoScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .filter(lessThanThreeInAssemblyContext)
@@ -203,7 +208,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void flowable_conditional_assembleInScope_subscribeInScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .filter(lessThanThreeInAssemblyContext)
@@ -239,7 +245,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void observable_assembleInScope_subscribeNoScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -253,7 +260,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void observable_assembleInScope_subscribeInScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -282,7 +290,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void observable_conditional_assembleInScope_subscribeNoScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .filter(lessThanThreeInAssemblyContext)
@@ -298,7 +307,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void observable_conditional_assembleInScope_subscribeInScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .filter(lessThanThreeInAssemblyContext)
@@ -332,7 +342,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void single_assembleInScope_subscribeNoScope() {
-    Single<Integer> source, errorSource;
+    Single<Integer> source;
+	Single<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Single.just(1)
         .doOnSuccess(e -> assertInAssemblyContext());
@@ -344,7 +355,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void single_assembleInScope_subscribeInScope() {
-    Single<Integer> source, errorSource;
+    Single<Integer> source;
+	Single<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Single.just(1)
         .doOnSuccess(e -> assertInAssemblyContext());
@@ -369,7 +381,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void single_conditional_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Single.just(1)
         .filter(lessThanThreeInAssemblyContext)
@@ -384,7 +397,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void single_conditional_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Single.just(1)
         .filter(lessThanThreeInAssemblyContext)
@@ -416,7 +430,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void maybe_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Maybe.just(1)
         .doOnSuccess(e -> assertInAssemblyContext())
@@ -430,7 +445,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void maybe_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Maybe.just(1)
         .doOnSuccess(e -> assertInAssemblyContext())
@@ -459,7 +475,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void maybe_conditional_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Maybe.just(1)
         .filter(lessThanThreeInAssemblyContext)
@@ -475,7 +492,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void maybe_conditional_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Maybe.just(1)
         .filter(lessThanThreeInAssemblyContext)
@@ -508,7 +526,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void parallelFlowable_assembleInScope_subscribeNoScope() {
-    ParallelFlowable<Integer> source, errorSource;
+    ParallelFlowable<Integer> source;
+	ParallelFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3).parallel()
         .doOnNext(e -> assertInAssemblyContext())
@@ -524,7 +543,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void parallelFlowable_assembleInScope_subscribeInScope() {
-    ParallelFlowable<Integer> source, errorSource;
+    ParallelFlowable<Integer> source;
+	ParallelFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3).parallel()
         .doOnNext(e -> assertInAssemblyContext())
@@ -557,7 +577,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void parallelFlowable_conditional_assembleInScope_subscribeNoScope() {
-    ParallelFlowable<Integer> source, errorSource;
+    ParallelFlowable<Integer> source;
+	ParallelFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3).parallel()
         .filter(lessThanThreeInAssemblyContext)
@@ -575,7 +596,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void parallelFlowable_conditional_assembleInScope_subscribeInScope() {
-    ParallelFlowable<Integer> source, errorSource;
+    ParallelFlowable<Integer> source;
+	ParallelFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3).parallel()
         .filter(lessThanThreeInAssemblyContext)
@@ -613,7 +635,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void connectableFlowable_assembleInScope_subscribeNoScope() {
-    ConnectableFlowable<Integer> source, errorSource;
+    ConnectableFlowable<Integer> source;
+	ConnectableFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -629,7 +652,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void connectableFlowable_assembleInScope_subscribeInScope() {
-    ConnectableFlowable<Integer> source, errorSource;
+    ConnectableFlowable<Integer> source;
+	ConnectableFlowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Flowable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -665,7 +689,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   // operations on the type that are conditional (ex filter)
 
   @Test public void connectableObservable_assembleInScope_subscribeNoScope() {
-    ConnectableObservable<Integer> source, errorSource;
+    ConnectableObservable<Integer> source;
+	ConnectableObservable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -679,7 +704,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void connectableObservable_assembleInScope_subscribeInScope() {
-    ConnectableObservable<Integer> source, errorSource;
+    ConnectableObservable<Integer> source;
+	ConnectableObservable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = Observable.range(1, 3)
         .doOnNext(e -> assertInAssemblyContext())
@@ -714,7 +740,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   // operations on the type that are conditional (ex filter)
 
   @Test public void callable_completable_assembleInScope_subscribeNoScope() {
-    Completable source, errorSource;
+    Completable source;
+	Completable errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableCompletable(null)
         .doOnComplete(this::assertInAssemblyContext);
@@ -727,7 +754,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_completable_assembleInScope_subscribeInScope() {
-    Completable source, errorSource;
+    Completable source;
+	Completable errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableCompletable(subscribeContext)
         .doOnComplete(this::assertInAssemblyContext);
@@ -763,7 +791,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_flowable_assembleInScope_subscribeNoScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableFlowable(null)
         .doOnNext(e -> assertInAssemblyContext())
@@ -777,7 +806,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_flowable_assembleInScope_subscribeInScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableFlowable(subscribeContext)
         .doOnNext(e -> assertInAssemblyContext())
@@ -806,7 +836,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_flowable_conditional_assembleInScope_subscribeNoScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableFlowable(null)
         .filter(lessThanThreeInAssemblyContext)
@@ -822,7 +853,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_flowable_conditional_assembleInScope_subscribeInScope() {
-    Flowable<Integer> source, errorSource;
+    Flowable<Integer> source;
+	Flowable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableFlowable(subscribeContext)
         .filter(lessThanThreeInAssemblyContext)
@@ -865,7 +897,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_observable_assembleInScope_subscribeNoScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableObservable(null)
         .doOnNext(e -> assertInAssemblyContext())
@@ -879,7 +912,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_observable_assembleInScope_subscribeInScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableObservable(subscribeContext)
         .doOnNext(e -> assertInAssemblyContext())
@@ -909,7 +943,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_observable_conditional_assembleInScope_subscribeNoScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableObservable(null)
         .filter(lessThanThreeInAssemblyContext)
@@ -925,7 +960,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_observable_conditional_assembleInScope_subscribeInScope() {
-    Observable<Integer> source, errorSource;
+    Observable<Integer> source;
+	Observable<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableObservable(subscribeContext)
         .filter(lessThanThreeInAssemblyContext)
@@ -969,7 +1005,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_single_assembleInScope_subscribeNoScope() {
-    Single<Integer> source, errorSource;
+    Single<Integer> source;
+	Single<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableSingle(null)
         .doOnSuccess(e -> assertInAssemblyContext());
@@ -981,7 +1018,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_single_assembleInScope_subscribeInScope() {
-    Single<Integer> source, errorSource;
+    Single<Integer> source;
+	Single<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableSingle(subscribeContext)
         .doOnSuccess(e -> assertInAssemblyContext());
@@ -1006,7 +1044,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_single_conditional_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableSingle(null)
         .filter(lessThanThreeInAssemblyContext)
@@ -1022,7 +1061,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_single_conditional_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableSingle(subscribeContext)
         .filter(lessThanThreeInAssemblyContext)
@@ -1064,7 +1104,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_maybe_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableMaybe(null)
         .doOnSuccess(e -> assertInAssemblyContext())
@@ -1078,7 +1119,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_maybe_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableMaybe(subscribeContext)
         .doOnSuccess(e -> assertInAssemblyContext())
@@ -1107,7 +1149,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_maybe_conditional_assembleInScope_subscribeNoScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableMaybe(null)
         .filter(lessThanThreeInAssemblyContext)
@@ -1123,7 +1166,8 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
   }
 
   @Test public void callable_maybe_conditional_assembleInScope_subscribeInScope() {
-    Maybe<Integer> source, errorSource;
+    Maybe<Integer> source;
+	Maybe<Integer> errorSource;
     try (Scope scope = currentTraceContext.newScope(assemblyContext)) {
       source = callableMaybe(subscribeContext)
         .filter(lessThanThreeInAssemblyContext)
@@ -1235,15 +1279,6 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     });
   }
 
-  static abstract class CallableCompletable extends Completable implements Callable<Integer> {
-
-    final CompletableFromCallable delegate = new CompletableFromCallable(this);
-
-    @Override protected void subscribeActual(CompletableObserver o) {
-      delegate.subscribe(o);
-    }
-  }
-
   Flowable<Integer> callableFlowable(TraceContext expectedCallContext) {
     return RxJavaPlugins.onAssembly(new CallableFlowable() {
       @Override public Integer call() {
@@ -1253,13 +1288,171 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     });
   }
 
-  Flowable<Integer> callableFlowable(TraceContext expectedCallContext, RuntimeException exception) {
+Flowable<Integer> callableFlowable(TraceContext expectedCallContext, RuntimeException exception) {
     return RxJavaPlugins.onAssembly(new CallableFlowable() {
       @Override public Integer call() {
         assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
         throw exception;
       }
     });
+  }
+
+Observable<Integer> callableObservable(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new CallableObservable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Observable<Integer> callableObservable(TraceContext expectedCallContext,
+    RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new CallableObservable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Single<Integer> callableSingle(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new CallableSingle() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Single<Integer> callableSingle(TraceContext expectedCallContext, RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new CallableSingle() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Maybe<Integer> callableMaybe(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new CallableMaybe() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Maybe<Integer> callableMaybe(TraceContext expectedCallContext, RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new CallableMaybe() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Completable scalarCallableCompletable(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableCompletable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Completable scalarCallableCompletable(TraceContext expectedCallContext,
+    RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableCompletable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Flowable<Integer> scalarCallableFlowable(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableFlowable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Flowable<Integer> scalarCallableFlowable(TraceContext expectedCallContext,
+    RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableFlowable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Observable<Integer> scalarCallableObservable(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableObservable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Observable<Integer> scalarCallableObservable(TraceContext expectedCallContext,
+    RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableObservable() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Single<Integer> scalarCallableSingle(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableSingle() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Single<Integer> scalarCallableSingle(TraceContext expectedCallContext,
+    RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableSingle() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+Maybe<Integer> scalarCallableMaybe(TraceContext expectedCallContext) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableMaybe() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        return 1;
+      }
+    });
+  }
+
+Maybe<Integer> scalarCallableMaybe(TraceContext expectedCallContext, RuntimeException exception) {
+    return RxJavaPlugins.onAssembly(new ScalarCallableMaybe() {
+      @Override public Integer call() {
+        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
+        throw exception;
+      }
+    });
+  }
+
+abstract static class CallableCompletable extends Completable implements Callable<Integer> {
+
+    final CompletableFromCallable delegate = new CompletableFromCallable(this);
+
+    @Override protected void subscribeActual(CompletableObserver o) {
+      delegate.subscribe(o);
+    }
   }
 
   abstract class CallableFlowable extends Flowable<Integer> implements Callable<Integer> {
@@ -1270,49 +1463,12 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     }
   }
 
-  Observable<Integer> callableObservable(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new CallableObservable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Observable<Integer> callableObservable(TraceContext expectedCallContext,
-    RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new CallableObservable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
-  }
-
   abstract class CallableObservable extends Observable<Integer> implements Callable<Integer> {
     final ObservableFromCallable<Integer> delegate = new ObservableFromCallable<>(this);
 
     @Override protected void subscribeActual(Observer<? super Integer> o) {
       delegate.subscribe(o);
     }
-  }
-
-  Single<Integer> callableSingle(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new CallableSingle() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Single<Integer> callableSingle(TraceContext expectedCallContext, RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new CallableSingle() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
   }
 
   abstract class CallableSingle extends Single<Integer> implements Callable<Integer> {
@@ -1323,24 +1479,6 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     }
   }
 
-  Maybe<Integer> callableMaybe(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new CallableMaybe() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Maybe<Integer> callableMaybe(TraceContext expectedCallContext, RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new CallableMaybe() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
-  }
-
   abstract class CallableMaybe extends Maybe<Integer> implements Callable<Integer> {
     final MaybeFromCallable<Integer> delegate = new MaybeFromCallable<>(this);
 
@@ -1349,26 +1487,7 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     }
   }
 
-  Completable scalarCallableCompletable(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableCompletable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Completable scalarCallableCompletable(TraceContext expectedCallContext,
-    RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableCompletable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
-  }
-
-  static abstract class ScalarCallableCompletable extends Completable
+  abstract static class ScalarCallableCompletable extends Completable
     implements ScalarCallable<Integer> {
 
     final CompletableFromCallable delegate = new CompletableFromCallable(this);
@@ -1376,25 +1495,6 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     @Override protected void subscribeActual(CompletableObserver o) {
       delegate.subscribe(o);
     }
-  }
-
-  Flowable<Integer> scalarCallableFlowable(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableFlowable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Flowable<Integer> scalarCallableFlowable(TraceContext expectedCallContext,
-    RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableFlowable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
   }
 
   abstract class ScalarCallableFlowable extends Flowable<Integer>
@@ -1406,25 +1506,6 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     }
   }
 
-  Observable<Integer> scalarCallableObservable(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableObservable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Observable<Integer> scalarCallableObservable(TraceContext expectedCallContext,
-    RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableObservable() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
-  }
-
   abstract class ScalarCallableObservable extends Observable<Integer>
     implements ScalarCallable<Integer> {
     final ObservableFromCallable<Integer> delegate = new ObservableFromCallable<>(this);
@@ -1434,49 +1515,12 @@ public class CurrentTraceContextAssemblyTrackingMatrixTest {
     }
   }
 
-  Single<Integer> scalarCallableSingle(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableSingle() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Single<Integer> scalarCallableSingle(TraceContext expectedCallContext,
-    RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableSingle() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
-  }
-
   abstract class ScalarCallableSingle extends Single<Integer> implements ScalarCallable<Integer> {
     final SingleFromCallable<Integer> delegate = new SingleFromCallable<>(this);
 
     @Override protected void subscribeActual(SingleObserver<? super Integer> o) {
       delegate.subscribe(o);
     }
-  }
-
-  Maybe<Integer> scalarCallableMaybe(TraceContext expectedCallContext) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableMaybe() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        return 1;
-      }
-    });
-  }
-
-  Maybe<Integer> scalarCallableMaybe(TraceContext expectedCallContext, RuntimeException exception) {
-    return RxJavaPlugins.onAssembly(new ScalarCallableMaybe() {
-      @Override public Integer call() {
-        assertThat(currentTraceContext.get()).isEqualTo(expectedCallContext);
-        throw exception;
-      }
-    });
   }
 
   abstract class ScalarCallableMaybe extends Maybe<Integer> implements ScalarCallable<Integer> {

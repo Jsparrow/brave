@@ -54,7 +54,43 @@ import static javax.servlet.DispatcherType.REQUEST;
 public class EndToEndBenchmarks extends HttpServerBenchmarks {
   static volatile int PORT;
 
-  static class HelloServlet extends HttpServlet {
+  @Override protected void init(DeploymentInfo servletBuilder) {
+    servletBuilder.addFilter(new FilterInfo("Unsampled", Unsampled.class))
+      .addFilterUrlMapping("Unsampled", "/unsampled", REQUEST)
+      .addFilterUrlMapping("Unsampled", "/unsampled/api", REQUEST)
+      .addFilter(new FilterInfo("OnlySampledLocal", OnlySampledLocal.class))
+      .addFilterUrlMapping("OnlySampledLocal", "/onlysampledlocal", REQUEST)
+      .addFilterUrlMapping("OnlySampledLocal", "/onlysampledlocal/api", REQUEST)
+      .addFilter(new FilterInfo("Traced", Traced.class))
+      .addFilterUrlMapping("Traced", "/traced", REQUEST)
+      .addFilterUrlMapping("Traced", "/traced/api", REQUEST)
+      .addFilter(new FilterInfo("TracedExtra", TracedExtra.class))
+      .addFilterUrlMapping("TracedExtra", "/tracedextra", REQUEST)
+      .addFilterUrlMapping("TracedExtra", "/tracedextra/api", REQUEST)
+      .addFilter(new FilterInfo("TracedCorrelated", TracedCorrelated.class))
+      .addFilterUrlMapping("TracedCorrelated", "/tracedcorrelated", REQUEST)
+      .addFilterUrlMapping("TracedCorrelated", "/tracedcorrelated/api", REQUEST)
+      .addFilter(new FilterInfo("Traced128", Traced128.class))
+      .addFilterUrlMapping("Traced128", "/traced128", REQUEST)
+      .addFilterUrlMapping("Traced128", "/traced128/api", REQUEST)
+      .addServlets(Servlets.servlet("HelloServlet", HelloServlet.class).addMapping("/*"));
+  }
+
+@Override protected int initServer() throws Exception {
+    return PORT = super.initServer();
+  }
+
+// Convenience main entry-point
+  public static void main(String[] args) throws Exception {
+    Options opt = new OptionsBuilder()
+      .addProfiler("gc")
+      .include(new StringBuilder().append(".*").append(EndToEndBenchmarks.class.getSimpleName()).append(".*(tracedCorrelatedServer_get|tracedServer_get)$").toString())
+      .build();
+
+    new Runner(opt).run();
+  }
+
+static class HelloServlet extends HttpServlet {
     final Call.Factory callFactory = new OkHttpClient();
 
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -75,7 +111,9 @@ public class EndToEndBenchmarks extends HttpServerBenchmarks {
         // If we are tracing, we'll have a scoped call factory available
         Call.Factory localCallFactory =
           (Call.Factory) req.getAttribute(Call.Factory.class.getName());
-        if (localCallFactory == null) localCallFactory = callFactory;
+        if (localCallFactory == null) {
+			localCallFactory = callFactory;
+		}
 
         resp.getWriter().println(localCallFactory.newCall(request).execute().body().string());
       }
@@ -150,44 +188,6 @@ public class EndToEndBenchmarks extends HttpServerBenchmarks {
         .spanReporter(AsyncReporter.create(new NoopSender()))
         .build());
     }
-  }
-
-  @Override protected void init(DeploymentInfo servletBuilder) {
-    servletBuilder.addFilter(new FilterInfo("Unsampled", Unsampled.class))
-      .addFilterUrlMapping("Unsampled", "/unsampled", REQUEST)
-      .addFilterUrlMapping("Unsampled", "/unsampled/api", REQUEST)
-      .addFilter(new FilterInfo("OnlySampledLocal", OnlySampledLocal.class))
-      .addFilterUrlMapping("OnlySampledLocal", "/onlysampledlocal", REQUEST)
-      .addFilterUrlMapping("OnlySampledLocal", "/onlysampledlocal/api", REQUEST)
-      .addFilter(new FilterInfo("Traced", Traced.class))
-      .addFilterUrlMapping("Traced", "/traced", REQUEST)
-      .addFilterUrlMapping("Traced", "/traced/api", REQUEST)
-      .addFilter(new FilterInfo("TracedExtra", TracedExtra.class))
-      .addFilterUrlMapping("TracedExtra", "/tracedextra", REQUEST)
-      .addFilterUrlMapping("TracedExtra", "/tracedextra/api", REQUEST)
-      .addFilter(new FilterInfo("TracedCorrelated", TracedCorrelated.class))
-      .addFilterUrlMapping("TracedCorrelated", "/tracedcorrelated", REQUEST)
-      .addFilterUrlMapping("TracedCorrelated", "/tracedcorrelated/api", REQUEST)
-      .addFilter(new FilterInfo("Traced128", Traced128.class))
-      .addFilterUrlMapping("Traced128", "/traced128", REQUEST)
-      .addFilterUrlMapping("Traced128", "/traced128/api", REQUEST)
-      .addServlets(Servlets.servlet("HelloServlet", HelloServlet.class).addMapping("/*"));
-  }
-
-  @Override protected int initServer() throws Exception {
-    return PORT = super.initServer();
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws Exception {
-    Options opt = new OptionsBuilder()
-      .addProfiler("gc")
-      .include(".*"
-        + EndToEndBenchmarks.class.getSimpleName()
-        + ".*(tracedCorrelatedServer_get|tracedServer_get)$")
-      .build();
-
-    new Runner(opt).run();
   }
 
   static class ForwardingTracingFilter implements Filter {

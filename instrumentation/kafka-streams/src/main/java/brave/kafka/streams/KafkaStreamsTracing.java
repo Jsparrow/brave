@@ -402,7 +402,9 @@ public final class KafkaStreamsTracing {
     final Tracing tracing;
 
     Builder(Tracing tracing) {
-      if (tracing == null) throw new NullPointerException("tracing == null");
+      if (tracing == null) {
+		throw new NullPointerException("tracing == null");
+	}
       this.tracing = tracing;
     }
 

@@ -71,7 +71,9 @@ public abstract class HttpSampler implements SamplerFunction<HttpRequest> {
   };
 
   @Override @Nullable public Boolean trySample(HttpRequest request) {
-    if (request == null) return null;
+    if (request == null) {
+		return null;
+	}
     HttpAdapter<Object, Void> adapter;
     if (request instanceof HttpClientRequest) {
       adapter = new HttpClientRequest.ToHttpAdapter((HttpClientRequest) request);
@@ -88,17 +90,29 @@ public abstract class HttpSampler implements SamplerFunction<HttpRequest> {
   @Nullable public abstract <Req> Boolean trySample(HttpAdapter<Req, ?> adapter, Req request);
 
   static HttpSampler fromHttpRequestSampler(SamplerFunction<HttpRequest> sampler) {
-    if (sampler == null) throw new NullPointerException("sampler == null");
-    if (sampler.equals(SamplerFunctions.deferDecision())) return HttpSampler.TRACE_ID;
-    if (sampler.equals(SamplerFunctions.neverSample())) return HttpSampler.NEVER_SAMPLE;
+    if (sampler == null) {
+		throw new NullPointerException("sampler == null");
+	}
+    if (sampler.equals(SamplerFunctions.deferDecision())) {
+		return HttpSampler.TRACE_ID;
+	}
+    if (sampler.equals(SamplerFunctions.neverSample())) {
+		return HttpSampler.NEVER_SAMPLE;
+	}
     return sampler instanceof HttpSampler ? (HttpSampler) sampler
       : new HttpRequestSamplerAdapter(sampler);
   }
 
   static SamplerFunction<HttpRequest> toHttpRequestSampler(SamplerFunction<HttpRequest> sampler) {
-    if (sampler == null) throw new NullPointerException("sampler == null");
-    if (sampler == HttpSampler.TRACE_ID) return SamplerFunctions.deferDecision();
-    if (sampler == HttpSampler.NEVER_SAMPLE) return SamplerFunctions.neverSample();
+    if (sampler == null) {
+		throw new NullPointerException("sampler == null");
+	}
+    if (sampler == HttpSampler.TRACE_ID) {
+		return SamplerFunctions.deferDecision();
+	}
+    if (sampler == HttpSampler.NEVER_SAMPLE) {
+		return SamplerFunctions.neverSample();
+	}
     return sampler;
   }
 
@@ -114,8 +128,12 @@ public abstract class HttpSampler implements SamplerFunction<HttpRequest> {
     }
 
     @Override public <Req> Boolean trySample(HttpAdapter<Req, ?> adapter, Req request) {
-      if (adapter == null) throw new NullPointerException("adapter == null");
-      if (request == null) return null;
+      if (adapter == null) {
+		throw new NullPointerException("adapter == null");
+	}
+      if (request == null) {
+		return null;
+	}
       // This can be called independently when interceptors control lifecycle directly. In these
       // cases, it is possible to have an HttpRequest as an argument.
       if (request instanceof HttpRequest) {
@@ -134,9 +152,13 @@ public abstract class HttpSampler implements SamplerFunction<HttpRequest> {
     final Req request;
 
     FromHttpAdapter(HttpAdapter<Req, ?> adapter, Req request) {
-      if (adapter == null) throw new NullPointerException("adapter == null");
+      if (adapter == null) {
+		throw new NullPointerException("adapter == null");
+	}
       this.adapter = adapter;
-      if (request == null) throw new NullPointerException("request == null");
+      if (request == null) {
+		throw new NullPointerException("request == null");
+	}
       this.request = request;
     }
 

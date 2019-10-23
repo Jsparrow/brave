@@ -29,73 +29,54 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 public class ExtraFieldPropagationFactoryBeanTest {
-  XmlBeans context;
-
-  @After public void close() {
-    if (context != null) context.close();
-  }
-
-  @Test public void propagationFactory_default() {
-    context = new XmlBeans(""
-      + "<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\"/>"
-    );
-
-    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
-      .extracting("delegate")
-      .isEqualTo(B3Propagation.FACTORY);
-  }
-
-  @Test public void propagationFactory() {
-    context = new XmlBeans(""
-      + "<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n"
-      + "  <property name=\"propagationFactory\">\n"
-      + "    <util:constant static-field=\""
-      + B3SinglePropagation.class.getName()
-      + ".FACTORY\"/>\n"
-      + "  </property>\n"
-      + "</bean>"
-    );
-
-    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
-      .extracting("delegate")
-      .isEqualTo(B3SinglePropagation.FACTORY);
-  }
-
-  @Test public void fields() {
-    context = new XmlBeans(""
-      + "<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n"
-      + "  <property name=\"fields\">\n"
-      + "    <list>\n"
-      + "      <value>customer-id</value>\n"
-      + "      <value>x-vcap-request-id</value>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
-    );
-
-    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
-      .extracting("keyNames").asInstanceOf(InstanceOfAssertFactories.ARRAY)
-      .containsExactly("customer-id", "x-vcap-request-id");
-  }
-
   public static final ExtraFieldCustomizer CUSTOMIZER_ONE = mock(ExtraFieldCustomizer.class);
-  public static final ExtraFieldCustomizer CUSTOMIZER_TWO = mock(ExtraFieldCustomizer.class);
+	public static final ExtraFieldCustomizer CUSTOMIZER_TWO = mock(ExtraFieldCustomizer.class);
+	XmlBeans context;
 
-  @Test public void customizers() {
-    context = new XmlBeans(""
-      + "<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n"
-      + "  <property name=\"customizers\">\n"
-      + "    <list>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_ONE\"/>\n"
-      + "      <util:constant static-field=\"" + getClass().getName() + ".CUSTOMIZER_TWO\"/>\n"
-      + "    </list>\n"
-      + "  </property>"
-      + "</bean>"
-    );
+	@After public void close() {
+	    if (context != null) {
+			context.close();
+		}
+	  }
 
-    context.getBean("propagationFactory", Propagation.Factory.class);
+	@Test public void propagationFactory_default() {
+	    context = new XmlBeans(""
+	      + "<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\"/>"
+	    );
+	
+	    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
+	      .extracting("delegate")
+	      .isEqualTo(B3Propagation.FACTORY);
+	  }
 
-    verify(CUSTOMIZER_ONE).customize(any(ExtraFieldPropagation.FactoryBuilder.class));
-    verify(CUSTOMIZER_TWO).customize(any(ExtraFieldPropagation.FactoryBuilder.class));
-  }
+	@Test public void propagationFactory() {
+	    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n").append("  <property name=\"propagationFactory\">\n").append("    <util:constant static-field=\"").append(B3SinglePropagation.class.getName()).append(".FACTORY\"/>\n").append("  </property>\n")
+				.append("</bean>").toString()
+	    );
+	
+	    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
+	      .extracting("delegate")
+	      .isEqualTo(B3SinglePropagation.FACTORY);
+	  }
+
+	@Test public void fields() {
+	    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n").append("  <property name=\"fields\">\n").append("    <list>\n").append("      <value>customer-id</value>\n").append("      <value>x-vcap-request-id</value>\n").append("    </list>\n").append("  </property>")
+				.append("</bean>").toString()
+	    );
+	
+	    assertThat(context.getBean("propagationFactory", Propagation.Factory.class))
+	      .extracting("keyNames").asInstanceOf(InstanceOfAssertFactories.ARRAY)
+	      .containsExactly("customer-id", "x-vcap-request-id");
+	  }
+
+	@Test public void customizers() {
+	    context = new XmlBeans(new StringBuilder().append("").append("<bean id=\"propagationFactory\" class=\"brave.spring.beans.ExtraFieldPropagationFactoryBean\">\n").append("  <property name=\"customizers\">\n").append("    <list>\n").append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_ONE\"/>\n")
+				.append("      <util:constant static-field=\"").append(getClass().getName()).append(".CUSTOMIZER_TWO\"/>\n").append("    </list>\n").append("  </property>").append("</bean>").toString()
+	    );
+	
+	    context.getBean("propagationFactory", Propagation.Factory.class);
+	
+	    verify(CUSTOMIZER_ONE).customize(any(ExtraFieldPropagation.FactoryBuilder.class));
+	    verify(CUSTOMIZER_TWO).customize(any(ExtraFieldPropagation.FactoryBuilder.class));
+	  }
 }

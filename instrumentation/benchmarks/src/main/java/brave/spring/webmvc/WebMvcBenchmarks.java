@@ -38,7 +38,25 @@ import static brave.servlet.ServletBenchmarks.addFilterMappings;
 
 public class WebMvcBenchmarks extends HttpServerBenchmarks {
 
-  @Controller
+  @Override protected void init(DeploymentInfo servletBuilder) {
+	    addFilterMappings(servletBuilder);
+	    AnnotationConfigWebApplicationContext appContext = new AnnotationConfigWebApplicationContext();
+	    appContext.register(HelloController.class);
+	    appContext.register(SpringConfig.class);
+	    servletBuilder.addServlet(new ServletInfo("DispatcherServlet", DispatcherServlet.class,
+	      () -> new ImmediateInstanceHandle<>(new DispatcherServlet(appContext))).addMapping("/*"));
+	  }
+
+	// Convenience main entry-point
+	  public static void main(String[] args) throws RunnerException {
+	    Options opt = new OptionsBuilder()
+	      .include(new StringBuilder().append(".*").append(WebMvcBenchmarks.class.getSimpleName()).append(".*").toString())
+	      .build();
+	
+	    new Runner(opt).run();
+	  }
+
+@Controller
   public static class HelloController {
     @RequestMapping("/nottraced")
     public ResponseEntity<String> nottraced() throws IOException {
@@ -76,23 +94,5 @@ public class WebMvcBenchmarks extends HttpServerBenchmarks {
     @Override public void addInterceptors(InterceptorRegistry registry) {
       registry.addInterceptor(tracingInterceptor);
     }
-  }
-
-  @Override protected void init(DeploymentInfo servletBuilder) {
-    addFilterMappings(servletBuilder);
-    AnnotationConfigWebApplicationContext appContext = new AnnotationConfigWebApplicationContext();
-    appContext.register(HelloController.class);
-    appContext.register(SpringConfig.class);
-    servletBuilder.addServlet(new ServletInfo("DispatcherServlet", DispatcherServlet.class,
-      () -> new ImmediateInstanceHandle<>(new DispatcherServlet(appContext))).addMapping("/*"));
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException {
-    Options opt = new OptionsBuilder()
-      .include(".*" + WebMvcBenchmarks.class.getSimpleName() + ".*")
-      .build();
-
-    new Runner(opt).run();
   }
 }

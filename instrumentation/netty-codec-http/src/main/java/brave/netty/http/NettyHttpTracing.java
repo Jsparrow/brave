@@ -24,22 +24,21 @@ public final class NettyHttpTracing {
   static final AttributeKey<Span> SPAN_ATTRIBUTE = AttributeKey.valueOf(Span.class.getName());
   static final AttributeKey<SpanInScope> SPAN_IN_SCOPE_ATTRIBUTE =
     AttributeKey.valueOf(SpanInScope.class.getName());
+final ChannelDuplexHandler serverHandler;
 
-  public static NettyHttpTracing create(Tracing tracing) {
-    return new NettyHttpTracing(HttpTracing.create(tracing));
-  }
-
-  public static NettyHttpTracing create(HttpTracing httpTracing) {
-    return new NettyHttpTracing(httpTracing);
-  }
-
-  final ChannelDuplexHandler serverHandler;
-
-  NettyHttpTracing(HttpTracing httpTracing) { // intentionally hidden constructor
+NettyHttpTracing(HttpTracing httpTracing) { // intentionally hidden constructor
     serverHandler = new TracingHttpServerHandler(httpTracing);
   }
 
-  /**
+public static NettyHttpTracing create(Tracing tracing) {
+    return new NettyHttpTracing(HttpTracing.create(tracing));
+  }
+
+public static NettyHttpTracing create(HttpTracing httpTracing) {
+    return new NettyHttpTracing(httpTracing);
+  }
+
+/**
    * Returns a duplex handler that traces {@link io.netty.handler.codec.http.HttpRequest} messages.
    */
   public ChannelDuplexHandler serverHandler() {

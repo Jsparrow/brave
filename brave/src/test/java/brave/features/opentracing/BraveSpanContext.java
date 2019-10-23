@@ -21,32 +21,34 @@ import java.util.Collections;
 import java.util.Map;
 
 class BraveSpanContext implements SpanContext {
-  static BraveSpanContext create(TraceContextOrSamplingFlags extractionResult) {
-    return extractionResult.context() != null
-      ? new BraveSpanContext(extractionResult.context())
-      : new BraveSpanContext.Incomplete(extractionResult);
-  }
-
   final TraceContext context;
 
-  BraveSpanContext(TraceContext context) {
-    this.context = context;
-  }
+	BraveSpanContext(TraceContext context) {
+	    this.context = context;
+	  }
 
-  @Override public String toTraceId() {
-    return context != null ? context.traceIdString() : null;
-  }
+	static BraveSpanContext create(TraceContextOrSamplingFlags extractionResult) {
+	    return extractionResult.context() != null
+	      ? new BraveSpanContext(extractionResult.context())
+	      : new BraveSpanContext.Incomplete(extractionResult);
+	  }
 
-  @Override public String toSpanId() {
-    return context != null ? context.spanIdString() : null;
-  }
+	@Override public String toTraceId() {
+	    return context != null ? context.traceIdString() : null;
+	  }
 
-  @Override public Iterable<Map.Entry<String, String>> baggageItems() {
-    if (context == null) return Collections.emptyList();
-    return ExtraFieldPropagation.getAll(context).entrySet();
-  }
+	@Override public String toSpanId() {
+	    return context != null ? context.spanIdString() : null;
+	  }
 
-  static final class Incomplete extends BraveSpanContext {
+	@Override public Iterable<Map.Entry<String, String>> baggageItems() {
+	    if (context == null) {
+			return Collections.emptyList();
+		}
+	    return ExtraFieldPropagation.getAll(context).entrySet();
+	  }
+
+static final class Incomplete extends BraveSpanContext {
     final TraceContextOrSamplingFlags extractionResult;
 
     Incomplete(TraceContextOrSamplingFlags extractionResult) {

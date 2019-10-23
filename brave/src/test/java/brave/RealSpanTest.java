@@ -187,7 +187,8 @@ public class RealSpanTest {
   }
 
   @Test public void equals_sameContext() {
-    Span one = tracing.tracer().toSpan(context), two = tracing.tracer().toSpan(context);
+    Span one = tracing.tracer().toSpan(context);
+	Span two = tracing.tracer().toSpan(context);
 
     assertThat(one)
       .isInstanceOf(RealSpan.class)
@@ -196,7 +197,8 @@ public class RealSpanTest {
   }
 
   @Test public void equals_notSameContext() {
-    Span one = tracing.tracer().toSpan(context), two = tracing.tracer().toSpan(context2);
+    Span one = tracing.tracer().toSpan(context);
+	Span two = tracing.tracer().toSpan(context2);
 
     assertThat(one).isNotEqualTo(two);
   }

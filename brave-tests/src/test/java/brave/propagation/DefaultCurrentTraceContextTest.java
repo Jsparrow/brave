@@ -24,18 +24,18 @@ public class DefaultCurrentTraceContextTest extends CurrentTraceContextTest {
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return CurrentTraceContext.Default.create();
-    }
-  }
-
   @Test public void is_inheritable() throws Exception {
     super.is_inheritable(CurrentTraceContext.Default.inheritable());
   }
 
-  @Before public void ensureNoOtherTestsTaint() {
+@Before public void ensureNoOtherTestsTaint() {
     CurrentTraceContext.Default.INHERITABLE.set(null);
     CurrentTraceContext.Default.DEFAULT.set(null);
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return CurrentTraceContext.Default.create();
+    }
   }
 }

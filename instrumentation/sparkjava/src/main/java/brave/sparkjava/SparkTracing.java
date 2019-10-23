@@ -25,50 +25,52 @@ import spark.Request;
 import spark.Response;
 
 public final class SparkTracing {
-  public static SparkTracing create(Tracing tracing) {
-    return new SparkTracing(HttpTracing.create(tracing));
-  }
-
-  public static SparkTracing create(HttpTracing httpTracing) {
-    return new SparkTracing(httpTracing);
-  }
-
   final Tracer tracer;
-  final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
+	final HttpServerHandler<brave.http.HttpServerRequest, brave.http.HttpServerResponse> handler;
 
-  SparkTracing(HttpTracing httpTracing) { // intentionally hidden constructor
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpServerHandler.create(httpTracing);
-  }
+	SparkTracing(HttpTracing httpTracing) { // intentionally hidden constructor
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpServerHandler.create(httpTracing);
+	  }
 
-  public Filter before() {
-    return (request, response) -> {
-      Span span = handler.handleReceive(new HttpServerRequest(request));
-      request.attribute(SpanInScope.class.getName(), tracer.withSpanInScope(span));
-    };
-  }
+	public static SparkTracing create(Tracing tracing) {
+	    return new SparkTracing(HttpTracing.create(tracing));
+	  }
 
-  public Filter afterAfter() {
-    return (request, response) -> {
-      Span span = tracer.currentSpan();
-      if (span == null) return;
-      ((SpanInScope) request.attribute(SpanInScope.class.getName())).close();
-      handler.handleSend(new HttpServerResponse(response, request.requestMethod()), null, span);
-    };
-  }
+	public static SparkTracing create(HttpTracing httpTracing) {
+	    return new SparkTracing(httpTracing);
+	  }
 
-  public ExceptionHandler exception(ExceptionHandler delegate) {
-    return (error, request, response) -> {
-      Span span = tracer.currentSpan();
-      if (span != null) {
-        ((SpanInScope) request.attribute(SpanInScope.class.getName())).close();
-        handler.handleSend(new HttpServerResponse(response, request.requestMethod()), error, span);
-      }
-      delegate.handle(error, request, response);
-    };
-  }
+	public Filter before() {
+	    return (request, response) -> {
+	      Span span = handler.handleReceive(new HttpServerRequest(request));
+	      request.attribute(SpanInScope.class.getName(), tracer.withSpanInScope(span));
+	    };
+	  }
 
-  static final class HttpServerRequest extends brave.http.HttpServerRequest {
+	public Filter afterAfter() {
+	    return (request, response) -> {
+	      Span span = tracer.currentSpan();
+	      if (span == null) {
+			return;
+		}
+	      ((SpanInScope) request.attribute(SpanInScope.class.getName())).close();
+	      handler.handleSend(new HttpServerResponse(response, request.requestMethod()), null, span);
+	    };
+	  }
+
+	public ExceptionHandler exception(ExceptionHandler delegate) {
+	    return (error, request, response) -> {
+	      Span span = tracer.currentSpan();
+	      if (span != null) {
+	        ((SpanInScope) request.attribute(SpanInScope.class.getName())).close();
+	        handler.handleSend(new HttpServerResponse(response, request.requestMethod()), error, span);
+	      }
+	      delegate.handle(error, request, response);
+	    };
+	  }
+
+static final class HttpServerRequest extends brave.http.HttpServerRequest {
     final Request delegate;
 
     HttpServerRequest(Request delegate) {
@@ -94,7 +96,7 @@ public final class SparkTracing {
     @Override public String url() {
       String baseUrl = delegate.url();
       if (delegate.queryString() != null && !delegate.queryString().isEmpty()) {
-        return baseUrl + "?" + delegate.queryString();
+        return new StringBuilder().append(baseUrl).append("?").append(delegate.queryString()).toString();
       }
       return baseUrl;
     }

@@ -60,9 +60,13 @@ public abstract class HttpServerBenchmarks {
   }
 
   @TearDown(Level.Trial) public void close() throws Exception {
-    if (server != null) server.stop();
+    if (server != null) {
+		server.stop();
+	}
     client.dispatcher().executorService().shutdown();
-    if (Tracing.current() != null) Tracing.current().close();
+    if (Tracing.current() != null) {
+		Tracing.current().close();
+	}
   }
 
   protected int initServer() throws Exception {

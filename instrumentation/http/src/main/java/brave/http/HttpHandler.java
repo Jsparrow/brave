@@ -28,7 +28,9 @@ abstract class HttpHandler {
   }
 
   <Req> Span handleStart(HttpAdapter<Req, ?> adapter, Req request, Span span) {
-    if (span.isNoop()) return span;
+    if (span.isNoop()) {
+		return span;
+	}
     Scope ws = currentTraceContext.maybeScope(span.context());
     try {
       parseRequest(adapter, request, span);
@@ -51,7 +53,9 @@ abstract class HttpHandler {
 
   <Resp> void handleFinish(HttpAdapter<?, Resp> adapter, @Nullable Resp response,
     @Nullable Throwable error, Span span) {
-    if (span.isNoop()) return;
+    if (span.isNoop()) {
+		return;
+	}
     long finishTimestamp = response != null ? adapter.finishTimestamp(response) : 0L;
     try {
       Scope ws = currentTraceContext.maybeScope(span.context());

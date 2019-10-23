@@ -167,7 +167,7 @@ public class ExtraFieldPropagationTest {
   @Test public void inject_prefixed() {
     factory = ExtraFieldPropagation.newFactoryBuilder(B3Propagation.FACTORY)
       .addField("x-vcap-request-id")
-      .addPrefixedFields("baggage-", asList("country-code"))
+      .addPrefixedFields("baggage-", Collections.singletonList("country-code"))
       .build();
     initialize();
 
@@ -217,7 +217,7 @@ public class ExtraFieldPropagationTest {
   @Test public void extract_prefixed() {
     factory = ExtraFieldPropagation.newFactoryBuilder(B3Propagation.FACTORY)
       .addField("x-vcap-request-id")
-      .addPrefixedFields("baggage-", asList("country-code"))
+      .addPrefixedFields("baggage-", Collections.singletonList("country-code"))
       .build();
     initialize();
 
@@ -374,8 +374,8 @@ public class ExtraFieldPropagationTest {
   @Test public void deduplicates() {
     assertThat(ExtraFieldPropagation.newFactoryBuilder(B3SinglePropagation.FACTORY)
       .addField("country-code")
-      .addPrefixedFields("baggage-", asList("country-code"))
-      .addPrefixedFields("baggage_", asList("country-code"))
+      .addPrefixedFields("baggage-", Collections.singletonList("country-code"))
+      .addPrefixedFields("baggage_", Collections.singletonList("country-code"))
       .build())
       .usingRecursiveComparison().isEqualTo(
       ExtraFieldPropagation.newFactoryBuilder(B3SinglePropagation.FACTORY)

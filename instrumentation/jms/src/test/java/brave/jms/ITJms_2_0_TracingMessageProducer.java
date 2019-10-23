@@ -24,11 +24,15 @@ import org.junit.rules.TestName;
 import zipkin2.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** When adding tests here, also add to {@linkplain brave.jms.ITTracingJMSProducer} */
 public class ITJms_2_0_TracingMessageProducer extends ITJms_1_1_TracingMessageProducer {
 
-  @Override JmsTestRule newJmsTestRule(TestName testName) {
+  private static final Logger logger = LoggerFactory.getLogger(ITJms_2_0_TracingMessageProducer.class);
+
+@Override JmsTestRule newJmsTestRule(TestName testName) {
     return new ArtemisJmsTestRule(testName);
   }
 
@@ -77,6 +81,7 @@ public class ITJms_2_0_TracingMessageProducer extends ITJms_1_1_TracingMessagePr
           try {
             latch.await();
           } catch (InterruptedException e) {
+			logger.error(e.getMessage(), e);
           }
         }
 

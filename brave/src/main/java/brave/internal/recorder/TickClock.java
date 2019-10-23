@@ -29,9 +29,7 @@ final class TickClock implements Clock {
   }
 
   @Override public String toString() {
-    return "TickClock{"
-      + "baseEpochMicros=" + baseEpochMicros + ", "
-      + "baseTickNanos=" + baseTickNanos
-      + "}";
+    return new StringBuilder().append("TickClock{").append("baseEpochMicros=").append(baseEpochMicros).append(", ").append("baseTickNanos=").append(baseTickNanos).append("}")
+			.toString();
   }
 }

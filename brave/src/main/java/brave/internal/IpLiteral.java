@@ -17,8 +17,13 @@ package brave.internal;
 public final class IpLiteral {
 
   @Nullable public static String ipOrNull(@Nullable String ip) {
-    if (ip == null || ip.isEmpty()) return null;
-    if ("::1".equals(ip) || "127.0.0.1".equals(ip)) return ip; // special-case localhost
+    if (ip == null || ip.isEmpty()) {
+		return null;
+	}
+    if ("::1".equals(ip) || "127.0.0.1".equals(ip))
+	 {
+		return ip; // special-case localhost
+	}
     IpFamily format = detectFamily(ip);
     if (format == IpFamily.IPv4Embedded) {
       ip = ip.substring(ip.lastIndexOf(':') + 1);
@@ -26,14 +31,6 @@ public final class IpLiteral {
       ip = null;
     }
     return ip;
-  }
-
-  // All the below code is from zipkin2.Endpoint, copy/pasted here to prevent a depedency.
-  enum IpFamily {
-    Unknown,
-    IPv4,
-    IPv4Embedded,
-    IPv6
   }
 
   /**
@@ -48,7 +45,10 @@ public final class IpLiteral {
       if (c == '.') {
         hasDot = true;
       } else if (c == ':') {
-        if (hasDot) return IpFamily.Unknown; // Colons must not appear after dots.
+        if (hasDot)
+		 {
+			return IpFamily.Unknown; // Colons must not appear after dots.
+		}
         hasColon = true;
       } else if (notHex(c)) {
         return IpFamily.Unknown; // Everything else must be a decimal or hex digit.
@@ -70,7 +70,9 @@ public final class IpLiteral {
         }
         for (int i = 2; i < 6; i++) {
           char c = ipString.charAt(i);
-          if (c != 'f' && c != 'F' && c != '0') return IpFamily.Unknown;
+          if (c != 'f' && c != 'F' && c != '0') {
+			return IpFamily.Unknown;
+		}
         }
         return IpFamily.IPv4Embedded;
       }
@@ -81,11 +83,11 @@ public final class IpLiteral {
     return IpFamily.Unknown;
   }
 
-  private static boolean notHex(char c) {
+private static boolean notHex(char c) {
     return (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F');
   }
 
-  // Begin code from io.netty.util.NetUtil 4.1
+// Begin code from io.netty.util.NetUtil 4.1
   private static boolean isValidIpV4Address(String ip, int from, int toExcluded) {
     int len = toExcluded - from;
     int i;
@@ -96,10 +98,14 @@ public final class IpLiteral {
       isValidIpV4Word(ip, i + 1, toExcluded);
   }
 
-  private static boolean isValidIpV4Word(CharSequence word, int from, int toExclusive) {
+private static boolean isValidIpV4Word(CharSequence word, int from, int toExclusive) {
     int len = toExclusive - from;
-    char c0, c1, c2;
-    if (len < 1 || len > 3) return false;
+    char c0;
+	char c1;
+	char c2;
+    if (len < 1 || len > 3) {
+		return false;
+	}
     c0 = word.charAt(from);
     if (len == 3) {
       return (c1 = word.charAt(from + 1)) >= '0' &&
@@ -110,8 +116,16 @@ public final class IpLiteral {
     return c0 <= '9' && (len == 1 || isValidNumericChar(word.charAt(from + 1)));
   }
 
-  private static boolean isValidNumericChar(char c) {
+private static boolean isValidNumericChar(char c) {
     return c >= '0' && c <= '9';
   }
   // End code from io.netty.util.NetUtil 4.1
+
+// All the below code is from zipkin2.Endpoint, copy/pasted here to prevent a depedency.
+  enum IpFamily {
+    Unknown,
+    IPv4,
+    IPv4Embedded,
+    IPv6
+  }
 }

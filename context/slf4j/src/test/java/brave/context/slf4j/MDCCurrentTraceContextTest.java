@@ -28,12 +28,6 @@ public class MDCCurrentTraceContextTest extends CurrentTraceContextTest {
     return CurrentSupplier.class;
   }
 
-  static class CurrentSupplier implements Supplier<CurrentTraceContext> {
-    @Override public CurrentTraceContext get() {
-      return MDCCurrentTraceContext.create(CurrentTraceContext.Default.create());
-    }
-  }
-
   @Override protected void verifyImplicitContext(@Nullable TraceContext context) {
     if (context != null) {
       assertThat(MDC.get("traceId"))
@@ -53,6 +47,12 @@ public class MDCCurrentTraceContextTest extends CurrentTraceContextTest {
         .isNull();
       assertThat(MDC.get("sampled"))
         .isNull();
+    }
+  }
+
+static class CurrentSupplier implements Supplier<CurrentTraceContext> {
+    @Override public CurrentTraceContext get() {
+      return MDCCurrentTraceContext.create(CurrentTraceContext.Default.create());
     }
   }
 }

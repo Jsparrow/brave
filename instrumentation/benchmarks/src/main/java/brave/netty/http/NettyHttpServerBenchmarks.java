@@ -51,7 +51,50 @@ public class NettyHttpServerBenchmarks extends HttpServerBenchmarks {
   @Override protected void init(DeploymentInfo servletBuilder) {
   }
 
-  // NOTE: if the tracing server handler starts to override more methods, this needs to be updated
+  @Override protected int initServer() throws InterruptedException {
+    bossGroup = new NioEventLoopGroup(1);
+    workerGroup = new NioEventLoopGroup();
+
+    ServerBootstrap b = new ServerBootstrap();
+    b.option(ChannelOption.SO_BACKLOG, 1024);
+    b.group(bossGroup, workerGroup)
+      .channel(NioServerSocketChannel.class)
+      .childHandler(new ChannelInitializer<Channel>() {
+        @Override
+        protected void initChannel(final Channel ch) throws Exception {
+          ChannelPipeline p = ch.pipeline();
+          p.addLast(new HttpServerCodec());
+          p.addLast(new TracingDispatchHandler());
+          p.addLast(new HelloWorldHandler());
+        }
+      });
+
+    Channel ch = b.bind(0).sync().channel();
+    return ((InetSocketAddress) ch.localAddress()).getPort();
+  }
+
+@TearDown(Level.Trial) public void closeNetty() throws Exception {
+    if (bossGroup != null) {
+		bossGroup.shutdownGracefully();
+	}
+    if (workerGroup != null) {
+		workerGroup.shutdownGracefully();
+	}
+  }
+
+// Convenience main entry-point
+  public static void main(String[] args) throws RunnerException, InterruptedException {
+    //System.out.println(new NettyHttpServerBenchmarks().initServer());
+    //
+    //Thread.sleep(10 * 1000 * 60);
+    Options opt = new OptionsBuilder()
+      .include(new StringBuilder().append(".*").append(NettyHttpServerBenchmarks.class.getSimpleName()).append(".*").toString())
+      .build();
+
+    new Runner(opt).run();
+  }
+
+// NOTE: if the tracing server handler starts to override more methods, this needs to be updated
   static class TracingDispatchHandler extends ChannelDuplexHandler {
     static final AttributeKey<String> URI_ATTRIBUTE = AttributeKey.valueOf("uri");
 
@@ -116,44 +159,5 @@ public class NettyHttpServerBenchmarks extends HttpServerBenchmarks {
         ctx.write(msg, prm);
       }
     }
-  }
-
-  @Override protected int initServer() throws InterruptedException {
-    bossGroup = new NioEventLoopGroup(1);
-    workerGroup = new NioEventLoopGroup();
-
-    ServerBootstrap b = new ServerBootstrap();
-    b.option(ChannelOption.SO_BACKLOG, 1024);
-    b.group(bossGroup, workerGroup)
-      .channel(NioServerSocketChannel.class)
-      .childHandler(new ChannelInitializer<Channel>() {
-        @Override
-        protected void initChannel(final Channel ch) throws Exception {
-          ChannelPipeline p = ch.pipeline();
-          p.addLast(new HttpServerCodec());
-          p.addLast(new TracingDispatchHandler());
-          p.addLast(new HelloWorldHandler());
-        }
-      });
-
-    Channel ch = b.bind(0).sync().channel();
-    return ((InetSocketAddress) ch.localAddress()).getPort();
-  }
-
-  @TearDown(Level.Trial) public void closeNetty() throws Exception {
-    if (bossGroup != null) bossGroup.shutdownGracefully();
-    if (workerGroup != null) workerGroup.shutdownGracefully();
-  }
-
-  // Convenience main entry-point
-  public static void main(String[] args) throws RunnerException, InterruptedException {
-    //System.out.println(new NettyHttpServerBenchmarks().initServer());
-    //
-    //Thread.sleep(10 * 1000 * 60);
-    Options opt = new OptionsBuilder()
-      .include(".*" + NettyHttpServerBenchmarks.class.getSimpleName() + ".*")
-      .build();
-
-    new Runner(opt).run();
   }
 }

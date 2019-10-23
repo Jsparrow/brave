@@ -46,7 +46,9 @@ public class ITTracingStatementInterceptor {
     url.append(envOr("MYSQL_HOST", "127.0.0.1"));
     url.append(":").append(envOr("MYSQL_TCP_PORT", 3306));
     String db = envOr("MYSQL_DB", null);
-    if (db != null) url.append("/").append(db);
+    if (db != null) {
+		url.append("/").append(db);
+	}
     url.append("?statementInterceptors=").append(TracingStatementInterceptor.class.getName());
     url.append("&zipkinServiceName=").append("myservice");
 
@@ -63,7 +65,9 @@ public class ITTracingStatementInterceptor {
 
   @After public void close() throws SQLException {
     Tracing.current().close();
-    if (connection != null) connection.close();
+    if (connection != null) {
+		connection.close();
+	}
   }
 
   @Test

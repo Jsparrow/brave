@@ -70,7 +70,8 @@ public class ITTracingJMSConsumer extends JmsTest {
 
     send.run();
 
-    Span consumerSpan = takeSpan(), listenerSpan = takeSpan();
+    Span consumerSpan = takeSpan();
+	Span listenerSpan = takeSpan();
 
     assertThat(consumerSpan.name()).isEqualTo("receive");
     assertThat(consumerSpan.parentId()).isNull(); // root span
@@ -103,10 +104,11 @@ public class ITTracingJMSConsumer extends JmsTest {
     });
 
     String parentId = "463ac35c9f6413ad";
-    producer.setProperty("b3", parentId + "-" + parentId + "-1");
+    producer.setProperty("b3", new StringBuilder().append(parentId).append("-").append(parentId).append("-1").toString());
     send.run();
 
-    Span consumerSpan = takeSpan(), listenerSpan = takeSpan();
+    Span consumerSpan = takeSpan();
+	Span listenerSpan = takeSpan();
     assertThat(consumerSpan.parentId()).isEqualTo(parentId);
     assertThat(listenerSpan.parentId()).isEqualTo(consumerSpan.id());
     assertThat(listenerSpan.tags())
@@ -142,7 +144,7 @@ public class ITTracingJMSConsumer extends JmsTest {
 
   void receiveResumesTrace(Runnable send) throws InterruptedException, JMSException {
     String parentId = "463ac35c9f6413ad";
-    producer.setProperty("b3", parentId + "-" + parentId + "-1");
+    producer.setProperty("b3", new StringBuilder().append(parentId).append("-").append(parentId).append("-1").toString());
     send.run();
 
     Message received = consumer.receive();
@@ -150,6 +152,6 @@ public class ITTracingJMSConsumer extends JmsTest {
     assertThat(consumerSpan.parentId()).isEqualTo(parentId);
 
     assertThat(received.getStringProperty("b3"))
-      .isEqualTo(parentId + "-" + consumerSpan.id() + "-1");
+      .isEqualTo(new StringBuilder().append(parentId).append("-").append(consumerSpan.id()).append("-1").toString());
   }
 }

@@ -70,7 +70,8 @@ public class TracingTest {
   }
 
   @Test public void spanReporter_getsLocalEndpointInfo() {
-    String expectedLocalServiceName = "favistar", expectedLocalIp = "1.2.3.4";
+    String expectedLocalServiceName = "favistar";
+	String expectedLocalIp = "1.2.3.4";
     int expectedLocalPort = 80;
 
     List<Span> zipkinSpans = new ArrayList<>();
@@ -261,7 +262,9 @@ public class TracingTest {
         }
 
         @Override public TraceContext decorate(TraceContext context) {
-          if (sampledLocal.getAndSet(true)) return context;
+          if (sampledLocal.getAndSet(true)) {
+			return context;
+		}
           return context.toBuilder().sampledLocal(true).build();
         }
       })

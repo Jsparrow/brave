@@ -17,6 +17,8 @@ import brave.http.HttpTracing;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.method.HandlerMethod;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * Access to Spring WebMvc version-specific features
@@ -24,26 +26,28 @@ import org.springframework.web.method.HandlerMethod;
  * <p>Originally designed by OkHttp team, derived from {@code okhttp3.internal.platform.Platform}
  */
 abstract class WebMvcRuntime {
-  private static final WebMvcRuntime WEBMVC_RUNTIME = findWebMvcRuntime();
-
-  abstract HttpTracing httpTracing(ApplicationContext ctx);
-
-  abstract boolean isHandlerMethod(Object handler);
+  private static final Logger logger = LogManager.getLogger(WebMvcRuntime.class);
+private static final WebMvcRuntime WEBMVC_RUNTIME = findWebMvcRuntime();
 
   WebMvcRuntime() {
   }
 
-  static WebMvcRuntime get() {
+abstract HttpTracing httpTracing(ApplicationContext ctx);
+
+abstract boolean isHandlerMethod(Object handler);
+
+static WebMvcRuntime get() {
     return WEBMVC_RUNTIME;
   }
 
-  /** Attempt to match the host runtime to a capable Platform implementation. */
+/** Attempt to match the host runtime to a capable Platform implementation. */
   static WebMvcRuntime findWebMvcRuntime() {
     // Find spring-webmvc v3.1 new methods
     try {
       Class.forName("org.springframework.web.method.HandlerMethod");
       return new WebMvc31(); // intentionally doesn't not access the type prior to the above guard
     } catch (ClassNotFoundException e) {
+		logger.error(e.getMessage(), e);
       // pre spring-webmvc v3.1
     }
 
@@ -51,7 +55,7 @@ abstract class WebMvcRuntime {
     return new WebMvc25();
   }
 
-  static final class WebMvc31 extends WebMvcRuntime {
+static final class WebMvc31 extends WebMvcRuntime {
     @Override HttpTracing httpTracing(ApplicationContext ctx) {
       return ctx.getBean(HttpTracing.class);
     }
@@ -66,7 +70,9 @@ abstract class WebMvcRuntime {
       // Spring 2.5 does not have a get bean by type interface. To remain compatible, lookup by name
       if (ctx.containsBean("httpTracing")) {
         Object bean = ctx.getBean("httpTracing");
-        if (bean instanceof HttpTracing) return (HttpTracing) bean;
+        if (bean instanceof HttpTracing) {
+			return (HttpTracing) bean;
+		}
       }
       throw new NoSuchBeanDefinitionException(HttpTracing.class, "httpTracing");
     }

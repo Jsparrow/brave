@@ -26,6 +26,8 @@ import java.net.URI;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 /**
  * A MySQL query interceptor that will report to Zipkin how long each query takes.
@@ -37,7 +39,11 @@ import java.util.function.Supplier;
  */
 public class TracingQueryInterceptor implements QueryInterceptor {
 
-  /**
+  private static final Logger logger = LogManager.getLogger(TracingQueryInterceptor.class);
+private MysqlConnection connection;
+private boolean interceptingExceptions;
+
+/**
    * Uses {@link ThreadLocalSpan} as there's no attribute namespace shared between callbacks, but
    * all callbacks happen on the same thread.
    *
@@ -48,7 +54,9 @@ public class TracingQueryInterceptor implements QueryInterceptor {
   public <T extends Resultset> T preProcess(Supplier<String> sqlSupplier, Query interceptedQuery) {
     // Gets the next span (and places it in scope) so code between here and postProcess can read it
     Span span = ThreadLocalSpan.CURRENT_TRACER.next();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     String sql = sqlSupplier.get();
     int spaceIndex = sql.indexOf(' '); // Allow span names of single-word statements like COMMIT
@@ -59,10 +67,7 @@ public class TracingQueryInterceptor implements QueryInterceptor {
     return null;
   }
 
-  private MysqlConnection connection;
-  private boolean interceptingExceptions;
-
-  @Override
+@Override
   public <T extends Resultset> T postProcess(Supplier<String> sql, Query interceptedQuery,
     T originalResultSet, ServerSession serverSession) {
     if (interceptingExceptions && originalResultSet == null) {
@@ -70,14 +75,16 @@ public class TracingQueryInterceptor implements QueryInterceptor {
       return null;
     }
     Span span = ThreadLocalSpan.CURRENT_TRACER.remove();
-    if (span == null || span.isNoop()) return null;
+    if (span == null || span.isNoop()) {
+		return null;
+	}
 
     span.finish();
 
     return null;
   }
 
-  /**
+/**
    * MySQL exposes the host connecting to, but not the port. This attempts to get the port from the
    * JDBC URL. Ex. 5555 from {@code jdbc:mysql://localhost:5555/database}, or 3306 if absent.
    */
@@ -99,28 +106,31 @@ public class TracingQueryInterceptor implements QueryInterceptor {
         span.remoteIpAndPort(host, url.getPort() == -1 ? 3306 : url.getPort());
       }
     } catch (Exception e) {
+		logger.error(e.getMessage(), e);
       // remote address is optional
     }
   }
 
-  private static String getDatabaseName(MysqlConnection connection) throws SQLException {
+private static String getDatabaseName(MysqlConnection connection) throws SQLException {
     if (connection instanceof JdbcConnection) {
       return ((JdbcConnection) connection).getCatalog();
     }
     return "";
   }
 
-  private static String getHost(MysqlConnection connection) {
-    if (!(connection instanceof JdbcConnection)) return null;
+private static String getHost(MysqlConnection connection) {
+    if (!(connection instanceof JdbcConnection)) {
+		return null;
+	}
     return ((JdbcConnection) connection).getHost();
   }
 
-  @Override
+@Override
   public boolean executeTopLevelOnly() {
     return true;  // True means that we don't get notified about queries that other interceptors issue
   }
 
-  @Override
+@Override
   public QueryInterceptor init(MysqlConnection mysqlConnection, Properties properties,
     Log log) {
     String exceptionInterceptors = properties.getProperty("exceptionInterceptors");
@@ -135,7 +145,7 @@ public class TracingQueryInterceptor implements QueryInterceptor {
     return interceptor;
   }
 
-  @Override
+@Override
   public void destroy() {
     // Don't care
   }

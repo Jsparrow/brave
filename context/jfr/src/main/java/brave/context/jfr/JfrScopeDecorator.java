@@ -40,40 +40,42 @@ import jdk.jfr.Label;
  */
 public final class JfrScopeDecorator implements ScopeDecorator {
 
-  @Category("Zipkin")
+  JfrScopeDecorator() {
+	  }
+
+	public static ScopeDecorator create() {
+	    return new JfrScopeDecorator();
+	  }
+
+	@Override public Scope decorateScope(@Nullable TraceContext currentSpan, Scope scope) {
+	    ScopeEvent event = new ScopeEvent();
+	    if (!event.isEnabled()) {
+			return scope;
+		}
+	
+	    if (currentSpan != null) {
+	      event.traceId = currentSpan.traceIdString();
+	      event.parentId = currentSpan.parentIdString();
+	      event.spanId = currentSpan.spanIdString();
+	    }
+	
+	    event.begin();
+	
+	    class JfrCurrentTraceContextScope implements Scope {
+	      @Override public void close() {
+	        scope.close();
+	        event.commit();
+	      }
+	    }
+	    return new JfrCurrentTraceContextScope();
+	  }
+
+@Category("Zipkin")
   @Label("Scope")
   @Description("Zipkin event representing a span being placed in scope")
   static final class ScopeEvent extends Event {
     @Label("Trace Id") String traceId;
     @Label("Parent Id") String parentId;
     @Label("Span Id") String spanId;
-  }
-
-  public static ScopeDecorator create() {
-    return new JfrScopeDecorator();
-  }
-
-  @Override public Scope decorateScope(@Nullable TraceContext currentSpan, Scope scope) {
-    ScopeEvent event = new ScopeEvent();
-    if (!event.isEnabled()) return scope;
-
-    if (currentSpan != null) {
-      event.traceId = currentSpan.traceIdString();
-      event.parentId = currentSpan.parentIdString();
-      event.spanId = currentSpan.spanIdString();
-    }
-
-    event.begin();
-
-    class JfrCurrentTraceContextScope implements Scope {
-      @Override public void close() {
-        scope.close();
-        event.commit();
-      }
-    }
-    return new JfrCurrentTraceContextScope();
-  }
-
-  JfrScopeDecorator() {
   }
 }

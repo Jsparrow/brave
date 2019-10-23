@@ -31,37 +31,37 @@ import org.springframework.util.concurrent.ListenableFutureCallback;
 public final class TracingAsyncClientHttpRequestInterceptor
   implements AsyncClientHttpRequestInterceptor {
 
-  public static AsyncClientHttpRequestInterceptor create(Tracing tracing) {
-    return create(HttpTracing.create(tracing));
-  }
-
-  public static AsyncClientHttpRequestInterceptor create(HttpTracing httpTracing) {
-    return new TracingAsyncClientHttpRequestInterceptor(httpTracing);
-  }
-
   final Tracer tracer;
-  final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
+	final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
 
-  @Autowired TracingAsyncClientHttpRequestInterceptor(HttpTracing httpTracing) {
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpClientHandler.create(httpTracing);
-  }
+	@Autowired TracingAsyncClientHttpRequestInterceptor(HttpTracing httpTracing) {
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpClientHandler.create(httpTracing);
+	  }
 
-  @Override public ListenableFuture<ClientHttpResponse> intercept(HttpRequest request,
-    byte[] body, AsyncClientHttpRequestExecution execution) throws IOException {
-    Span span =
-      handler.handleSend(new TracingClientHttpRequestInterceptor.HttpClientRequest(request));
-    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
-      ListenableFuture<ClientHttpResponse> result = execution.executeAsync(request, body);
-      result.addCallback(new TraceListenableFutureCallback(span, handler));
-      return result;
-    } catch (IOException | RuntimeException | Error e) {
-      handler.handleReceive(null, e, span);
-      throw e;
-    }
-  }
+	public static AsyncClientHttpRequestInterceptor create(Tracing tracing) {
+	    return create(HttpTracing.create(tracing));
+	  }
 
-  static final class TraceListenableFutureCallback
+	public static AsyncClientHttpRequestInterceptor create(HttpTracing httpTracing) {
+	    return new TracingAsyncClientHttpRequestInterceptor(httpTracing);
+	  }
+
+	@Override public ListenableFuture<ClientHttpResponse> intercept(HttpRequest request,
+	    byte[] body, AsyncClientHttpRequestExecution execution) throws IOException {
+	    Span span =
+	      handler.handleSend(new TracingClientHttpRequestInterceptor.HttpClientRequest(request));
+	    try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+	      ListenableFuture<ClientHttpResponse> result = execution.executeAsync(request, body);
+	      result.addCallback(new TraceListenableFutureCallback(span, handler));
+	      return result;
+	    } catch (IOException | RuntimeException | Error e) {
+	      handler.handleReceive(null, e, span);
+	      throw e;
+	    }
+	  }
+
+static final class TraceListenableFutureCallback
     implements ListenableFutureCallback<ClientHttpResponse> {
     final Span span;
     final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;

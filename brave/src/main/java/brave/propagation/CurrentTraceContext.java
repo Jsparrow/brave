@@ -42,28 +42,20 @@ public abstract class CurrentTraceContext {
     SamplingFlags.DEBUG.toString();
   }
 
-  /** Implementations of this allow standardized configuration, for example scope decoration. */
-  public abstract static class Builder {
-    ArrayList<ScopeDecorator> scopeDecorators = new ArrayList<>();
+final List<ScopeDecorator> scopeDecorators;
 
-    /**
-     * Implementations call decorators in order to add features like log correlation to a scope.
-     *
-     * @since 5.2
-     */
-    public Builder addScopeDecorator(ScopeDecorator scopeDecorator) {
-      if (scopeDecorator == null) throw new NullPointerException("scopeDecorator == null");
-      this.scopeDecorators.add(scopeDecorator);
-      return this;
-    }
-
-    public abstract CurrentTraceContext build();
+protected CurrentTraceContext() {
+    this.scopeDecorators = Collections.emptyList();
   }
 
-  /** Returns the current span in scope or null if there isn't one. */
+protected CurrentTraceContext(Builder builder) {
+    this.scopeDecorators = new ArrayList<>(builder.scopeDecorators);
+  }
+
+/** Returns the current span in scope or null if there isn't one. */
   public abstract @Nullable TraceContext get();
 
-  /**
+/**
    * Sets the current span in scope until the returned object is closed. It is a programming error
    * to drop or never close the result. Using try-with-resources is preferred for this reason.
    *
@@ -71,17 +63,7 @@ public abstract class CurrentTraceContext {
    */
   public abstract Scope newScope(@Nullable TraceContext currentSpan);
 
-  final List<ScopeDecorator> scopeDecorators;
-
-  protected CurrentTraceContext() {
-    this.scopeDecorators = Collections.emptyList();
-  }
-
-  protected CurrentTraceContext(Builder builder) {
-    this.scopeDecorators = new ArrayList<>(builder.scopeDecorators);
-  }
-
-  /**
+/**
    * When implementing {@linkplain #newScope(TraceContext)}, decorate the result before returning
    * it.
    *
@@ -109,7 +91,7 @@ public abstract class CurrentTraceContext {
     return scope;
   }
 
-  /**
+/**
    * Like {@link #newScope(TraceContext)}, except returns {@link Scope#NOOP} if the given context is
    * already in scope. This can reduce overhead when scoping callbacks. However, this will not apply
    * any changes, notably in {@link TraceContext#extra()}. As such, it should be used carefully and
@@ -137,11 +119,99 @@ public abstract class CurrentTraceContext {
    */
   public Scope maybeScope(@Nullable TraceContext currentSpan) {
     TraceContext currentScope = get();
-    if (currentSpan == null) {
-      if (currentScope == null) return Scope.NOOP;
-      return newScope(null);
+    if (currentSpan != null) {
+		return currentSpan.equals(currentScope) ? Scope.NOOP : newScope(currentSpan);
+	}
+	if (currentScope == null) {
+		return Scope.NOOP;
+	}
+	return newScope(null);
+  }
+
+/** Wraps the input so that it executes with the same context as now. */
+  public <C> Callable<C> wrap(Callable<C> task) {
+    final TraceContext invocationContext = get();
+    class CurrentTraceContextCallable implements Callable<C> {
+      @Override public C call() throws Exception {
+        try (Scope scope = maybeScope(invocationContext)) {
+          return task.call();
+        }
+      }
     }
-    return currentSpan.equals(currentScope) ? Scope.NOOP : newScope(currentSpan);
+    return new CurrentTraceContextCallable();
+  }
+
+/** Wraps the input so that it executes with the same context as now. */
+  // TODO: here and elsewhere consider a volatile reference. When the invocation context equals an
+  // existing wrapped context, it isn't necessarily the same as fields in context.extra may be
+  // different and equals does not consider extra. For example, if a new propagation field has been
+  // added, this should be considered. Doing so via a reference swap could be a lot cheaper than
+  // re-wrapping and achieve the same goal.
+  public Runnable wrap(Runnable task) {
+    final TraceContext invocationContext = get();
+    class CurrentTraceContextRunnable implements Runnable {
+      @Override public void run() {
+        try (Scope scope = maybeScope(invocationContext)) {
+          task.run();
+        }
+      }
+    }
+    return new CurrentTraceContextRunnable();
+  }
+
+/**
+   * Decorates the input such that the {@link #get() current trace context} at the time a task is
+   * scheduled is made current when the task is executed.
+   */
+  public Executor executor(Executor delegate) {
+    class CurrentTraceContextExecutor implements Executor {
+      @Override public void execute(Runnable task) {
+        delegate.execute(CurrentTraceContext.this.wrap(task));
+      }
+    }
+    return new CurrentTraceContextExecutor();
+  }
+
+/**
+   * Decorates the input such that the {@link #get() current trace context} at the time a task is
+   * scheduled is made current when the task is executed.
+   */
+  public ExecutorService executorService(ExecutorService delegate) {
+    class CurrentTraceContextExecutorService extends brave.internal.WrappingExecutorService {
+
+      @Override protected ExecutorService delegate() {
+        return delegate;
+      }
+
+      @Override protected <C> Callable<C> wrap(Callable<C> task) {
+        return CurrentTraceContext.this.wrap(task);
+      }
+
+      @Override protected Runnable wrap(Runnable task) {
+        return CurrentTraceContext.this.wrap(task);
+      }
+    }
+    return new CurrentTraceContextExecutorService();
+  }
+
+  /** Implementations of this allow standardized configuration, for example scope decoration. */
+  public abstract static class Builder {
+    ArrayList<ScopeDecorator> scopeDecorators = new ArrayList<>();
+
+    /**
+     * Implementations call decorators in order to add features like log correlation to a scope.
+     *
+     * @since 5.2
+     */
+    public Builder addScopeDecorator(ScopeDecorator scopeDecorator) {
+      if (scopeDecorator == null) {
+		throw new NullPointerException("scopeDecorator == null");
+	}
+      this.scopeDecorators.add(scopeDecorator);
+      return this;
+    }
+
+    public abstract CurrentTraceContext build();
   }
 
   /** A span remains in the scope it was bound to until close is called. */
@@ -196,12 +266,16 @@ public abstract class CurrentTraceContext {
     // Inheritable as Brave 3's ThreadLocalServerClientAndLocalSpanState was inheritable
     static final InheritableThreadLocal<TraceContext> INHERITABLE = new InheritableThreadLocal<>();
 
-    /** Uses a non-inheritable static thread local */
+    Default() {
+      super(new Builder(), INHERITABLE);
+    }
+
+	/** Uses a non-inheritable static thread local */
     public static CurrentTraceContext create() {
       return new ThreadLocalCurrentTraceContext(new Builder(), DEFAULT);
     }
 
-    /**
+	/**
      * Uses an inheritable static thread local which allows arbitrary calls to {@link
      * Thread#start()} to automatically inherit this context. This feature is available as it is was
      * the default in Brave 3, because some users couldn't control threads in their applications.
@@ -213,75 +287,5 @@ public abstract class CurrentTraceContext {
     public static CurrentTraceContext inheritable() {
       return new Default();
     }
-
-    Default() {
-      super(new Builder(), INHERITABLE);
-    }
-  }
-
-  /** Wraps the input so that it executes with the same context as now. */
-  public <C> Callable<C> wrap(Callable<C> task) {
-    final TraceContext invocationContext = get();
-    class CurrentTraceContextCallable implements Callable<C> {
-      @Override public C call() throws Exception {
-        try (Scope scope = maybeScope(invocationContext)) {
-          return task.call();
-        }
-      }
-    }
-    return new CurrentTraceContextCallable();
-  }
-
-  /** Wraps the input so that it executes with the same context as now. */
-  // TODO: here and elsewhere consider a volatile reference. When the invocation context equals an
-  // existing wrapped context, it isn't necessarily the same as fields in context.extra may be
-  // different and equals does not consider extra. For example, if a new propagation field has been
-  // added, this should be considered. Doing so via a reference swap could be a lot cheaper than
-  // re-wrapping and achieve the same goal.
-  public Runnable wrap(Runnable task) {
-    final TraceContext invocationContext = get();
-    class CurrentTraceContextRunnable implements Runnable {
-      @Override public void run() {
-        try (Scope scope = maybeScope(invocationContext)) {
-          task.run();
-        }
-      }
-    }
-    return new CurrentTraceContextRunnable();
-  }
-
-  /**
-   * Decorates the input such that the {@link #get() current trace context} at the time a task is
-   * scheduled is made current when the task is executed.
-   */
-  public Executor executor(Executor delegate) {
-    class CurrentTraceContextExecutor implements Executor {
-      @Override public void execute(Runnable task) {
-        delegate.execute(CurrentTraceContext.this.wrap(task));
-      }
-    }
-    return new CurrentTraceContextExecutor();
-  }
-
-  /**
-   * Decorates the input such that the {@link #get() current trace context} at the time a task is
-   * scheduled is made current when the task is executed.
-   */
-  public ExecutorService executorService(ExecutorService delegate) {
-    class CurrentTraceContextExecutorService extends brave.internal.WrappingExecutorService {
-
-      @Override protected ExecutorService delegate() {
-        return delegate;
-      }
-
-      @Override protected <C> Callable<C> wrap(Callable<C> task) {
-        return CurrentTraceContext.this.wrap(task);
-      }
-
-      @Override protected Runnable wrap(Runnable task) {
-        return CurrentTraceContext.this.wrap(task);
-      }
-    }
-    return new CurrentTraceContextExecutorService();
   }
 }

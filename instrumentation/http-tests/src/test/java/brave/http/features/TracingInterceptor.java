@@ -78,7 +78,9 @@ final class TracingInterceptor implements Interceptor {
     }
 
     @Override public void header(String name, String value) {
-      if (builder == null) builder = delegate.newBuilder();
+      if (builder == null) {
+		builder = delegate.newBuilder();
+	}
       builder.header(name, value);
     }
 

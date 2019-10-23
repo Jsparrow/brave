@@ -56,7 +56,8 @@ public final class TracingFilter implements Filter {
   Tracer tracer;
   TraceContext.Extractor<DubboServerRequest> extractor;
   TraceContext.Injector<DubboClientRequest> injector;
-  SamplerFunction<RpcRequest> clientSampler = deferDecision(), serverSampler = deferDecision();
+  SamplerFunction<RpcRequest> clientSampler = deferDecision();
+SamplerFunction<RpcRequest> serverSampler = deferDecision();
   volatile boolean isInit = false;
 
   /**
@@ -78,7 +79,9 @@ public final class TracingFilter implements Filter {
    * be injected.
    */
   public void setRpcTracing(RpcTracing rpcTracing) {
-    if (rpcTracing == null) throw new NullPointerException("rpcTracing == null");
+    if (rpcTracing == null) {
+		throw new NullPointerException("rpcTracing == null");
+	}
     tracer = rpcTracing.tracing().tracer();
     extractor = rpcTracing.tracing().propagation().extractor(GETTER);
     injector = rpcTracing.tracing().propagation().injector(SETTER);
@@ -87,13 +90,19 @@ public final class TracingFilter implements Filter {
     isInit = true;
   }
 
-  @Override public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
-    if (!isInit) return invoker.invoke(invocation);
+  @Override public Result invoke(Invoker<?> invoker, Invocation invocation) {
+    if (!isInit) {
+		return invoker.invoke(invocation);
+	}
 
     RpcContext rpcContext = RpcContext.getContext();
     Kind kind = rpcContext.isProviderSide() ? Kind.SERVER : Kind.CLIENT;
     final Span span;
-    if (kind.equals(Kind.CLIENT)) {
+    // When A service invoke B service, then B service then invoke C service, the parentId of the
+	// C service span is A when read from invocation.getAttachments(). This is because
+	// AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
+	// See com.alibaba.dubbo.rpc.protocol.AbstractInvoker(line 138) from v2.6.7
+	if (kind == Kind.CLIENT) {
       // When A service invoke B service, then B service then invoke C service, the parentId of the
       // C service span is A when read from invocation.getAttachments(). This is because
       // AbstractInvoker adds attachments via RpcContext.getContext(), not the invocation.
@@ -111,12 +120,13 @@ public final class TracingFilter implements Filter {
       span.kind(kind);
       String service = invoker.getInterface().getSimpleName();
       String method = RpcUtils.getMethodName(invocation);
-      span.name(service + "/" + method);
+      span.name(new StringBuilder().append(service).append("/").append(method).toString());
       parseRemoteAddress(rpcContext, span);
       span.start();
     }
 
-    boolean isOneway = false, deferFinish = false;
+    boolean isOneway = false;
+	boolean deferFinish = false;
     try (CurrentTraceContext.Scope scope = current.newScope(span.context())) {
       Result result = invoker.invoke(invocation);
       isOneway = RpcUtils.isOneway(invoker.getUrl(), invocation);
@@ -152,7 +162,9 @@ public final class TracingFilter implements Filter {
 
   boolean ensureSpanFinishes(RpcContext rpcContext, Span span, Result result) {
     boolean deferFinish = false;
-    if (result.hasException()) onError(result.getException(), span);
+    if (result.hasException()) {
+		onError(result.getException(), span);
+	}
     Future<Object> future = rpcContext.getFuture(); // the case on async client invocation
     if (future instanceof FutureAdapter) {
       deferFinish = true;
@@ -167,7 +179,9 @@ public final class TracingFilter implements Filter {
 
   static void parseRemoteAddress(RpcContext rpcContext, Span span) {
     InetSocketAddress remoteAddress = rpcContext.getRemoteAddress();
-    if (remoteAddress == null) return;
+    if (remoteAddress == null) {
+		return;
+	}
     span.remoteIpAndPort(Platform.get().getHostString(remoteAddress), remoteAddress.getPort());
   }
 

@@ -43,36 +43,40 @@ import static javax.ws.rs.RuntimeType.CLIENT;
 // Public to allow this to be used in conjunction with jersey-server instrumentation, without also
 // registering TracingContainerFilter (which would lead to redundant spans).
 public final class TracingClientFilter implements ClientRequestFilter, ClientResponseFilter {
-  public static TracingClientFilter create(Tracing tracing) {
-    return new TracingClientFilter(HttpTracing.create(tracing));
-  }
-
-  public static TracingClientFilter create(HttpTracing httpTracing) {
-    return new TracingClientFilter(httpTracing);
-  }
-
   final Tracer tracer;
-  final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
+	final HttpClientHandler<brave.http.HttpClientRequest, brave.http.HttpClientResponse> handler;
 
-  @Inject TracingClientFilter(HttpTracing httpTracing) {
-    if (httpTracing == null) throw new NullPointerException("HttpTracing == null");
-    tracer = httpTracing.tracing().tracer();
-    handler = HttpClientHandler.create(httpTracing);
-  }
+	@Inject TracingClientFilter(HttpTracing httpTracing) {
+	    if (httpTracing == null) {
+			throw new NullPointerException("HttpTracing == null");
+		}
+	    tracer = httpTracing.tracing().tracer();
+	    handler = HttpClientHandler.create(httpTracing);
+	  }
 
-  @Override public void filter(ClientRequestContext request) {
-    Span span = handler.handleSend(new HttpClientRequest(request));
-    request.setProperty(SpanInScope.class.getName(), tracer.withSpanInScope(span));
-  }
+	public static TracingClientFilter create(Tracing tracing) {
+	    return new TracingClientFilter(HttpTracing.create(tracing));
+	  }
 
-  @Override public void filter(ClientRequestContext request, ClientResponseContext response) {
-    Span span = tracer.currentSpan();
-    if (span == null) return;
-    ((SpanInScope) request.getProperty(SpanInScope.class.getName())).close();
-    handler.handleReceive(new HttpClientResponse(response), null, span);
-  }
+	public static TracingClientFilter create(HttpTracing httpTracing) {
+	    return new TracingClientFilter(httpTracing);
+	  }
 
-  static final class HttpClientRequest extends brave.http.HttpClientRequest {
+	@Override public void filter(ClientRequestContext request) {
+	    Span span = handler.handleSend(new HttpClientRequest(request));
+	    request.setProperty(SpanInScope.class.getName(), tracer.withSpanInScope(span));
+	  }
+
+	@Override public void filter(ClientRequestContext request, ClientResponseContext response) {
+	    Span span = tracer.currentSpan();
+	    if (span == null) {
+			return;
+		}
+	    ((SpanInScope) request.getProperty(SpanInScope.class.getName())).close();
+	    handler.handleReceive(new HttpClientResponse(response), null, span);
+	  }
+
+static final class HttpClientRequest extends brave.http.HttpClientRequest {
     final ClientRequestContext delegate;
 
     HttpClientRequest(ClientRequestContext delegate) {

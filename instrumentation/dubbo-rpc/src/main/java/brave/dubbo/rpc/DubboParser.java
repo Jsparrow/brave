@@ -46,9 +46,13 @@ final class DubboParser {
    */
   static @Nullable String service(Invocation invocation) {
     Invoker<?> invoker = invocation.getInvoker();
-    if (invoker == null) return null;
+    if (invoker == null) {
+		return null;
+	}
     URL url = invoker.getUrl();
-    if (url == null) return null;
+    if (url == null) {
+		return null;
+	}
     String service = url.getServiceInterface();
     return service != null && !service.isEmpty() ? service : null;
   }
